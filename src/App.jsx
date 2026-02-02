@@ -109,7 +109,7 @@ function App() {
       {/* Header */}
       <header>
         <div className="brand" onClick={() => setView('shop')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-          <img src="/images/logo.png" alt="Sky 5 Kitchen" style={{ height: '45px', marginRight: '10px' }} />
+          <img src="/images/logo_new.png" alt="Sky 5 Kitchen" style={{ height: '45px', marginRight: '10px' }} />
           <span>Sky 5 Kitchen</span>
         </div>
         <div className="header-actions" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -251,8 +251,10 @@ function App() {
             </div>
           </div>
 
+
+
           {/* Business Targets & Goals (From Notes) */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '30px' }}>
             <div className="dashboard-section" style={{ background: '#fff', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', marginBottom: '0' }}>
               <h3 style={{ fontSize: '1.2rem', marginBottom: '15px', color: '#ef4f5f' }}>🚀 First 60-90 Days Goals</h3>
               <ul style={{ listStyle: 'none', padding: 0 }}>
@@ -288,6 +290,84 @@ function App() {
                   <div style={{ fontSize: '0.75rem', color: '#888' }}>Premium Packaging & Quality</div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Live Staff Status Section */}
+          <div className="dashboard-section" style={{ background: '#fff', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', marginBottom: '30px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '1.3rem', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                👥 Staff Attendance & Live Status
+              </h3>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <span style={{ background: '#e6fffa', color: '#2c7a7b', padding: '5px 12px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: '600' }}>On Duty: 8</span>
+                <span style={{ background: '#fff5f5', color: '#c53030', padding: '5px 12px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: '600' }}>Absent: 1</span>
+                <span style={{ background: '#ebf8ff', color: '#2b6cb0', padding: '5px 12px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: '600' }}>Leave: 1</span>
+              </div>
+            </div>
+
+            <div className="table-responsive" style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 8px' }}>
+                <thead>
+                  <tr style={{ color: '#718096', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    <th style={{ padding: '10px', textAlign: 'left' }}>Employee</th>
+                    <th style={{ padding: '10px' }}>Role</th>
+                    <th style={{ padding: '10px' }}>Shift</th>
+                    <th style={{ padding: '10px' }}>Time In</th>
+                    <th style={{ padding: '10px' }}>Status</th>
+                    <th style={{ padding: '10px' }}>Timesheet</th>
+                  </tr>
+                </thead>
+                <tbody style={{ fontSize: '0.95rem' }}>
+                  {[
+                    { name: 'Rajesh Kumar', role: 'Head Chef', shift: 'Morning', time: '07:15 AM', status: 'On Duty', color: 'green' },
+                    { name: 'Sunil Singh', role: 'Sous Chef', shift: 'Day', time: '11:05 AM', status: 'On Duty', color: 'green' },
+                    { name: 'Amit Verma', role: 'Commi 1', shift: 'Morning', time: '07:30 AM', status: 'On Duty', color: 'green' },
+                    { name: 'Vikram Das', role: 'Store Keeper', shift: 'Day', time: '10:55 AM', status: 'On Duty', color: 'green' },
+                    { name: 'Suresh Yadav', role: 'Kitchen Helper', shift: 'Night', time: '-', status: 'Not Started', color: 'gray' },
+                    { name: 'Priya Sharma', role: 'Manager', shift: 'Day', time: '09:00 AM', status: 'On Duty', color: 'green' },
+                    { name: 'Karan Johar', role: 'Delivery', shift: 'Evening', time: '02:00 PM', status: 'On Duty', color: 'green' },
+                    { name: 'Arjun Rampal', role: 'Delivery', shift: '-', time: '-', status: 'Absent', color: 'red' },
+                    { name: 'Rohan Mehta', role: 'Helper', shift: '-', time: '-', status: 'On Leave', color: 'blue' },
+                    { name: 'Deepak Koi', role: 'Commi 2', shift: 'Evening', time: '02:15 PM', status: 'On Duty', color: 'green' },
+                  ].map((staff, idx) => (
+                    <tr key={idx} style={{ background: '#fcfcfc', borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                      <td style={{ padding: '15px', fontWeight: '600', borderTopLeftRadius: '8px', borderBottomLeftRadius: '8px' }}>{staff.name}</td>
+                      <td style={{ padding: '15px', color: '#4a5568' }}>{staff.role}</td>
+                      <td style={{ padding: '15px', color: '#4a5568' }}>
+                        <span style={{ background: '#edf2f7', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem' }}>{staff.shift}</span>
+                      </td>
+                      <td style={{ padding: '15px', fontWeight: '500' }}>{staff.time}</td>
+                      <td style={{ padding: '15px' }}>
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '6px 12px',
+                          borderRadius: '20px',
+                          fontSize: '0.8rem',
+                          fontWeight: '600',
+                          background: staff.color === 'green' ? '#c6f6d5' : staff.color === 'red' ? '#fed7d7' : staff.color === 'blue' ? '#bee3f8' : '#edf2f7',
+                          color: staff.color === 'green' ? '#22543d' : staff.color === 'red' ? '#822727' : staff.color === 'blue' ? '#2c5282' : '#4a5568'
+                        }}>
+                          {staff.status === 'On Duty' && '🟢 '}
+                          {staff.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: '15px', borderTopRightRadius: '8px', borderBottomRightRadius: '8px' }}>
+                        <div style={{ height: '6px', width: '100px', background: '#edf2f7', borderRadius: '3px', overflow: 'hidden' }}>
+                          <div style={{
+                            height: '100%',
+                            width: staff.status === 'On Duty' ? '60%' : '0%',
+                            background: staff.status === 'On Duty' ? '#48bb78' : 'transparent'
+                          }}></div>
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: '#a0aec0', marginTop: '4px' }}>
+                          {staff.status === 'On Duty' ? '5h 30m logged' : '-'}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -517,15 +597,18 @@ function App() {
             </div>
           )}
         </>
-      )}
+      )
+      }
       {/* Toast Notification */}
-      {toast && (
-        <div className={`toast-notification ${toast.type === 'success' ? 'toast-success' : ''}`}>
-          <span>{toast.type === 'success' ? '✅' : 'ℹ️'}</span>
-          {toast.message}
-        </div>
-      )}
-    </div>
+      {
+        toast && (
+          <div className={`toast-notification ${toast.type === 'success' ? 'toast-success' : ''}`}>
+            <span>{toast.type === 'success' ? '✅' : 'ℹ️'}</span>
+            {toast.message}
+          </div>
+        )
+      }
+    </div >
   );
 }
 
