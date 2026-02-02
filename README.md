@@ -18,6 +18,19 @@ The React Compiler is not enabled on this template because of its impact on dev 
 - **Admin Dashboard**: Enhanced with "First 60-90 Days Goals" and "Profit Strategy" visualizers based on business operations notes.
 - **Performance**: Optimized Z-index stacking contexts for critical interaction elements.
 
+## 🔄 Automated Data Sync
+
+To automatically regenerate the Excel databases and push all changes to GitHub, run:
+
+```bash
+npm run sync
+```
+
+This command will:
+1. Re-run the Python data generators.
+2. Update the Admin Kit and Menu Excel files.
+3. Commit and Push everything to the main repository.
+
 ## Expanding the ESLint configuration
 
 If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
