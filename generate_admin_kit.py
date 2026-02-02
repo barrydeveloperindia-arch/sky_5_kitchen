@@ -82,7 +82,6 @@ for cell in ws_sop[1]:
 # --- Sheet 3: Sales Register (Template) ---
 ws_sales = wb.create_sheet("Sales Register")
 ws_sales.append(["Date", "Order ID", "Customer Name", "Items Ordered", "Total Amount (INR)", "Payment Mode", "Status"])
-# Add a sample row
 ws_sales.append([datetime.now().strftime("%Y-%m-%d"), "#ORD-001", "Rahul Sharma", "Dal Tadka Combo (x2)", 1598, "UPI", "Delivered"])
 
 # Style Sales Header
@@ -90,29 +89,82 @@ for cell in ws_sales[1]:
     cell.font = header_font
     cell.fill = PatternFill(start_color="24963F", end_color="24963F", fill_type="solid") # Veg Green
 
-# --- Sheet 4: Staff Attendance ---
-ws_staff = wb.create_sheet("Staff Attendance")
-staff_headers = ["Date", "Employee ID", "Employee Name", "Role", "Check-In Time", "Check-Out Time", "Total Hours", "Daily Wage (INR)", "Total Pay (INR)"]
+# --- Sheet 4: Professional Staff Attendance & Timesheet ---
+ws_staff = wb.create_sheet("Staff Attendance & Timesheet")
+staff_headers = [
+    "Date", "Employee ID", "Employee Name", "Role", "Shift Type", 
+    "Check-In Time", "Check-Out Time", "Break (Mins)", 
+    "Gross Hours", "Net Work Hours", "Overtime (Hrs)", 
+    "Status", "Daily Wage (INR)", "Total Pay (INR)"
+]
 ws_staff.append(staff_headers)
 
-# Create 15 Employee placeholders
-current_date = datetime.now().strftime("%Y-%m-%d")
-for i in range(1, 16):
-    r = i + 1 # Row number (headers are row 1)
-    # Using formulas for automatic calculation
-    # Assuming standard 9 hour shift for calculation example
-    row_data = [
-        current_date,
-        f"EMP-{i:03d}",
-        f"Staff Member {i}",
-        "Staff",
-        "09:00",
-        "18:00",
-        f"=(F{r}-E{r})*24", # Total Hours: (CheckOut - CheckIn) * 24
-        500,               # Daily/Hourly Wage placeholder
-        f"=G{r}*H{r}"      # Total Pay: Hours * Rate (assuming Hourly Rate here for formula, or adjust logic)
-    ]
-    ws_staff.append(row_data)
+# Employee Roster
+employees = [
+    ("EMP-001", "Rajesh Kumar", "Head Chef", 1200),
+    ("EMP-002", "Sunil Singh", "Sous Chef", 900),
+    ("EMP-003", "Amit Verma", "Commi 1", 700),
+    ("EMP-004", "Vikram Das", "Commi 2", 600),
+    ("EMP-005", "Suresh Yadav", "Kitchen Helper", 500),
+    ("EMP-006", "Deepak Koi", "Kitchen Helper", 500),
+    ("EMP-007", "Rohan Mehta", "Store Keeper", 800),
+    ("EMP-008", "Priya Sharma", "Manager", 1500),
+    ("EMP-009", "Karan Johar", "Delivery Partner", 500),
+    ("EMP-010", "Arjun Rampal", "Delivery Partner", 500)
+]
+
+# Generate data for past 7 days
+import random
+from datetime import timedelta
+
+current_date = datetime.now()
+dates = [(current_date - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(7)]
+
+row_idx = 2
+for date in dates:
+    for emp_id, emp_name, role, wage in employees:
+        # Simulate realistic variations
+        status = "Present"
+        if random.random() < 0.05: status = "Absent" # 5% chance of absence
+        elif random.random() < 0.10: status = "Half Day" # 5% chance of half day
+
+        if status == "Absent":
+            row_data = [date, emp_id, emp_name, role, "-", "-", "-", 0, 0, 0, 0, "Absent", wage, 0]
+        else:
+            # Shift Logic
+            shift_type = "Morning" if random.choice([True, False]) else "Evening"
+            
+            # Check In variations (e.g., 9:00 AM +/- 15 mins)
+            in_hour = 9 if shift_type == "Morning" else 14
+            in_min = random.randint(0, 30)
+            check_in = f"{in_hour:02d}:{in_min:02d}"
+            
+            # Check Out variations (Work ~9 hours)
+            work_hours = 9 + random.uniform(-0.5, 1.5) # 8.5 to 10.5 hours
+            if status == "Half Day": work_hours = 4.5
+            
+            out_total_min = (in_hour * 60) + in_min + int(work_hours * 60)
+            out_hour = (out_total_min // 60) % 24
+            out_min = out_total_min % 60
+            check_out = f"{out_hour:02d}:{out_min:02d}"
+            
+            break_mins = 45 if status == "Present" else 15
+            gross_hours = work_hours
+            net_hours = gross_hours - (break_mins/60)
+            overtime = max(0, net_hours - 9)
+            
+            daily_pay = wage if status == "Present" else (wage / 2)
+            total_pay = daily_pay + (overtime * (wage/9 * 1.5)) # 1.5x OT pay
+
+            row_data = [
+                date, emp_id, emp_name, role, shift_type,
+                check_in, check_out, break_mins,
+                round(gross_hours, 2), round(net_hours, 2), round(overtime, 2),
+                status, wage, round(total_pay, 2)
+            ]
+
+        ws_staff.append(row_data)
+        row_idx += 1
 
 # Style Staff Header
 for cell in ws_staff[1]:
