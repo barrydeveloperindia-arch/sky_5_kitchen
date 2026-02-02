@@ -9,7 +9,16 @@ function App() {
     setTimeout(() => setToast(null), 3000);
   };
   const [activeCategory, setActiveCategory] = useState('All');
-  const [cart, setCart] = useState({}); // { id: quantity }
+  // Load cart from localStorage or default to empty
+  const [cart, setCart] = useState(() => {
+    const savedCart = localStorage.getItem('sky5_cart');
+    return savedCart ? JSON.parse(savedCart) : {};
+  });
+
+  // Save cart to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('sky5_cart', JSON.stringify(cart));
+  }, [cart]);
 
   const categories = ['All', ...new Set(combos.map(c => c.category))];
 
