@@ -2,6 +2,12 @@ import { useState, useMemo } from 'react';
 import { combos } from './data/combos';
 
 function App() {
+  const [toast, setToast] = useState(null); // { message, type }
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
   const [activeCategory, setActiveCategory] = useState('All');
   const [cart, setCart] = useState({}); // { id: quantity }
 
@@ -17,6 +23,7 @@ function App() {
       ...prev,
       [id]: (prev[id] || 0) + 1
     }));
+    showToast('Item added to cart', 'success');
   };
 
   /* Calculated Values */
@@ -246,10 +253,10 @@ function App() {
                   { text: 'Push Prices Up (After Base Built)', done: false }
                 ].map((goal, i) => (
                   <li key={i} style={{ display: 'flex', alignItems: 'center', marginBottom: '12px', fontSize: '0.95rem' }}>
-                    <span style={{ 
-                      marginRight: '10px', 
-                      color: goal.done ? '#24963f' : '#ccc', 
-                      fontSize: '1.2rem' 
+                    <span style={{
+                      marginRight: '10px',
+                      color: goal.done ? '#24963f' : '#ccc',
+                      fontSize: '1.2rem'
                     }}>{goal.done ? '☑' : '☐'}</span>
                     <span style={{ textDecoration: goal.done ? 'line-through' : 'none', color: goal.done ? '#888' : '#333' }}>{goal.text}</span>
                   </li>
@@ -384,7 +391,12 @@ function App() {
               </div>
             </div>
 
-            <button className="checkout-btn" style={{ marginTop: '20px' }} onClick={() => alert('Order Placed Successfully!')}>
+            <button className="checkout-btn" style={{ marginTop: '20px' }} onClick={() => {
+              showToast('Order Placed Successfully! Kitchen is preparing your food.', 'success');
+              setShowPayment(false);
+              setCart({});
+              setView('shop');
+            }}>
               PLACE ORDER
             </button>
           </div>
@@ -486,6 +498,13 @@ function App() {
             </div>
           )}
         </>
+      )}
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`toast-notification ${toast.type === 'success' ? 'toast-success' : ''}`}>
+          <span>{toast.type === 'success' ? '✅' : 'ℹ️'}</span>
+          {toast.message}
+        </div>
       )}
     </div>
   );
