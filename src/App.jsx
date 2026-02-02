@@ -14,6 +14,7 @@ function App() {
     const savedCart = localStorage.getItem('sky5_cart');
     return savedCart ? JSON.parse(savedCart) : {};
   });
+  const [paymentMethod, setPaymentMethod] = useState('UPI'); // Default to UPI
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
@@ -385,32 +386,28 @@ function App() {
             </div>
 
             <div className="payment-options">
-              <div className="pay-option">
-                <div className="pay-icon">📱</div>
-                <div className="pay-info">
-                  <div className="pay-title">UPI</div>
-                  <div className="pay-sub">Google Pay, PhonePe, Paytm</div>
+              {['UPI', 'Card', 'COD'].map((method) => (
+                <div
+                  key={method}
+                  className={`pay-option ${paymentMethod === method ? 'selected' : ''}`}
+                  onClick={() => setPaymentMethod(method)}
+                >
+                  <div className="pay-icon">
+                    {method === 'UPI' ? '📱' : method === 'Card' ? '💳' : '💵'}
+                  </div>
+                  <div className="pay-info">
+                    <div className="pay-title">
+                      {method === 'UPI' ? 'UPI' : method === 'Card' ? 'Credit / Debit Cards' : 'Cash on Delivery'}
+                    </div>
+                    <div className="pay-sub">
+                      {method === 'UPI' ? 'Google Pay, PhonePe, Paytm'
+                        : method === 'Card' ? 'Visa, Mastercard, RuPay'
+                          : 'Pay cash at your doorstep'}
+                    </div>
+                  </div>
+                  <div className="radio-circle"></div>
                 </div>
-                <div className="radio-circle"></div>
-              </div>
-
-              <div className="pay-option">
-                <div className="pay-icon">💳</div>
-                <div className="pay-info">
-                  <div className="pay-title">Credit / Debit Cards</div>
-                  <div className="pay-sub">Visa, Mastercard, RuPay</div>
-                </div>
-                <div className="radio-circle"></div>
-              </div>
-
-              <div className="pay-option">
-                <div className="pay-icon">💵</div>
-                <div className="pay-info">
-                  <div className="pay-title">Cash on Delivery</div>
-                  <div className="pay-sub">Pay cash at your doorstep</div>
-                </div>
-                <div className="radio-circle"></div>
-              </div>
+              ))}
             </div>
 
             <button className="checkout-btn" style={{ marginTop: '20px' }} onClick={() => {

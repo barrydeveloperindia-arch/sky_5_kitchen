@@ -614,7 +614,8 @@ header {
   box-shadow: var(--shadow-md);
   position: sticky;
   bottom: 1rem;
-  z-index: 100; /* Ensure it stays on top */
+  z-index: 100;
+  /* Ensure it stays on top */
 }
 
 .checkout-btn:active {
@@ -631,7 +632,7 @@ header {
   color: #fff;
   padding: 12px 24px;
   border-radius: 50px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -646,8 +647,15 @@ header {
 }
 
 @keyframes slideUpToast {
-  from { transform: translate(-50%, 100%); opacity: 0; }
-  to { transform: translate(-50%, 0); opacity: 1; }
+  from {
+    transform: translate(-50%, 100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
 }
 
 /* Payment Screen */
@@ -755,6 +763,23 @@ header {
 /* Simulate selection for demo (or add .selected class in JS) */
 .pay-option:hover .radio-circle {
   border-color: var(--text-light);
+}
+
+.pay-option.selected .radio-circle {
+  background: var(--primary);
+  /* Login Red/Blue or Theme Primary */
+  border-color: var(--primary);
+}
+
+.pay-option.selected .radio-circle::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
 }
 
 /* Dashboard Styles */
