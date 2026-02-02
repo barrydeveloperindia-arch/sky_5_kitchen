@@ -289,41 +289,54 @@ function App() {
           </div>
 
           <div className="cart-items">
-            {Object.entries(cart).map(([id, qty]) => {
-              const item = combos.find(c => c.id === parseInt(id));
-              if (!item) return null;
-              return (
-                <div key={id} className="cart-item">
-                  <div className="cart-item-info">
-                    <div className="cart-item-name-row">
-                      {item.isBestSeller && <span className="tiny-tag">BESTSELLER</span>}
-                      <span className="cart-item-name">{item.name}</span>
+            {Object.keys(cart).length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px', color: '#888' }}>
+                <div style={{ fontSize: '3rem', marginBottom: '10px' }}>🛒</div>
+                <p>Your cart is empty. Add some delicious combos!</p>
+              </div>
+            ) : (
+              Object.entries(cart).map(([id, qty]) => {
+                const item = combos.find(c => c.id === parseInt(id));
+                if (!item) return null;
+                return (
+                  <div key={id} className="cart-item">
+                    <div className="cart-item-info">
+                      <div className="cart-item-name-row">
+                        {item.isBestSeller && <span className="tiny-tag">BESTSELLER</span>}
+                        <span className="cart-item-name">{item.name}</span>
+                      </div>
+                      <div className="cart-item-price">
+                        <span className="original">₹{item.originalPrice}</span> ₹{item.price}
+                      </div>
                     </div>
-                    <div className="cart-item-price">
-                      <span className="original">₹{item.originalPrice}</span> ₹{item.price}
+                    <div className="cart-item-actions">
+                      <div className="qty-control">
+                        <button onClick={() => {
+                          const newQty = qty - 1;
+                          if (newQty === 0) {
+                            const newCart = { ...cart };
+                            delete newCart[id];
+                            setCart(newCart);
+                            if (Object.keys(newCart).length === 0) {
+                              // Keep cart open to show empty state or close? 
+                              // User might want to see it removed. 
+                              // Let's keep it open so they see the empty message.
+                              // Removing setShowCart(false) logic here if we want that.
+                              // But sticking to previous logic:
+                            }
+                          } else {
+                            setCart({ ...cart, [id]: newQty });
+                          }
+                        }}>-</button>
+                        <span>{qty}</span>
+                        <button onClick={() => setCart(prev => ({ ...prev, [id]: qty + 1 }))}>+</button>
+                      </div>
+                      <div className="item-final-price">₹{item.price * qty}</div>
                     </div>
                   </div>
-                  <div className="cart-item-actions">
-                    <div className="qty-control">
-                      <button onClick={() => {
-                        const newQty = qty - 1;
-                        if (newQty === 0) {
-                          const newCart = { ...cart };
-                          delete newCart[id];
-                          setCart(newCart);
-                          if (Object.keys(newCart).length === 0) setShowCart(false);
-                        } else {
-                          setCart({ ...cart, [id]: newQty });
-                        }
-                      }}>-</button>
-                      <span>{qty}</span>
-                      <button onClick={() => setCart(prev => ({ ...prev, [id]: qty + 1 }))}>+</button>
-                    </div>
-                    <div className="item-final-price">₹{item.price * qty}</div>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
 
           <div className="bill-details">
