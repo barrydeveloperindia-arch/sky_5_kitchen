@@ -233,6 +233,46 @@ function App() {
               </table>
             </div>
           </div>
+
+          {/* Business Targets & Goals (From Notes) */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+            <div className="dashboard-section" style={{ background: '#fff', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', marginBottom: '0' }}>
+              <h3 style={{ fontSize: '1.2rem', marginBottom: '15px', color: '#ef4f5f' }}>🚀 First 60-90 Days Goals</h3>
+              <ul style={{ listStyle: 'none', padding: 0 }}>
+                {[
+                  { text: 'Get Orders (30-40 Soup Orders)', done: false },
+                  { text: 'Get Ratings 4★+', done: true },
+                  { text: 'Build Repeat Customers', done: false },
+                  { text: 'Push Prices Up (After Base Built)', done: false }
+                ].map((goal, i) => (
+                  <li key={i} style={{ display: 'flex', alignItems: 'center', marginBottom: '12px', fontSize: '0.95rem' }}>
+                    <span style={{ 
+                      marginRight: '10px', 
+                      color: goal.done ? '#24963f' : '#ccc', 
+                      fontSize: '1.2rem' 
+                    }}>{goal.done ? '☑' : '☐'}</span>
+                    <span style={{ textDecoration: goal.done ? 'line-through' : 'none', color: goal.done ? '#888' : '#333' }}>{goal.text}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="dashboard-section" style={{ background: '#fff', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', marginBottom: '0' }}>
+              <h3 style={{ fontSize: '1.2rem', marginBottom: '15px', color: '#24963f' }}>💰 Profit & Brand Strategy</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                <div style={{ background: '#f9f9f9', padding: '15px', borderRadius: '8px', borderLeft: '4px solid #24963f' }}>
+                  <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: '5px' }}>Target Margin</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#333' }}>30-35% Gross Margin</div>
+                  <div style={{ fontSize: '0.75rem', color: '#888' }}>(After Commissions)</div>
+                </div>
+                <div style={{ background: '#f9f9f9', padding: '15px', borderRadius: '8px', borderLeft: '4px solid #ef4f5f' }}>
+                  <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: '5px' }}>Brand Positioning</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#333' }}>Boutique Hotel Kitchen</div>
+                  <div style={{ fontSize: '0.75rem', color: '#888' }}>Premium Packaging & Quality</div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       ) : showCart ? (
         <div className="cart-view">

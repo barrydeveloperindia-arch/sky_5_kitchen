@@ -90,8 +90,38 @@ for cell in ws_sales[1]:
     cell.font = header_font
     cell.fill = PatternFill(start_color="24963F", end_color="24963F", fill_type="solid") # Veg Green
 
+# --- Sheet 4: Staff Attendance ---
+ws_staff = wb.create_sheet("Staff Attendance")
+staff_headers = ["Date", "Employee ID", "Employee Name", "Role", "Check-In Time", "Check-Out Time", "Total Hours", "Daily Wage (INR)", "Total Pay (INR)"]
+ws_staff.append(staff_headers)
+
+# Create 15 Employee placeholders
+current_date = datetime.now().strftime("%Y-%m-%d")
+for i in range(1, 16):
+    r = i + 1 # Row number (headers are row 1)
+    # Using formulas for automatic calculation
+    # Assuming standard 9 hour shift for calculation example
+    row_data = [
+        current_date,
+        f"EMP-{i:03d}",
+        f"Staff Member {i}",
+        "Staff",
+        "09:00",
+        "18:00",
+        f"=(F{r}-E{r})*24", # Total Hours: (CheckOut - CheckIn) * 24
+        500,               # Daily/Hourly Wage placeholder
+        f"=G{r}*H{r}"      # Total Pay: Hours * Rate (assuming Hourly Rate here for formula, or adjust logic)
+    ]
+    ws_staff.append(row_data)
+
+# Style Staff Header
+for cell in ws_staff[1]:
+    cell.font = header_font
+    cell.fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid") # Blue
+    cell.alignment = Alignment(horizontal="center")
+
 # Adjust Column Widths
-for ws in [ws_menu, ws_sop, ws_sales]:
+for ws in [ws_menu, ws_sop, ws_sales, ws_staff]:
     for col in ws.columns:
         max_length = 0
         column = col[0].column_letter # Get the column name
