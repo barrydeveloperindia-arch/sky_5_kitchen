@@ -131,11 +131,24 @@ for date in dates:
         if status == "Absent":
             row_data = [date, emp_id, emp_name, role, "-", "-", "-", 0, 0, 0, 0, "Absent", wage, 0]
         else:
-            # Shift Logic
-            shift_type = "Morning" if random.choice([True, False]) else "Evening"
+            # Shift Logic - 4 Shift Patterns to cover 24 hours (mostly active hours)
+            shift_choice = random.choice([1, 2, 3, 4])
             
-            # Check In variations (e.g., 9:00 AM +/- 15 mins)
-            in_hour = 9 if shift_type == "Morning" else 14
+            if shift_choice == 1:
+                shift_type = "Shift 1 (Morning)"
+                base_in_hour = 7
+            elif shift_choice == 2:
+                shift_type = "Shift 2 (Day)"
+                base_in_hour = 11
+            elif shift_choice == 3:
+                shift_type = "Shift 3 (Evening)"
+                base_in_hour = 14
+            else:
+                shift_type = "Shift 4 (Night)"
+                base_in_hour = 17
+
+            # Check In variations (base time +/- 15 mins)
+            in_hour = base_in_hour
             in_min = random.randint(0, 30)
             check_in = f"{in_hour:02d}:{in_min:02d}"
             
@@ -144,9 +157,17 @@ for date in dates:
             if status == "Half Day": work_hours = 4.5
             
             out_total_min = (in_hour * 60) + in_min + int(work_hours * 60)
-            out_hour = (out_total_min // 60) % 24
+            
+            # Handle day rollover (24-hour format)
+            out_hour_raw = (out_total_min // 60)
+            out_hour = out_hour_raw % 24
             out_min = out_total_min % 60
+            
             check_out = f"{out_hour:02d}:{out_min:02d}"
+            
+            # If shift crosses midnight (e.g., Night shift), add Next Day indicator strictly for logic if needed, 
+            # but for simple timesheet text, just valid hours is fine.
+
             
             break_mins = 45 if status == "Present" else 15
             gross_hours = work_hours
