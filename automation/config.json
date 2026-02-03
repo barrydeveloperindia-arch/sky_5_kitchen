@@ -1,0 +1,6 @@
+{
+    "AUTO_DB_PUSH": true,
+    "AUTO_GITHUB_PUSH": true,
+    "AUTO_MODE": "LIFETIME",
+    "DISABLE_MANUAL_OVERRIDE": true
+}

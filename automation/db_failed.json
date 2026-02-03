@@ -1,0 +1,7 @@
+[
+  {
+    "command": "Update_Menu_Item",
+    "error": "Git Push Failed: fatal: not a git repository (or any of the parent directories): .git\n",
+    "retry": true
+  }
+]
