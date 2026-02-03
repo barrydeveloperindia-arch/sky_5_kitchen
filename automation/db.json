@@ -26,5 +26,19 @@
     },
     "executedAt": "2026-02-03T09:46:55.977Z",
     "status": "COMPLETED"
+  },
+  {
+    "command": "Update_Menu_Item",
+    "data": {
+      "success": true,
+      "result": {
+        "itemId": 101,
+        "name": "Spicy Burger",
+        "price": 12.99,
+        "updatedBy": "Admin"
+      }
+    },
+    "executedAt": "2026-02-03T09:49:36.726Z",
+    "status": "COMPLETED"
   }
 ]
