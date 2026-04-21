@@ -8,7 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Load Config
-const configPath = path.join(__dirname, 'config.json');
+const configPath = path.join(__dirname, 'ledger', 'config.json');
 let config = {};
 try {
     if (fs.existsSync(configPath)) {
@@ -25,8 +25,8 @@ try {
 const git = simpleGit();
 
 // Mock DB implementation (File based for demo)
-const DB_PATH = path.join(__dirname, 'db.json');
-const FAILED_DB_PATH = path.join(__dirname, 'db_failed.json');
+const DB_PATH = path.join(__dirname, 'ledger', 'db.json');
+const FAILED_DB_PATH = path.join(__dirname, 'ledger', 'db_failed.json');
 
 const DB = {
     commands: {
@@ -72,7 +72,7 @@ async function pushToGithub(commandName, payload) {
     if (!config.AUTO_GITHUB_PUSH) return;
 
     // Ensure logs directory exists at the project root
-    const logsDir = path.join(process.cwd(), 'logs');
+    const logsDir = path.join(process.cwd(), '06_Forensic_Logs');
     if (!fs.existsSync(logsDir)) {
         fs.mkdirSync(logsDir, { recursive: true });
     }

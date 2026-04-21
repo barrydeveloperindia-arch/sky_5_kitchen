@@ -6,12 +6,17 @@ This module implements the requested Global Command Completion Hook, ensuring ev
 3.  **Automatically Committed & Pushed** to GitHub.
 4.  **Fail-safe protected**: If GitHub is down, failures are recorded for retry.
 
-## structure
-- `command_monitor.js`: The core logic containing `onCommandComplete`, `saveToDatabase`, and `pushToGithub`.
-- `config.json`: Configuration to lock/unlock auto modes.
-- `test_flow.js`: A demonstration script to verify the workflow.
+## Structure
+- `cli.js`: Command-line interface for system management.
+- `command_monitor.js`: Core logic for command hooks (DB Log + Git Push).
+- `test_flow.js`: Verification script.
+- `ledger/`: Secure directory for data stores.
+  - `config.json`: System configuration.
+  - `db.json`: Command history ledger.
+  - `db_failed.json`: Failed operation queue for retry.
 
-## How to Use
+## Database & Ledger
+All operational data is stored in the `ledger/` subdirectory to maintain a clean root. The system leverages local JSON stores for high-speed logging, which can be migrated to Firestore/PostgreSQL as the business scales.
 
 Wrap your operational logic using the `execute` helper:
 

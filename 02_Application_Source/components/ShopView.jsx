@@ -22,11 +22,51 @@ function ShopView({ onNavigate }) {
     const [paymentMethod, setPaymentMethod] = useState('UPI');
     const [showCart, setShowCart] = useState(false);
     const [showPayment, setShowPayment] = useState(false);
+    const [showMenuCard, setShowMenuCard] = useState(false);
 
     // Save cart
     useEffect(() => {
         localStorage.setItem('sky5_cart', JSON.stringify(cart));
     }, [cart]);
+
+    // ... (rest of filtering logic)
+
+    // Render Full Menu Card View
+    if (showMenuCard) {
+        return (
+            <div className="mobile-app-container" style={{ background: '#fdfbf7' }}>
+                <div className="cart-header" style={{ background: '#0a192f', color: '#d4af37' }}>
+                    <h2 style={{ textTransform: 'uppercase', letterSpacing: '2px' }}>Luxury Menu Card</h2>
+                    <button className="close-btn" style={{ color: '#d4af37' }} onClick={() => setShowMenuCard(false)}>✕</button>
+                </div>
+                
+                <div style={{ padding: '20px', textAlign: 'center' }}>
+                    <h1 style={{ fontFamily: 'Playfair Display, serif', color: '#0a192f', fontSize: '2.5rem', margin: '10px 0' }}>HOTEL SKY-5</h1>
+                    <div style={{ width: '50px', height: '2px', background: '#d4af37', margin: '0 auto 20px auto' }}></div>
+                    
+                    {/* Groups by category for the Card look */}
+                    {['Breakfast', 'Main Course', 'Non-Veg', 'Thalis', 'Beverages'].map(cat => (
+                        <div key={cat} style={{ marginBottom: '30px', textAlign: 'left' }}>
+                            <h3 style={{ color: '#d4af37', borderBottom: '1px solid #eee', paddingBottom: '5px', textTransform: 'uppercase', fontSize: '1rem' }}>{cat}</h3>
+                            {combos.filter(item => item.category === cat).map(item => (
+                                <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px dashed #f0f0f0' }}>
+                                    <div>
+                                        <div style={{ fontWeight: '700', color: '#0a192f' }}>{item.name}</div>
+                                        <div style={{ fontSize: '0.7rem', color: '#888' }}>{item.description.substring(0, 50)}...</div>
+                                    </div>
+                                    <div style={{ fontWeight: '800', color: '#0a192f' }}>₹{item.price}</div>
+                                </div>
+                            ))}
+                        </div>
+                    ))}
+                    
+                    <button className="checkout-btn" onClick={() => { setShowMenuCard(false); showToast('Redirected to Order View', 'info'); }}>BACK TO QUICK ORDER</button>
+                </div>
+            </div>
+        );
+    }
+
+    // Render Full Cart View (Same as before but wrapped in our container)
 
     // Modern Filters based on image "Filters", "Veg", "Non Veg", "Spicy", "Ratings"
     // Mapping these to our actual logic or just visual for now.
@@ -178,20 +218,20 @@ function ShopView({ onNavigate }) {
                 </div>
             </nav>
 
-            {/* 2. Hero Section (Green Curve) */}
+            {/* 2. Hero Section (Premium Dark) */}
             <div className="modern-hero">
                 <div className="hero-search-wrapper">
                     <div className="hero-search-pill">
                         <span>🔍</span>
                         <input
                             type="text"
-                            placeholder='Search "Paneer Tikka..."'
+                            placeholder='Search "Paneer Butter Masala"...'
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             style={{
                                 border: 'none',
                                 outline: 'none',
-                                fontSize: '0.9rem',
+                                fontSize: '1rem',
                                 color: '#333',
                                 width: '100%',
                                 background: 'transparent'
@@ -202,11 +242,18 @@ function ShopView({ onNavigate }) {
 
                 <div className="hero-promo">
                     <div className="hero-promo-text">
-                        <h1>We bring<br />the flavor<br />to your door</h1>
-                        <button className="shop-now-btn">ORDER NOW</button>
+                        <h1>Experience<br /><span>Luxury Dining</span><br />at Home</h1>
+                        <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem', marginBottom: '15px' }}>
+                            Curated flavors from Sky-5 Boutique Kitchen.
+                        </p>
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button className="shop-now-btn" onClick={() => {
+                                const section = document.querySelector('.section-title-modern');
+                                section?.scrollIntoView({ behavior: 'smooth' });
+                            }}>ORDER NOW</button>
+                            <button className="shop-now-btn" style={{ background: 'transparent', border: '1px solid var(--sky-accent)', color: 'var(--sky-accent)' }} onClick={() => setShowMenuCard(true)}>VIEW CARD</button>
+                        </div>
                     </div>
-                    {/* Circular Image on Right */}
-                    <img src="/images/sky5_logo_hotel.png" className="hero-promo-img" alt="Hero" />
                 </div>
             </div>
 
@@ -217,7 +264,7 @@ function ShopView({ onNavigate }) {
             <div className="modern-filters">
                 <div className={`filter-chip ${activeCategory === 'All' ? 'active' : ''}`} onClick={() => setActiveCategory('All')}>
                     <span className="filter-icon">🍽️</span>
-                    <span className="filter-name">All Items</span>
+                    <span className="filter-name">Explore All</span>
                 </div>
                 {categories.filter(c => c !== 'All').map(cat => (
                     <div
@@ -226,11 +273,15 @@ function ShopView({ onNavigate }) {
                         onClick={() => setActiveCategory(cat)}
                     >
                         <span className="filter-icon">
-                            {cat === 'Combos' ? '🍱' :
-                                cat === 'Starters' ? '🍢' :
-                                    cat === 'Soups' ? '🥣' :
-                                        cat === 'Breads' ? '🍞' :
-                                            cat === 'Desserts' ? '🍰' : '🍛'}
+                            {cat === 'Breakfast' ? '🍳' :
+                                cat === 'Snacks' ? '🍢' :
+                                    cat === 'Chinese' ? '🥢' :
+                                        cat === 'Rice' ? '🍚' :
+                                            cat === 'Main Course' ? '🍛' :
+                                                cat === 'Non-Veg' ? '🍗' :
+                                                    cat === 'Thalis' ? '🍱' :
+                                                        cat === 'Breads' ? '🫓' :
+                                                            cat === 'Beverages' ? '☕' : '🍽️'}
                         </span>
                         <span className="filter-name">{cat}</span>
                     </div>
@@ -288,6 +339,10 @@ function ShopView({ onNavigate }) {
                         }}>{cartTotalItems}</span>}
                     </span>
                     <span>Bag</span>
+                </div>
+                <div className="nav-tab" onClick={() => setShowMenuCard(true)}>
+                    <span className="nav-icon">📖</span>
+                    <span>Menu</span>
                 </div>
                 <div className="nav-tab" onClick={() => onNavigate('dashboard')}>
                     <span className="nav-icon">👤</span>

@@ -13,7 +13,7 @@ async function runDemo() {
     });
 
     console.log("\n-----------------------------------");
-    console.log("Test Complete. Check 'logs/' folder and 'automation/db.json'.");
+    console.log("Test Complete. Check '06_Forensic_Logs/' folder and '03_Automation_System/ledger/db.json'.");
 }
 
 runDemo();
