@@ -1,289 +1,76 @@
+const getImg = (id) => `https://images.unsplash.com/photo-${id}?q=80&w=800&auto=format&fit=crop`;
+
+const img_paratha = getImg("1631589172017-063db13a3754"); // Real paratha
+const img_sandwich = getImg("1525351484163-7529414344d8");
+const img_omelette = getImg("1510693206972-df098062cb71");
+const img_noodles = getImg("1585032226651-759b368d7246");
+const img_rice = getImg("1512058564366-18510be2db19"); // Rice/grains
+const img_fried_rice = getImg("1603133872878-684f208fb84b");
+const img_thali = getImg("1589302168068-964664d93dc0");
+const img_curry = getImg("1603894584202-933360aba39d");
+const img_paneer = getImg("1611754764115-30fa00030588"); // High quality paneer
+const img_dal = getImg("1546833999-b9f581a1996d");
+const img_salad = getImg("1512621776951-a57141f2eefd");
+const img_tea = getImg("1544787210-22bb64215754");
+const img_coffee = getImg("1509042239860-f550ce710b93");
+const img_shake = getImg("1553530666-ba11a7da3888");
+
 export const combos = [
     // --- BREAKFAST ---
-    {
-        id: 101,
-        category: "Breakfast",
-        name: "Aloo Paratha (1 Pcs)",
-        description: "Classic golden-brown flatbread stuffed with spiced potato mash. Served with fresh curd and spicy pickle.",
-        price: 70,
-        originalPrice: 90,
-        isBestSeller: true,
-        image: "/images/aloo_paratha_professional.png"
-    },
-    {
-        id: 102,
-        category: "Breakfast",
-        name: "Paneer Paratha (1 Pcs)",
-        description: "Premium flatbread stuffed with grated paneer and heritage spices. A hearty morning favorite.",
-        price: 100,
-        originalPrice: 130,
-        isBestSeller: false,
-        image: "/images/breakfast_paratha_combo_1770012647403.png"
-    },
-    {
-        id: 103,
-        category: "Breakfast",
-        name: "Veg Sandwich (4 Pcs)",
-        description: "Fresh garden vegetables layered in toasted bread with house-special mint chutney.",
-        price: 100,
-        originalPrice: 120,
-        isBestSeller: false,
-        image: "/images/paneer_butter_masala_combo_bowl_1770012612956.png" // Placeholder
-    },
-    {
-        id: 104,
-        category: "Breakfast",
-        name: "Masala Omelette",
-        description: "Two-egg omelette whisked with onions, green chillies, and fresh coriander. Served with toast.",
-        price: 80,
-        originalPrice: 100,
-        isBestSeller: true,
-        image: "/images/paneer_butter_masala_combo_bowl_1770012612956.png" // Placeholder
-    },
+    { id: 1001, category: "Breakfast", name: "Aloo Paratha", description: "Spiced potato stuffed flatbread.", price: 60, originalPrice: 80, image: img_paratha },
+    { id: 1002, category: "Breakfast", name: "Plain Paratha", description: "Classic whole wheat flaky paratha.", price: 50, originalPrice: 70, image: img_paratha },
+    { id: 1003, category: "Breakfast", name: "Paneer Paratha", description: "Heritage paratha with cottage cheese.", price: 99, originalPrice: 130, image: img_paratha },
+    { id: 1004, category: "Breakfast", name: "Poha", description: "Flattened rice with mustard and peanuts.", price: 90, originalPrice: 120, image: img_rice },
+    { id: 1005, category: "Breakfast", name: "Veg Sandwich", description: "Fresh garden vegetable toast.", price: 100, originalPrice: 130, image: img_sandwich },
+    { id: 1006, category: "Breakfast", name: "Butter Toast (4pc)", description: "Golden toasted bread with butter.", price: 50, originalPrice: 70, image: img_sandwich },
+    { id: 1007, category: "Breakfast", name: "Plain Omelette", description: "Fluffy 2-egg classic omelette.", price: 50, originalPrice: 70, image: img_omelette },
+    { id: 1008, category: "Breakfast", name: "Masala Omelette", description: "Spiced omelette with veggies.", price: 70, originalPrice: 90, image: img_omelette },
+    { id: 1009, category: "Breakfast", name: "Bread Omelette", description: "Omelette wrapped in toasted bread.", price: 90, originalPrice: 110, image: img_omelette },
 
     // --- SNACKS ---
-    {
-        id: 201,
-        category: "Snacks",
-        name: "Paneer Pakora (8 Pcs)",
-        description: "Golden-crisp batter-fried paneer cubes served with tangy tamarind and mint chutneys.",
-        price: 220,
-        originalPrice: 280,
-        isBestSeller: true,
-        image: "/images/paneer_tikka_skewer_1770013745197.png"
-    },
-    {
-        id: 202,
-        category: "Snacks",
-        name: "French Fries (1 Portion)",
-        description: "Perfectly salted, crispy golden potato fries. A universal delight.",
-        price: 150,
-        originalPrice: 190,
-        isBestSeller: false,
-        image: "/images/paneer_butter_masala_combo_bowl_1770012612956.png" // Placeholder
-    },
-
-    // --- CHINESE ---
-    {
-        id: 301,
-        category: "Chinese",
-        name: "Veg Manchurian (Dry/Gravy)",
-        description: "Vegetable dumplings tossed in a vibrant ginger-garlic soy sauce. Choice of dry or gravy.",
-        price: 200,
-        originalPrice: 250,
-        isBestSeller: true,
-        image: "/images/chilli_paneer_fried_rice_combo_1770012631322.png"
-    },
-    {
-        id: 302,
-        category: "Chinese",
-        name: "Veg Hakka Noodles",
-        description: "Soft noodles stir-fried with fresh crunch vegetables and authentic Indo-Chinese sauces.",
-        price: 200,
-        originalPrice: 240,
-        isBestSeller: false,
-        image: "/images/hakka_noodles_veg_1770013764042.png"
-    },
-    {
-        id: 303,
-        category: "Chinese",
-        name: "Red Sauce Pasta",
-        description: "Penne pasta tossed in a rich, tangy tomato-basil sauce with Mediterranean herbs.",
-        price: 150,
-        originalPrice: 190,
-        isBestSeller: false,
-        image: "/images/paneer_butter_masala_combo_bowl_1770012612956.png" // Placeholder
-    },
-
-    // --- INDIAN MAINS ---
-    {
-        id: 401,
-        category: "Main Course",
-        name: "Paneer Butter Masala",
-        description: "Creamy tomato-based gravy with soft paneer cubes, topped with butter and fresh cream.",
-        price: 250,
-        originalPrice: 320,
-        isBestSeller: true,
-        image: "/images/paneer_butter_masala_premium.png"
-    },
-    {
-        id: 402,
-        category: "Main Course",
-        name: "Dal Makhani",
-        description: "Traditional slow-cooked black lentils with cream and butter. A rich, buttery delight.",
-        price: 220,
-        originalPrice: 280,
-        isBestSeller: true,
-        image: "/images/dal_tadka_combo_thali_1770012594484.png"
-    },
-    {
-        id: 403,
-        category: "Main Course",
-        name: "Kadhai Paneer",
-        description: "Paneer cubes cooked with bell peppers and freshly ground spices in a traditional wok.",
-        price: 220,
-        originalPrice: 280,
-        isBestSeller: false,
-        image: "/images/paneer_tikka_skewer_1770013745197.png" // Placeholder
-    },
-    {
-        id: 404,
-        category: "Main Course",
-        name: "Yellow Dal Tadka",
-        description: "Tempered yellow lentils with cumin, garlic, and red chillies. Homestyle comfort.",
-        price: 200,
-        originalPrice: 240,
-        isBestSeller: false,
-        image: "/images/dal_tadka_roti_rice_combo_1770013924380.png"
-    },
-    {
-        id: 405,
-        category: "Main Course",
-        name: "Mix Vegetable",
-        description: "A colorful assortment of seasonal vegetables cooked with aromatic spices.",
-        price: 200,
-        originalPrice: 250,
-        isBestSeller: false,
-        image: "/images/paneer_butter_masala_combo_bowl_1770012612956.png" // Placeholder
-    },
-
-    // --- RICE ---
-    {
-        id: 501,
-        category: "Rice",
-        name: "Veg Biryani + Raita",
-        description: "Aromatic basmati rice cooked with fresh vegetables and secret spices. Served with boondi raita.",
-        price: 200,
-        originalPrice: 260,
-        isBestSeller: true,
-        image: "/images/veg_biryani_luxury.png"
-    },
-    {
-        id: 502,
-        category: "Rice",
-        name: "Jeera Rice",
-        description: "Fragrant basmati rice tempered with cumin seeds and fresh ghee.",
-        price: 120,
-        originalPrice: 150,
-        isBestSeller: false,
-        image: "/images/dal_tadka_roti_rice_combo_1770013924380.png" // Placeholder
-    },
-
-    // --- NON-VEG ---
-    {
-        id: 601,
-        category: "Non-Veg",
-        name: "Butter Chicken",
-        description: "Succulent chicken tandoori pieces simmered in a velvety tomato-butter gravy.",
-        price: 600,
-        originalPrice: 750,
-        isBestSeller: true,
-        image: "/images/paneer_butter_masala_premium.png" // Placeholder for chicken
-    },
-    {
-        id: 602,
-        category: "Non-Veg",
-        name: "Kadhai Chicken",
-        description: "Bold and spicy chicken cooked with diced capsicum and thick onion-tomato gravy.",
-        price: 600,
-        originalPrice: 720,
-        isBestSeller: false,
-        image: "/images/paneer_tikka_skewer_1770013745197.png" // Placeholder
-    },
-    {
-        id: 603,
-        category: "Non-Veg",
-        name: "Egg Curry Masala",
-        description: "Boiled eggs served in a flavorful, spicy onion-tomato gravy.",
-        price: 200,
-        originalPrice: 250,
-        isBestSeller: false,
-        image: "/images/paneer_butter_masala_combo_bowl_1770012612956.png" // Placeholder
-    },
+    { id: 2001, category: "Snacks", name: "Vegetable Noodle", description: "Wok-tossed noodles with veggies.", price: 120, originalPrice: 150, image: img_noodles },
+    { id: 2002, category: "Snacks", name: "Veg Maggie", description: "The classic noodle comfort.", price: 80, originalPrice: 100, image: img_noodles },
+    { id: 2003, category: "Snacks", name: "Veg Fried Rice", description: "Fragrant rice with garden vegetables.", price: 160, originalPrice: 200, image: img_fried_rice },
+    { id: 2004, category: "Snacks", name: "Manchurian (Dry/Gravy)", description: "Crispy veg balls in spicy sauce.", price: 200, originalPrice: 250, image: img_noodles },
+    { id: 2005, category: "Snacks", name: "Cheese Chilli", description: "Cottage cheese with capsicum.", price: 200, originalPrice: 260, image: img_paneer },
+    { id: 2006, category: "Snacks", name: "Mix Pasta", description: "Penne pasta in choice of sauce.", price: 150, originalPrice: 190, image: "https://images.unsplash.com/photo-1563379926898-05f4575a45d8?q=80&w=800" },
+    { id: 2007, category: "Snacks", name: "Franch Fries", description: "Golden-crisp slated potato fries.", price: 150, originalPrice: 180, image: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?q=80&w=800" },
+    { id: 2008, category: "Snacks", name: "Mix Pakorda", description: "Assorted vegetable fritters.", price: 150, originalPrice: 190, image: img_noodles },
+    { id: 2009, category: "Snacks", name: "Paneer Pakoda", description: "Batter-fried cottage cheese snacks.", price: 200, originalPrice: 240, image: img_paneer },
 
     // --- THALIS ---
-    {
-        id: 701,
-        category: "Thalis",
-        name: "Delux Thali (Veg)",
-        description: "4 Roti, Rice, Dal Makhani, Sahi Paneer, Raita, Salad, Achar. A complete meal.",
-        price: 250,
-        originalPrice: 300,
-        isBestSeller: true,
-        image: "/images/dal_tadka_combo_thali_1770012594484.png"
-    },
-    {
-        id: 702,
-        category: "Thalis",
-        name: "Non-Veg Special Thali",
-        description: "4 Roti, Rice, Raita, Salad, Choice of Butter Chicken or Chicken Masala.",
-        price: 400,
-        originalPrice: 500,
-        isBestSeller: false,
-        image: "/images/dal_tadka_combo_thali_1770012594484.png" // Placeholder
-    },
+    { id: 3001, category: "Thalis", name: "Special Thali", description: "4 Roti, Rice, Daal Tadka, Mix Veg, Raita, Salad.", price: 240, originalPrice: 300, image: img_thali },
+    { id: 3002, category: "Thalis", name: "Deluxe Thali", description: "4 Butter Roti, Dal Makhni, Jeera Rice, Paneer Butter Masala, Raita, Salad.", price: 280, originalPrice: 350, image: img_thali },
+    { id: 3003, category: "Thalis", name: "Non Veg Thali", description: "Chicken Curry, 4 Roti, Rice, Raita, Salad.", price: 350, originalPrice: 450, image: img_thali },
+
+    // --- MAIN COURSE ---
+    { id: 4001, category: "Main Course", name: "Paneer Butter Masala", description: "Rich creamy tomato gravy with paneer.", price: 250, originalPrice: 320, image: img_paneer },
+    { id: 4002, category: "Main Course", name: "Dal Makhni", description: "Traditional slow-cooked black lentils.", price: 200, originalPrice: 250, image: img_dal },
+    { id: 4003, category: "Main Course", name: "Chicken Curry", description: "Homestyle spicy chicken curry.", price: 300, originalPrice: 380, image: img_curry },
+    { id: 4004, category: "Main Course", name: "Mix Vegetable", description: "Seasonal fresh vegetables medley.", price: 220, originalPrice: 280, image: img_salad },
+    { id: 4005, category: "Main Course", name: "Mater Paneer", description: "Peas and cottage cheese in gravy.", price: 250, originalPrice: 310, image: img_paneer },
+    { id: 4006, category: "Main Course", name: "Chicken Masala", description: "Bold and spicy semi-dry chicken.", price: 350, originalPrice: 420, image: img_curry },
+    { id: 4007, category: "Main Course", name: "Aloo Gobhi", description: "Potatoes and cauliflower sautéed.", price: 160, originalPrice: 200, image: img_salad },
+    { id: 4008, category: "Main Course", name: "Dal Tadka", description: "Yellow lentils tempered with ghee.", price: 180, originalPrice: 220, image: img_dal },
+
+    // --- RAITA & SALAD ---
+    { id: 5001, category: "Raita & Salad", name: "Boondi Raita", description: "Yogurt with crunchy boondi pearls.", price: 120, originalPrice: 150, image: img_salad },
+    { id: 5002, category: "Raita & Salad", name: "Green Salad", description: "Fresh seasonal raw vegetables.", price: 130, originalPrice: 160, image: img_salad },
+    { id: 5003, category: "Raita & Salad", name: "Kheera Salad", description: "Sliced fresh cucumber salad.", price: 120, originalPrice: 150, image: img_salad },
+    { id: 5004, category: "Raita & Salad", name: "Plain Papad", description: "Crispy roasted or fried papadum.", price: 50, originalPrice: 70, image: "https://images.unsplash.com/photo-1626132646529-5fc33924391e?q=80&w=800" },
+
+    // --- RICE ---
+    { id: 6001, category: "Rice", name: "Plain Rice", description: "Steamed basmati fluffy rice.", price: 120, originalPrice: 150, image: img_rice },
+    { id: 6002, category: "Rice", name: "Jeera Rice", description: "Rice tempered with cumin seeds.", price: 130, originalPrice: 160, image: img_rice },
 
     // --- BREADS ---
-    {
-        id: 801,
-        category: "Breads",
-        name: "Tawa Butter Roti",
-        description: "Freshly made whole wheat flatbread topped with generous melted butter.",
-        price: 30,
-        originalPrice: 40,
-        isBestSeller: false,
-        image: "/images/breakfast_paratha_combo_1770012647403.png" // Placeholder
-    },
-    {
-        id: 802,
-        category: "Breads",
-        name: "Tawa Missi Roti",
-        description: "Spiced gram flour and wheat flatbread with onions and herbs.",
-        price: 40,
-        originalPrice: 55,
-        isBestSeller: false,
-        image: "/images/breakfast_paratha_combo_1770012647403.png" // Placeholder
-    },
+    { id: 7001, category: "Breads", name: "Tawa Roti", description: "Handmade whole wheat flatbread.", price: 25, originalPrice: 35, image: img_paratha },
+    { id: 7002, category: "Breads", name: "Tawa Butter Roti", description: "Handmade roti with white butter.", price: 30, originalPrice: 40, image: img_paratha },
 
     // --- BEVERAGES ---
-    {
-        id: 901,
-        category: "Beverages",
-        name: "Cold Coffee",
-        description: "Chilled milk blended with premium coffee and a hint of vanilla.",
-        price: 150,
-        originalPrice: 190,
-        isBestSeller: true,
-        image: "/images/fresh_fruit_juices_assorted_1770013780221.png" // Placeholder
-    },
-    {
-        id: 902,
-        category: "Beverages",
-        name: "Sweet Lassi",
-        description: "Traditional thick yogurt drink, sweetened and chilled.",
-        price: 100,
-        originalPrice: 130,
-        isBestSeller: false,
-        image: "/images/fresh_fruit_juices_assorted_1770013780221.png" // Placeholder
-    },
-    {
-        id: 903,
-        category: "Beverages",
-        name: "Lime Soda",
-        description: "Refreshing carbonated drink with fresh lime juice and sugar.",
-        price: 100,
-        originalPrice: 120,
-        isBestSeller: false,
-        image: "/images/fresh_fruit_juices_assorted_1770013780221.png" // Placeholder
-    },
-    {
-        id: 904,
-        category: "Beverages",
-        name: "Tea / Coffee",
-        description: "Traditional hot tea or aromatic coffee. Perfect for any time.",
-        price: 50,
-        originalPrice: 70,
-        isBestSeller: false,
-        image: "/images/fresh_fruit_juices_assorted_1770013780221.png" // Placeholder
-    }
+    { id: 8001, category: "Beverages", name: "Hot Tea", description: "Aromatic Masala tea with ginger.", price: 50, originalPrice: 70, image: img_tea },
+    { id: 8002, category: "Beverages", name: "Hot Coffee", description: "Rich frothy roasted coffee.", price: 70, originalPrice: 100, image: img_coffee },
+    { id: 8003, category: "Beverages", name: "Sweet Lassi", description: "Chilled sweetened thick yogurt.", price: 100, originalPrice: 130, image: "https://images.unsplash.com/photo-1571115177098-24ec42ed204d?q=80&w=800" },
+    { id: 8004, category: "Beverages", name: "Cold Coffee", description: "Chilled coffee blended with ice.", price: 150, originalPrice: 200, image: img_coffee },
+    { id: 8005, category: "Beverages", name: "Mango Shake", description: "Seasonal premium mango thick shake.", price: 200, originalPrice: 250, image: img_shake }
 ];

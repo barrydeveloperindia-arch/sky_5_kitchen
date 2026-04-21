@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hotel Sky 5 - Promotional Poster</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Montserrat:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --black: #0c0c0c;
+            --gold: #d4af37;
+            --white: #ffffff;
+        }
+
+        body {
+            background-color: #000;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        .poster {
+            width: 1080px;
+            height: 1080px;
+            background: var(--black);
+            color: var(--white);
+            position: relative;
+            box-shadow: 0 0 50px rgba(0,0,0,1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 10px solid var(--gold);
+        }
+
+        .header {
+            padding: 60px 40px;
+            text-align: center;
+            background: linear-gradient(to bottom, #1a1a1a, var(--black));
+        }
+
+        .hotel-name {
+            font-family: 'Cinzel', serif;
+            font-size: 80px;
+            color: var(--gold);
+            margin: 0;
+            letter-spacing: 12px;
+            text-transform: uppercase;
+        }
+
+        .tagline {
+            font-size: 24px;
+            letter-spacing: 6px;
+            text-transform: uppercase;
+            margin-top: 10px;
+            font-weight: 300;
+        }
+
+        .grid-visuals {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            flex-grow: 1;
+            gap: 10px;
+            padding: 0 40px;
+        }
+
+        .main-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 5px;
+            border: 1px solid var(--gold);
+        }
+
+        .sub-images {
+            display: grid;
+            grid-template-rows: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .sub-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border: 1px solid rgba(212,175,55,0.5);
+        }
+
+        .features-section {
+            padding: 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--black);
+        }
+
+        .features-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 20px;
+            font-weight: 500;
+        }
+
+        .feature-icon {
+            color: var(--gold);
+            font-size: 24px;
+        }
+
+        .contact-info {
+            text-align: right;
+            border-left: 2px solid var(--gold);
+            padding-left: 40px;
+        }
+
+        .contact-title {
+            font-family: 'Cinzel', serif;
+            color: var(--gold);
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .contact-detail {
+            font-size: 18px;
+            margin: 5px 0;
+            opacity: 0.9;
+        }
+
+        .footer-strip {
+            background: var(--gold);
+            color: var(--black);
+            padding: 15px;
+            text-align: center;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            font-size: 18px;
+        }
+
+        .price-badge {
+            position: absolute;
+            top: 400px;
+            right: 350px;
+            background: var(--gold);
+            color: var(--black);
+            padding: 20px;
+            border-radius: 50%;
+            width: 120px;
+            height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-weight: 900;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <div class="poster">
+        <div class="price-badge">
+            <span style="font-size: 14px;">STARTING</span>
+            <span style="font-size: 28px;">₹1824</span>
+        </div>
+
+        <div class="header">
+            <h1 class="hotel-name">Hotel Sky 5</h1>
+            <div class="tagline">Smart Stay. True Comfort. Hotel Sky 5.</div>
+        </div>
+
+        <div class="grid-visuals">
+            <img src="./assets/hotel_room_king_teal.png" class="main-img" alt="Luxury Room">
+            <div class="sub-images">
+                <img src="./assets/hotel_rooftop_garden.png" class="sub-img" alt="Garden View">
+                <img src="./assets/hotel_reception_premium.png" class="sub-img" alt="Service">
+            </div>
+        </div>
+
+        <div class="features-section">
+            <div class="features-list">
+                <div class="feature-item"><span class="feature-icon">✔</span> FREE WI-FI</div>
+                <div class="feature-item"><span class="feature-icon">✔</span> AC ROOMS</div>
+                <div class="feature-item"><span class="feature-icon">✔</span> COMPLIMENTARY BREAKFAST</div>
+                <div class="feature-item"><span class="feature-icon">✔</span> FREE PARKING</div>
+            </div>
+            
+            <div class="contact-info">
+                <div class="contact-title">Book Your Stay</div>
+                <div class="contact-detail">📞 +91 81464 07934</div>
+                <div class="contact-detail">🌐 www.hotelsky5.com</div>
+                <div class="contact-detail" style="font-size: 14px;">IT Park Rd, Sector 4, Panchkula</div>
+            </div>
+        </div>
+
+        <div class="footer-strip">
+            Where Comfort Meets Convenience
+        </div>
+    </div>
+</body>
+</html>

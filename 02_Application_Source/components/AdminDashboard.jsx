@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Sidebar from './Sidebar';
+import Logo from './Logo';
 
 function AdminDashboard({ onNavigate }) {
     const [activeTab, setActiveTab] = useState('dashboard');
@@ -26,9 +27,10 @@ function AdminDashboard({ onNavigate }) {
     ];
 
     const checklist = [
-        { id: 1, task: 'Morning Prep (7-10 AM)', done: true },
-        { id: 2, task: 'Inventory Check', done: false },
-        { id: 3, task: 'Temp Log', done: false },
+        { id: 1, task: 'Morning Kitchen Prep', done: true },
+        { id: 2, task: 'Room 501-510 Inspection', done: false },
+        { id: 3, task: 'Daily Revenue Audit', done: false },
+        { id: 4, task: 'Inventory Sync', done: true },
     ];
 
     return (
@@ -39,8 +41,12 @@ function AdminDashboard({ onNavigate }) {
                 {/* Header */}
                 <header className="admin-header">
                     <div className="header-left">
-                        <h1>Good Morning, Admin! 👋</h1>
-                        <p>Here's what's happening in your kitchen.</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '10px' }}>
+                            <Logo size={50} color="#0a192f" />
+                            <h1 style={{ margin: 0 }}>Hotel Sky 5 Command Center 🏢</h1>
+                        </div>
+                        <p>Managing luxury hospitality and fine dining operations.</p>
+
                     </div>
                     <div className="header-right">
                         <div className="search-bar">

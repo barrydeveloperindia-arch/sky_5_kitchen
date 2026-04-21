@@ -1,18 +1,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root {
-  --primary: #ef4f5f;
-  /* Zomato Red */
+  --primary: #0a192f;
+  /* Deep Navy */
   --secondary: #24963f;
   /* Veg Green */
-  --accent: #ffc107;
-  /* Star Yellow */
-  --bg-color: #f4f5f8;
-  --text-dark: #1c1c1c;
+  --accent: #d4af37;
+  /* Gold */
+  --bg-color: #f8f9fa;
+  --text-dark: #0a192f;
   --text-grey: #696969;
   --text-light: #9c9c9c;
   --white: #ffffff;
-  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.08);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
   --radius-sm: 8px;
@@ -71,7 +71,7 @@ header {
 /* Hero */
 /* Hero Section */
 .hero-premium {
-  background: linear-gradient(135deg, #ef4f5f 0%, #ff9a9e 100%);
+  background: linear-gradient(135deg, #0a192f 0%, #172a45 100%);
   color: white;
   padding: 40px 20px;
   text-align: left;
@@ -79,7 +79,7 @@ header {
   margin-bottom: 20px;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 4px 15px rgba(239, 79, 95, 0.3);
+  box-shadow: 0 10px 30px rgba(10, 25, 47, 0.2);
 }
 
 .hero-premium::before {
@@ -101,8 +101,8 @@ header {
 }
 
 .hero-content .highlight {
-  color: #ffd700;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  color: #d4af37;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .hero-content p {
@@ -800,7 +800,7 @@ header {
 }
 
 /* =========================================
-   Hotel Sky-5 Professional Theme
+   Hotel_Sky5 Professional Theme
    ========================================= */
 
 :root {
@@ -815,16 +815,24 @@ header {
 }
 
 .mobile-app-container {
-  max-width: 600px;
+  width: 100%;
+  max-width: 600px; /* Default for mobile */
   margin: 0 auto;
   background: var(--sky-bg);
   min-height: 100vh;
   box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
   font-family: 'Outfit', 'Inter', sans-serif;
-  /* Prefer Outfit if available */
   padding-bottom: 90px;
   position: relative;
+  transition: max-width 0.3s ease;
 }
+
+@media (min-width: 1024px) {
+  .mobile-app-container {
+    max-width: 1100px; /* Expanded for PC / Landscape */
+  }
+}
+
 
 /* Glassmorphism Header */
 .mobile-nav {
@@ -1006,10 +1014,22 @@ header {
 .modern-menu-list {
   padding: 0 20px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  /* 2 Column Grid */
+  grid-template-columns: repeat(2, 1fr); /* 2 Column Grid for Phone */
   gap: 15px;
 }
+
+@media (min-width: 768px) {
+  .modern-menu-list {
+    grid-template-columns: repeat(3, 1fr); /* 3 Columns for Tablets */
+  }
+}
+
+@media (min-width: 1024px) {
+  .modern-menu-list {
+    grid-template-columns: repeat(4, 1fr); /* 4 Columns for PC */
+  }
+}
+
 
 .modern-item-card {
   background: var(--sky-white);
@@ -1216,7 +1236,7 @@ header {
 
 .graph-bar {
   width: 40px;
-  background: linear-gradient(to top, #ef4f5f, #ff7e5f);
+  background: linear-gradient(to top, var(--sky-primary), var(--sky-accent));
   border-radius: 8px 8px 0 0;
   transition: height 0.5s ease;
   max-width: 80%;
@@ -1307,11 +1327,11 @@ header {
    ========================================= */
 
 :root {
-  --peach-1: #FF9966;
-  --peach-2: #FF5E62;
+  --hotel-navy: #0a192f;
+  --hotel-gold: #d4af37;
   --glass-bg: rgba(255, 255, 255, 0.7);
   --glass-border: 1px solid rgba(255, 255, 255, 0.4);
-  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+  --glass-shadow: 0 8px 32px 0 rgba(10, 25, 47, 0.05);
   --bg-admin: #F0F2F5;
 }
 
@@ -1326,7 +1346,7 @@ header {
 /* Sidebar */
 .glass-sidebar {
   width: 80px;
-  background: linear-gradient(180deg, var(--peach-1) 0%, var(--peach-2) 100%);
+  background: linear-gradient(180deg, var(--hotel-navy) 0%, #172a45 100%);
   margin: 15px;
   border-radius: 40px;
   display: flex;
@@ -1431,7 +1451,7 @@ header {
 .shop-link {
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--peach-2);
+  color: var(--hotel-gold);
 }
 
 .avatar {
@@ -1576,7 +1596,7 @@ header {
 
 .mini-graph .bar {
   width: 6px;
-  background: #FF9966;
+  background: var(--hotel-gold);
   border-radius: 4px;
   opacity: 0.8;
 }

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hotel_Sky5 Premium Menu</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Montserrat:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --navy: #0a192f;
+            --gold: #d4af37;
+            --cream: #fdfbf7;
+            --text: #1a1a1a;
+        }
+
+        body {
+            background-color: #111;
+            font-family: 'Montserrat', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .page {
+            width: 210mm;
+            height: 297mm;
+            padding: 15mm;
+            background: var(--cream);
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+            position: relative;
+            box-sizing: border-box;
+            border: 15px solid var(--navy);
+            outline: 5px solid var(--gold);
+            outline-offset: -10px;
+        }
+
+        @media print {
+            body { background: none; }
+            .page { margin: 0; box-shadow: none; border: 10px solid var(--navy); }
+        }
+
+        .corner-ornament {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border: 2px solid var(--gold);
+            z-index: 5;
+        }
+        .top-left { top: 20px; left: 20px; border-right: none; border-bottom: none; }
+        .top-right { top: 20px; right: 20px; border-left: none; border-bottom: none; }
+        .bottom-left { bottom: 20px; left: 20px; border-right: none; border-top: none; }
+        .bottom-right { bottom: 20px; right: 20px; border-left: none; border-top: none; }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-top: 20px;
+        }
+
+        .logo-text {
+            font-family: 'Playfair Display', serif;
+            font-size: 52px;
+            font-weight: 900;
+            color: var(--navy);
+            letter-spacing: 4px;
+            margin: 0;
+            text-transform: uppercase;
+        }
+
+        .motto {
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 6px;
+            color: var(--gold);
+            margin-top: 10px;
+            font-weight: 600;
+        }
+
+        .hero-img {
+            width: 100%;
+            height: 220px;
+            background-color: var(--navy);
+            margin-bottom: 35px;
+            border-radius: 2px;
+            overflow: hidden;
+            border: 2px solid var(--gold);
+            position: relative;
+        }
+
+        .hero-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.9;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+            padding: 0 10px;
+        }
+
+        section {
+            margin-bottom: 25px;
+        }
+
+        h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 26px;
+            color: var(--navy);
+            border-bottom: 2px solid var(--gold);
+            padding-bottom: 8px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 18px;
+            page-break-inside: avoid;
+        }
+
+        .item-name {
+            font-weight: 700;
+            font-size: 15px;
+            color: var(--navy);
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .item-desc {
+            font-size: 11px;
+            color: #555;
+            margin: 3px 0 0 0;
+            font-style: italic;
+            line-height: 1.3;
+        }
+
+        .item-price {
+            font-weight: 800;
+            color: var(--navy);
+            font-size: 15px;
+        }
+
+        .badge {
+            background: var(--navy);
+            color: var(--gold);
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 2px;
+            margin-right: 8px;
+            vertical-align: middle;
+            font-weight: 800;
+        }
+
+        .footer {
+            position: absolute;
+            bottom: 35px;
+            width: calc(100% - 60mm);
+            left: 30mm;
+            text-align: center;
+            font-size: 11px;
+            color: var(--navy);
+            border-top: 1px solid var(--gold);
+            padding-top: 15px;
+            letter-spacing: 2px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="corner-ornament top-left"></div>
+        <div class="corner-ornament top-right"></div>
+        <div class="corner-ornament bottom-left"></div>
+        <div class="corner-ornament bottom-right"></div>
+
+        <header>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 20px;">
+                <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="50" cy="50" r="48" stroke="#d4af37" stroke-width="2" />
+                    <path d="M30 35H70L65 55H35L30 75H70" stroke="#d4af37" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+                    <text x="50" y="65" fill="#d4af37" font-size="12" font-weight="bold" text-anchor="middle" style="letter-spacing: 2px;">S5</text>
+                </svg>
+                <div style="text-align: left;">
+                    <h1 class="logo-text">Hotel_Sky5</h1>
+                    <div class="motto">The Art of Fine Dining</div>
+                </div>
+            </div>
+        </header>
+
+        <div class="hero-img">
+            <img src="./assets/hero_photo.png" alt="Signature Selection">
+            <div style="position: absolute; bottom: 15px; left: 15px; background: rgba(10, 25, 47, 0.9); color: var(--gold); padding: 8px 20px; font-size: 11px; font-weight: 800; border: 1px solid var(--gold); letter-spacing: 2px;">
+                CRAFTED HERITAGE DISHES
+            </div>
+        </div>
+
+        <div class="menu-grid">
+            <div class="col">
+                <section>
+                    <h2>Breakfast Rare</h2>
+                    <div class="item">
+                        <div class="info">
+                            <h3 class="item-name"><span class="badge">Must Try</span>Aloo Paratha</h3>
+                            <p class="item-desc">Spiced potato mash in hand-rolled wheat bread. Served with artisan curd.</p>
+                        </div>
+                        <span class="item-price">₹70</span>
+                    </div>
+                </section>
+                <section>
+                    <h2>The Main Room</h2>
+                    <div class="item">
+                        <div class="info">
+                            <h3 class="item-name">Paneer Butter Masala</h3>
+                            <p class="item-desc">Velvety tomato gravy with malai paneer.</p>
+                        </div>
+                        <span class="item-price">₹250</span>
+                    </div>
+                </section>
+            </div>
+            <div class="col">
+                <section>
+                    <h2>Signatures</h2>
+                    <div class="item">
+                        <div class="info">
+                            <h3 class="item-name">Butter Chicken</h3>
+                            <p class="item-desc">Classical luxury tandoori chicken.</p>
+                        </div>
+                        <span class="item-price">₹600</span>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <div class="footer">
+            Hotel_Sky5 • 5TH FLOOR, DISHA ARCADE, SECTOR 4, PANCHKULA • +91 81464 07934 • HOTELS5.COM
+        </div>
+    </div>
+</body>
+</html>
