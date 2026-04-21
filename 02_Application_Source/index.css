@@ -2,17 +2,21 @@
 
 :root {
   --primary: #0a192f;
-  /* Deep Navy */
+  --primary-navy: #0a192f;
+  --signature-gold: #d4af37;
+  --bg-dark: #050b14;
+  --primary: var(--primary-navy);
   --secondary: #24963f;
   /* Veg Green */
-  --accent: #d4af37;
+  --accent: var(--signature-gold);
   /* Gold */
   --bg-color: #f8f9fa;
   --text-dark: #0a192f;
-  --text-grey: #696969;
+  --text-grey: #666;
   --text-light: #9c9c9c;
   --white: #ffffff;
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 2px 10px rgba(0,0,0,0.05);
+  --shadow-xl: 0 20px 40px rgba(0,0,0,0.1);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
   --radius-sm: 8px;
@@ -1873,7 +1877,10 @@ header {
   position: relative;
   font-family: 'Inter', sans-serif;
   overflow-x: hidden;
+  transition: max-width 0.3s ease;
 }
+
+
 
 .modern-hero {
   background: linear-gradient(135deg, #0a192f 0%, #172a45 100%);
@@ -2136,6 +2143,17 @@ header {
   font-size: 0.9rem;
 }
 
+/* A4 Menu Card Full Screen Optimization */
+.a4-menu-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  background: #fdfbf7;
+  padding: 40px;
+  border: 1px solid #ddd;
+  margin: 0 auto;
+}
+
 .mobile-nav {
   display: flex;
   justify-content: space-between;
@@ -2161,3 +2179,121 @@ header {
   align-items: center;
   gap: 15px;
 }
+
+/* --- 1080P FULL-SCREEN INDUSTRIAL OVERRIDES --- */
+@media (min-width: 1024px) {
+  .mobile-app-container {
+    max-width: 100% !important;
+    height: 100vh;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .modern-menu-list {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 40px !important;
+    padding: 40px 100px 120px 100px !important;
+    max-width: 1800px;
+    margin: 0 auto;
+  }
+
+  .modern-item-card {
+    min-height: 240px !important;
+    height: auto !important;
+    border-radius: 40px !important;
+  }
+
+  .item-img-wrapper {
+    width: 240px !important;
+    height: 240px !important;
+  }
+
+  .modern-hero {
+    margin: 40px 100px !important;
+    border-radius: 60px !important;
+    padding: 80px !important;
+  }
+
+  .hero-promo h1 {
+    font-size: 4.5rem !important;
+  }
+
+  .bottom-tabs {
+    display: none !important;
+  }
+
+  .cart-floating-bar {
+    width: 400px !important;
+    bottom: 50px !important;
+    right: 100px !important;
+    left: auto !important;
+    transform: none !important;
+  }
+  
+  .a4-menu-layout {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 40px !important;
+    padding: 60px 100px !important;
+    max-width: 1500px !important;
+    height: calc(100vh - 100px);
+    overflow: hidden;
+    margin: 50px auto !important;
+    border-radius: 40px;
+    box-shadow: 0 40px 100px rgba(0,0,0,0.3);
+  }
+}
+
+@media (min-width: 1600px) {
+  .modern-menu-list {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+
+/* --- ENTERPRISE OPERATIONS CSS (A2Z) --- */
+.stat-pill {
+    background: white;
+    padding: 10px 20px;
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+    font-size: 0.85rem;
+    color: var(--primary-navy);
+}
+
+.stat-pill b {
+    font-size: 1.1rem;
+    margin-left: 5px;
+}
+
+.room-grid-luxury {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 30px;
+    padding: 20px;
+}
+
+.luxury-room-card {
+    background: white;
+    border-radius: 25px;
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+    transition: transform 0.3s ease;
+}
+
+.luxury-room-card:hover {
+    transform: translateY(-5px);
+}
+
+.amenity-chip {
+    font-size: 0.7rem;
+    padding: 4px 10px;
+    background: #f0f2f5;
+    border-radius: 5px;
+    color: #666;
+    margin-right: 5px;
+    margin-bottom: 5px;
+    display: inline-block;
+}
+

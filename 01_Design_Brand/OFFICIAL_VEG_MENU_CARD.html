@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hotel Sky 5 - Official Menu Card</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --sky-black: #0a0a0a;
+            --sky-gold: #d4af37;
+            --sky-gold-light: #f1e5ac;
+            --sky-white: #ffffff;
+            --sky-grey: #666;
+            --veg-green: #24963f;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: #1a1a1a;
+            color: var(--sky-white);
+            font-family: 'Poppins', sans-serif;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .menu-page {
+            background-color: var(--sky-black);
+            width: 794px; /* A4 Width at 96 DPI */
+            padding: 60px;
+            border: 15px solid var(--sky-gold);
+            position: relative;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+        }
+
+        .menu-border-inner {
+            border: 2px solid var(--sky-gold);
+            padding: 40px;
+            height: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .logo-text {
+            font-family: 'Cinzel', serif;
+            font-size: 3.5rem;
+            color: var(--sky-gold);
+            letter-spacing: 5px;
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .tagline {
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            color: var(--sky-gold-light);
+            font-size: 1.1rem;
+            letter-spacing: 2px;
+        }
+
+        .accent-divider {
+            width: 100px;
+            height: 2px;
+            background: var(--sky-gold);
+            margin: 20px auto;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+
+        .category-block {
+            margin-bottom: 30px;
+        }
+
+        .category-title {
+            font-family: 'Cinzel', serif;
+            color: var(--sky-gold);
+            font-size: 1.4rem;
+            border-bottom: 1px solid var(--sky-gold);
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            position: relative;
+        }
+
+        .item-name {
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--sky-white);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .veg-symbol {
+            font-size: 0.7rem;
+            color: var(--veg-green);
+        }
+
+        .item-price {
+            font-family: 'Cinzel', serif;
+            color: var(--sky-gold-light);
+            font-weight: 700;
+        }
+
+        .item-desc {
+            font-size: 0.75rem;
+            color: var(--sky-grey);
+            margin-top: -2px;
+            width: 80%;
+        }
+
+        .popular-badge {
+            background: var(--sky-gold);
+            color: var(--sky-black);
+            font-size: 0.6rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 800;
+            margin-left: 5px;
+            text-transform: uppercase;
+        }
+
+        .footer-info {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--sky-gold-light);
+            border-top: 1px solid var(--sky-gold);
+            padding-top: 20px;
+        }
+
+        @media print {
+            body { background: none; padding: 0; }
+            .menu-page { box-shadow: none; border: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="menu-page">
+        <div class="menu-border-inner">
+            
+            <div class="header">
+                <div class="logo-text">HOTEL SKY 5</div>
+                <div class="tagline">The Art of Pure Vegetarian Dining</div>
+                <div class="accent-divider"></div>
+            </div>
+
+            <div class="menu-grid">
+                
+                <!-- COLUMN 1 -->
+                <div class="column">
+                    
+                    <div class="category-block">
+                        <div class="category-title">Breakfast <span style="font-size: 0.8rem; font-family: sans-serif;">(8AM - 11AM)</span></div>
+                        <div class="item">
+                            <div class="item-name"><span class="veg-symbol">🟢</span> Aloo Paratha <span class="popular-badge">Top Pick</span></div>
+                            <div class="item-price">₹60</div>
+                        </div>
+                        <div class="item">
+                            <div class="item-name"><span class="veg-symbol">🟢</span> Paneer Paratha</div>
+                            <div class="item-price">₹99</div>
+                        </div>
+                        <div class="item">
+                            <div class="item-name"><span class="veg-symbol">🟢</span> Poha / Sandwich</div>
+                            <div class="item-price">₹90/100</div>
+                        </div>
+                        <div class="item">
+                            <div class="item-name"><span class="veg-symbol">🟢</span> Tea / Coffee / Milk</div>
+                            <div class="item-price">₹50/70/50</div>
+                        </div>
+                    </div>
+
+                    <div class="category-block">
+                        <div class="category-title">Lunch Specials</div>
+                        <div class="item">
+                            <div class="item-name"><span class="veg-symbol">🟢</span> Special Thali <span class="popular-badge">Value</span></div>
+                            <div class="item-price">₹240</div>
+                        </div>
+                        <div class="item-desc">Roti, Rice, Dal, Mix Veg, Raita, Salad</div>
+                        <div class="item" style="margin-top: 10px;">
+                            <div class="item-name"><span class="veg-symbol">🟢</span> Deluxe Thali</div>
+                            <div class="item-price">₹280</div>
+                        </div>
+                        <div class="item-desc">Butter Roti, Jeera Rice, Dal Makhni, Paneer Butter, Raita</div>
+                    </div>
+
+                    <div class="category-block">
+                        <div class="category-title">From the Wok (Snacks)</div>
+                        <div class="item">
+                            <div class="item-name"><span class="veg-symbol">🟢</span> Veg Noodles / Fried Rice</div>
+                            <div class="item-price">₹120/160</div>
+                        </div>
+                        <div class="item">
+                            <div class="item-name"><span class="veg-symbol">🟢</span> Manchurian / Cheese Chilli</div>
+                            <div class="item-price">₹200</div>
+                        </div>
+                        <div class="item">
+                            <div class="item-name"><span class="veg-symbol">🟢</span> White / Red / Mix Pasta</div>
+                            <div class="item-price">₹150</div>
+                        </div>
+                        <div class="item">
+                            <div class="item-name"><span class="veg-symbol">🟢</span> French Fries / Pakoda</div>
+                            <div class="item-price">₹150</div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- COLUMN 2 -->
+                <div class="column">
+                    
+                    <div class="category-block">
+                        <div class="category-title">Main Course (Dinner)</div>
+                        <div class="item">
+                            <div class="item-name"><span class="veg-symbol">🟢</span> Paneer Butter Masala <span class="popular-badge">Elite</span></div>
+                            <div class="item-price">₹250</div>
+                        </div>
+                        <div class="item">
+                            <div class="item-name"><span class="veg-symbol">🟢</span> Kadai Paneer / Bhurji</div>
+                            <div class="item-price">₹250/300</div>
+                        </div>
+                        <div class="item">
+                            <div class="item-name"><span class="veg-symbol">🟢</span> Dal Makhni / Tadka</div>
+                            <div class="item-price">₹200/180</div>
+                        </div>
+                        <div class="item">
+                            <div class="item-name"><span class="veg-symbol">🟢</span> Mix Veg / Aloo Gobhi</div>
+                            <div class="item-price">₹220/160</div>
+                        </div>
+                        <div class="item">
+                            <div class="item-name"><span class="veg-symbol">🟢</span> Chana Masala</div>
+                            <div class="item-price">₹200</div>
+                        </div>
+                    </div>
+
+                    <div class="category-block">
+                        <div class="category-title">Rice & Breads</div>
+                        <div class="item">
+                            <div class="item-name"><span class="veg-symbol">🟢</span> Veg Pulao / Jeera Rice</div>
+                            <div class="item-price">₹140/130</div>
+                        </div>
+                        <div class="item">
+                            <div class="item-name"><span class="veg-symbol">🟢</span> Tawa Roti (Plain/Butter)</div>
+                            <div class="item-price">₹25/30</div>
+                        </div>
+                    </div>
+
+                    <div class="category-block">
+                        <div class="category-title">Beverages & Shakes</div>
+                        <div class="item">
+                            <div class="item-name"><span class="veg-symbol">🟢</span> Mango / Banana Shake</div>
+                            <div class="item-price">₹200/150</div>
+                        </div>
+                        <div class="item">
+                            <div class="item-name"><span class="veg-symbol">🟢</span> Sweet / Salted Lassi</div>
+                            <div class="item-price">₹100</div>
+                        </div>
+                        <div class="item">
+                            <div class="item-name"><span class="veg-symbol">🟢</span> Cold Coffee</div>
+                            <div class="item-price">₹150</div>
+                        </div>
+                        <div class="item">
+                            <div class="item-name"><span class="veg-symbol">🟢</span> Lemon Soda / Soft Drink</div>
+                            <div class="item-price">₹80/30</div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="footer-info">
+                📍 Disha Arcade, Sector 4, Panchkula | 📞 081464 07934<br>
+                CHECK-IN: 12:00 PM | CHECK-OUT: 11:00 AM
+            </div>
+
+        </div>
+    </div>
+
+</body>
+</html>

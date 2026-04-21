@@ -27,6 +27,8 @@ function ShopView({ onNavigate }) {
     const [showPayment, setShowPayment] = useState(false);
     const [showMenuCard, setShowMenuCard] = useState(false);
     const [showRoomModal, setShowRoomModal] = useState(null);
+    const [showInvoice, setShowInvoice] = useState(false);
+    const [currentOrder, setCurrentOrder] = useState(null);
 
     // Save cart
     useEffect(() => {
@@ -40,7 +42,8 @@ function ShopView({ onNavigate }) {
     // Modern Filters based on image "Filters", "Veg", "Non Veg", "Spicy", "Ratings"
     // Mapping these to our actual logic or just visual for now.
     // We keep our Categories but style them like chips.
-    const categories = ['All', 'Stays', 'Ambiance', ...new Set(combos.map(c => c.category))];
+    // Pure Veg Category List
+    const categories = ['All', 'Stays', 'Ambiance', ...new Set(combos.map(c => c.category))].filter(c => c !== 'Non-Veg');
 
     const filteredCombos = useMemo(() => {
         let result = combos;
@@ -77,32 +80,158 @@ function ShopView({ onNavigate }) {
     const gst = Math.round(totalPrice * 0.05);
     const grandTotal = totalPrice + gst;
 
-    // Render Full Menu Card View
+    const processCheckout = () => {
+        if (totalItems === 0) {
+            showToast('Bag is empty!', 'error');
+            return;
+        }
+        
+        const orderData = {
+            id: `SKY5-${Math.floor(1000 + Math.random() * 9000)}`,
+            date: new Date().toLocaleString(),
+            items: Object.keys(cart).map(id => {
+                const item = combos.find(c => c.id === parseInt(id));
+                return { ...item, quantity: cart[id] };
+            }),
+            subtotal: totalPrice,
+            gst: gst,
+            total: grandTotal
+        };
+        
+        setCurrentOrder(orderData);
+        setShowInvoice(true);
+        setShowCart(false);
+        setCart({}); // Clear cart after checkout
+    };
+
+    const shareOnWhatsApp = () => {
+        if (!currentOrder) return;
+        
+        const message = `*Hotel Sky 5 - Bill Receipt*\n\nOrder ID: ${currentOrder.id}\nDate: ${currentOrder.date}\n\n*Items:*\n${currentOrder.items.map(i => `- ${i.name} (${i.quantity})`).join('\n')}\n\n*Total Amount: ₹${currentOrder.total}*\n\nThank you for visiting! 🙏`;
+        const encoded = encodeURIComponent(message);
+        window.open(`https://wa.me/?text=${encoded}`, '_blank');
+    };
+
+    // Render Professional A4 Invoice
+    if (showInvoice && currentOrder) {
+        return (
+            <div className="mobile-app-container" style={{ background: '#f8f9fa', maxWidth: '100%', padding: '40px' }}>
+                <div style={{ 
+                    background: 'white', 
+                    maxWidth: '800px', 
+                    margin: '0 auto', 
+                    padding: '60px', 
+                    boxShadow: '0 20px 60px rgba(0,0,0,0.1)',
+                    border: '1px solid #eee',
+                    fontFamily: 'Inter, sans-serif'
+                }} id="invoice-sheet">
+                    {/* Invoice Header */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #0a192f', paddingBottom: '30px', marginBottom: '40px' }}>
+                        <div>
+                            <Logo size={100} />
+                            <h1 style={{ color: '#0a192f', margin: '15px 0 5px 0', fontSize: '2rem' }}>Hotel Sky 5</h1>
+                            <p style={{ color: '#666', fontSize: '0.9rem' }}>Sector 4, Panchkula, Haryana 134112</p>
+                            <p style={{ color: '#666', fontSize: '0.9rem' }}>📞 +91 081464 07934</p>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                            <h2 style={{ color: '#d4af37', fontSize: '2.5rem', margin: '0' }}>INVOICE</h2>
+                            <p style={{ fontWeight: '800', margin: '10px 0 5px 0' }}># {currentOrder.id}</p>
+                            <p style={{ color: '#666' }}>{currentOrder.date}</p>
+                        </div>
+                    </div>
+
+                    {/* Table */}
+                    <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '40px' }}>
+                        <thead>
+                            <tr style={{ background: '#0a192f', color: 'white' }}>
+                                <th style={{ textAlign: 'left', padding: '15px' }}>Item Details</th>
+                                <th style={{ textAlign: 'center', padding: '15px' }}>Price</th>
+                                <th style={{ textAlign: 'center', padding: '15px' }}>Qty</th>
+                                <th style={{ textAlign: 'right', padding: '15px' }}>Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {currentOrder.items.map((item, idx) => (
+                                <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
+                                    <td style={{ padding: '15px' }}>
+                                        <div style={{ fontWeight: '700' }}>{item.name}</div>
+                                        <div style={{ fontSize: '0.8rem', color: '#888' }}>{item.category}</div>
+                                    </td>
+                                    <td style={{ textAlign: 'center', padding: '15px' }}>₹{item.price}</td>
+                                    <td style={{ textAlign: 'center', padding: '15px' }}>{item.quantity}</td>
+                                    <td style={{ textAlign: 'right', padding: '15px' }}>₹{item.price * item.quantity}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+
+                    {/* Summary */}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                        <div style={{ width: '300px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0' }}>
+                                <span>Subtotal</span>
+                                <span>₹{currentOrder.subtotal}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #ddd' }}>
+                                <span>GST (5%)</span>
+                                <span>₹{currentOrder.gst}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '20px 0', fontWeight: '900', fontSize: '1.4rem', color: '#0a192f' }}>
+                                <span>GRAND TOTAL</span>
+                                <span>₹{currentOrder.total}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Footer */}
+                    <div style={{ marginTop: '100px', textAlign: 'center', borderTop: '2px dashed #eee', paddingTop: '40px' }}>
+                        <h3 style={{ color: '#d4af37' }}>Thank You for Visiting! 🙏</h3>
+                        <p style={{ color: '#999' }}>Hope to see you again soon at Hotel Sky 5.</p>
+                    </div>
+                </div>
+
+                {/* Actions */}
+                <div style={{ maxWidth: '800px', margin: '40px auto', display: 'flex', gap: '20px' }}>
+                    <button className="checkout-btn" style={{ flex: 1 }} onClick={() => window.print()}>🖨️ PRINT / SAVE AS PDF</button>
+                    <button className="checkout-btn" style={{ flex: 1, background: '#25D366' }} onClick={shareOnWhatsApp}>💬 SHARE VIA WHATSAPP</button>
+                    <button className="checkout-btn" style={{ flex: 1, background: '#666' }} onClick={() => setShowInvoice(false)}>BACK TO HOME</button>
+                </div>
+            </div>
+        );
+    }
     if (showMenuCard) {
         return (
-            <div className="mobile-app-container" style={{ background: '#fdfbf7' }}>
-                <div style={{ padding: '20px', textAlign: 'center' }}>
-                    <div style={{ marginBottom: '15px' }}><Logo size={80} /></div>
-                    <h1 style={{ fontFamily: 'Cinzel, serif', color: '#0a192f', fontSize: '2.5rem', margin: '0' }}>Hotel Sky 5</h1>
-                    <div style={{ width: '50px', height: '2px', background: '#d4af37', margin: '0 auto 20px auto' }}></div>
+            <div className="mobile-app-container" style={{ background: '#fdfbf7', maxWidth: '100%' }}>
+                <div className="a4-menu-layout">
+                    <div style={{ textAlign: 'center', gridColumn: '1 / -1', marginBottom: '40px' }}>
+                        <div style={{ marginBottom: '15px' }}><Logo size={80} /></div>
+                        <h1 style={{ fontFamily: 'Cinzel, serif', color: '#0a192f', fontSize: '3rem', margin: '0' }}>Hotel Sky 5</h1>
+                        <div style={{ width: '100px', height: '3px', background: '#d4af37', margin: '15px auto 30px auto' }}></div>
+                        <p style={{ fontStyle: 'italic', color: '#666' }}>The Art of Pure Vegetarian Dining</p>
+                    </div>
                     
-                    {/* Groups by category for the Card look */}
                     {['Breakfast', 'Snacks', 'Thalis', 'Main Course', 'Rice', 'Breads', 'Raita & Salad', 'Beverages'].map(cat => (
-                        <div key={cat} style={{ marginBottom: '30px', textAlign: 'left' }}>
-                            <h3 style={{ color: '#d4af37', borderBottom: '1px solid #eee', paddingBottom: '5px', textTransform: 'uppercase', fontSize: '1rem' }}>{cat}</h3>
+                        <div key={cat} className="a4-category-block">
+                            <h3 style={{ color: '#d4af37', borderBottom: '2px solid #eee', paddingBottom: '8px', textTransform: 'uppercase', fontSize: '1.1rem', letterSpacing: '2px', fontWeight: '800' }}>{cat}</h3>
                             {combos.filter(item => item.category === cat).map(item => (
-                                <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px dashed #f0f0f0' }}>
-                                    <div>
-                                        <div style={{ fontWeight: '700', color: '#0a192f' }}>{item.name}</div>
-                                        <div style={{ fontSize: '0.7rem', color: '#888' }}>{item.description.substring(0, 50)}...</div>
+                                <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px dashed #f0f0f0' }}>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ fontWeight: '700', color: '#0a192f', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                            <span style={{ color: '#24963f', fontSize: '0.6rem' }}>🟢</span>
+                                            {item.name}
+                                            {item.isPopular && <span className="popular-badge">Top Pick</span>}
+                                        </div>
+                                        <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '2px' }}>{item.description.replace('🟢 ', '').substring(0, 60)}</div>
                                     </div>
-                                    <div style={{ fontWeight: '800', color: '#0a192f' }}>₹{item.price}</div>
+                                    <div style={{ fontWeight: '800', color: '#0a192f', marginLeft: '15px' }}>₹{item.price}</div>
                                 </div>
                             ))}
                         </div>
                     ))}
                     
-                    <button className="checkout-btn" onClick={() => { setShowMenuCard(false); showToast('Redirected to Order View', 'info'); }}>BACK TO QUICK ORDER</button>
+                    <div style={{ gridColumn: '1 / -1', textAlign: 'center', marginTop: '60px' }}>
+                        <button className="checkout-btn" style={{ width: '300px' }} onClick={() => setShowMenuCard(false)}>CLOSE FULL CARD</button>
+                    </div>
                 </div>
             </div>
         );
@@ -195,12 +324,7 @@ function ShopView({ onNavigate }) {
                                 ))}
                             </div>
 
-                            <button className="checkout-btn" style={{ marginTop: '20px' }} onClick={() => {
-                                const successMsg = paymentMethod === 'Room Charge' 
-                                    ? 'Charged to Room Successfully!' 
-                                    : 'Order Placed Successfully!';
-                                showToast(successMsg, 'success');
-                                setShowPayment(false);
+                            <button className="checkout-btn" onClick={() => {
                                 setCart({});
                                 setShowCart(false);
                             }}>
@@ -218,16 +342,35 @@ function ShopView({ onNavigate }) {
             {/* 1. Header Row */}
             <nav className="mobile-nav">
                 <div className="app-title-nav" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <Logo size={30} />
-                    <span>Hotel Sky 5</span>
+                    <Logo size={40} />
+                    <span style={{ fontSize: '1.4rem', fontWeight: '800', letterSpacing: '1px' }}>Hotel Sky 5</span>
                 </div>
+                
+                {/* Desktop Menu Tabs */}
+                <div className="desktop-menu" style={{ display: 'flex', gap: '30px', margin: '0 40px' }}>
+                   {['Home', 'Menu Card', 'Admin'].map(tab => (
+                       <span 
+                        key={tab} 
+                        style={{ 
+                            cursor: 'pointer', 
+                            fontWeight: '600', 
+                            color: tab === 'Home' ? 'var(--primary)' : '#888',
+                            fontSize: '0.9rem'
+                        }}
+                        onClick={() => {
+                            if (tab === 'Menu Card') setShowMenuCard(true);
+                            if (tab === 'Admin') onNavigate('dashboard');
+                        }}
+                       >{tab}</span>
+                   ))}
+                </div>
+
                 <div className="nav-actions">
-                    <div className="rating-badge" style={{ background: '#d4af37', color: '#0a192f', padding: '2px 10px', borderRadius: '15px', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                    <div className="rating-badge" style={{ background: '#d4af37', color: '#0a192f', padding: '5px 15px', borderRadius: '15px', fontSize: '0.8rem', fontWeight: 'bold' }}>
                         ⭐ 3.8/5
                     </div>
                     <div className="profile-circle">GA</div>
                 </div>
-
             </nav>
 
             {/* 2. Hero Section (Premium Dark) */}
@@ -256,7 +399,7 @@ function ShopView({ onNavigate }) {
                     <div className="hero-promo-text">
                         <h1 style={{ fontFamily: 'Cinzel, serif', letterSpacing: '4px' }}>Smart Stay.<br /><span>True Comfort.</span><br />Hotel Sky 5</h1>
                         <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem', marginBottom: '15px', fontStyle: 'italic' }}>
-                            Your premium 3-star property in the heart of Panchkula.
+                            Your premium 5-star signature property in the heart of Panchkula.
                         </p>
                         <div style={{ display: 'flex', gap: '10px' }}>
                             <button className="shop-now-btn" onClick={() => {
@@ -315,25 +458,48 @@ function ShopView({ onNavigate }) {
 
             <div className="modern-menu-list">
                 {activeCategory === 'Stays' ? (
-                    rooms.map(room => (
-                        <div key={room.id} className="modern-item-card room-card">
-                            <div className="badge-float" style={{ background: '#0a192f', color: '#d4af37' }}>HOTEL STAY</div>
-                            <div className="item-img-wrapper">
-                                <img src={room.image} className="item-img-modern" alt={room.name} />
-                            </div>
-                            <div className="item-content-modern">
-                                <div className="item-title-modern">{room.name}</div>
-                                <div className="item-weight">{room.features.join(' • ')}</div>
-                                <div className="price-row-modern">
-                                    <div className="item-price">₹{room.price}</div>
-                                    <div className="add-btn-square" style={{ width: 'auto', padding: '0 12px', fontSize: '0.8rem' }} onClick={() => {
-                                        addToCart(room.id);
-                                        showToast('Room added to booking cart', 'info');
-                                    }}>BOOK</div>
-                                </div>
-                            </div>
+                    <div style={{ gridColumn: '1 / -1' }}>
+                        <div style={{ background: 'white', padding: '30px', borderRadius: '30px', marginBottom: '40px', display: 'flex', gap: '20px', alignItems: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', flexWrap: 'wrap' }}>
+                             <div style={{ flex: 1, minWidth: '200px' }}>
+                                <label style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#999', textTransform: 'uppercase' }}>Check-in & Out</label>
+                                <input type="date" className="hero-search-pill" style={{ width: '100%', marginTop: '5px', padding: '12px' }} defaultValue={new Date().toISOString().split('T')[0]} />
+                             </div>
+                             <div style={{ flex: 1, minWidth: '150px' }}>
+                                <label style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#999', textTransform: 'uppercase' }}>Guests</label>
+                                <select className="hero-search-pill" style={{ width: '100%', marginTop: '5px', padding: '12px' }}>
+                                    <option>1 Guest</option>
+                                    <option selected>2 Guests</option>
+                                    <option>3 Guests</option>
+                                    <option>4+ Guests</option>
+                                </select>
+                             </div>
+                             <button className="shop-now-btn" style={{ height: '50px', alignSelf: 'flex-end' }}>Update Search</button>
                         </div>
-                    ))
+                        <div className="modern-menu-list">
+                            {rooms.map(room => (
+                                <div key={room.id} className="luxury-room-card" style={{ height: 'auto' }}>
+                                    <div style={{ height: '240px', overflow: 'hidden', position: 'relative' }}>
+                                        <img src={room.image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={room.type} />
+                                        <div style={{ position: 'absolute', top: '20px', right: '20px', background: 'rgba(255,255,255,0.9)', padding: '5px 12px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: '800' }}>⭐ 4.9</div>
+                                    </div>
+                                    <div style={{ padding: '25px' }}>
+                                        <h3 style={{ margin: '0 0 5px 0', fontSize: '1.4rem', color: 'var(--primary-navy)' }}>{room.type}</h3>
+                                        <p style={{ color: '#666', fontSize: '0.85rem', marginBottom: '15px' }}>{room.description}</p>
+                                        <div style={{ marginBottom: '20px' }}>
+                                            {room.amenities.map(a => <span key={a} className="amenity-chip">{a}</span>)}
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div style={{ fontSize: '1.5rem', fontWeight: '800' }}>₹{room.price} <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#999' }}>/ night</span></div>
+                                            <button className="add-btn-square" style={{ width: 'auto', padding: '0 25px' }} onClick={() => {
+                                                addToCart(room.id);
+                                                showToast(`${room.type} added to reservation.`, 'success');
+                                            }}>BOOK NOW</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 ) : activeCategory === 'Ambiance' ? (
                     ambiance.map(item => (
                         <div key={item.id} className="modern-item-card room-card">
@@ -353,8 +519,8 @@ function ShopView({ onNavigate }) {
                 ) : (
                     filteredCombos.map(item => (
                     <div key={item.id} className="modern-item-card">
-                        {item.isBestSeller && (
-                            <div className="badge-float">BESTSELLER</div>
+                        {item.isPopular && (
+                            <div className="badge-float" style={{ background: 'var(--accent)', color: 'var(--primary)' }}>TOP PICK</div>
                         )}
 
                         <div className="item-img-wrapper">
@@ -362,9 +528,11 @@ function ShopView({ onNavigate }) {
                         </div>
 
                         <div className="item-content-modern">
-                            <div className="item-title-modern">{item.name}</div>
-                            {/* Mock weight or desc */}
-                            <div className="item-weight">1 Plate</div>
+                            <div className="item-title-modern">
+                                <span style={{ color: '#24963f', fontSize: '0.8rem', marginRight: '5px' }}>🟢</span>
+                                {item.name}
+                            </div>
+                            <div className="item-weight">{item.description.replace('🟢 ', '')}</div>
 
                             <div className="price-row-modern">
                                 <div className="item-price">₹{item.price}</div>
