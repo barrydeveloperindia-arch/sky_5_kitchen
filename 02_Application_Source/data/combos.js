@@ -3,17 +3,15 @@
  * 5-Star Hospitality Grade Imagery
  */
 
-const getImg = (id) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&q=80&w=800`;
-
-// Vetted Industrial-Grade Indian Food IDs for 5-Star Menu
-const img_paratha = getImg("1541544741938-0af808871cc0"); // Authentic Aloo Paratha (verified)
-const img_curry = getImg("1611754764115-30fa00030588");    // Rich Paneer Curry
-const img_thali = getImg("1589302168068-964664d93dc0");    // Traditional Indian Thali
-const img_dal = getImg("1546833999-b9f581a1996d");      // Black Dal Makhni
-const img_snacks = getImg("1601050638914-72200448e0d6");   // Samosa/Pakoda 
-const img_drinks = getImg("1571115177098-24ec42ed204d");   // Shakes/Lassi
-const img_noodles = getImg("1585032226651-759b368d7246");  // Desi Chinese
-const img_rice = getImg("1603133872878-684f208fb84b");     // Basmati Fried Rice
+// High-Fidelity Local Assets (Served from 04_Digital_Assets)
+const img_paratha = "/images/breakfast_paratha_combo_1770012647403.png";
+const img_curry = "/images/paneer_butter_masala_combo_bowl_1770012612956.png"; 
+const img_thali = "/images/dal_tadka_combo_thali_1770012594484.png";
+const img_dal = "/images/dal_tadka_roti_rice_combo_1770013924380.png";
+const img_snacks = "/images/paneer_tikka_skewer_1770013745197.png";
+const img_drinks = "/images/fresh_fruit_juices_assorted_1770013780221.png";
+const img_noodles = "/images/hakka_noodles_veg_1770013764042.png";
+const img_rice = "/images/chilli_paneer_fried_rice_combo_1770012631322.png";
 
 export const combos = [
     // --- BREAKFAST ---

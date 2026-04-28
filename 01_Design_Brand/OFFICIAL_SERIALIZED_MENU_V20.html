@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hotel Sky-5 - Professional Serialized Menu</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Montserrat:wght@300;400;500;600;700;800&family=Cinzel:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --navy: #002147;
+            --gold: #b8860b;
+            --gold-light: #d4af37;
+            --cream: #fdfdfd;
+            --text-dark: #1a1a1a;
+            --text-muted: #555;
+            --border-color: #e0e0e0;
+        }
+
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .menu-container {
+            width: 210mm;
+            height: 297mm;
+            background-color: var(--cream);
+            padding: 10mm;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #ccc;
+            overflow: hidden;
+        }
+
+        .border-decor {
+            position: absolute;
+            top: 5mm; bottom: 5mm; left: 5mm; right: 5mm;
+            border: 2px solid var(--navy);
+            pointer-events: none;
+        }
+
+        .inner-decor {
+            position: absolute;
+            top: 7mm; bottom: 7mm; left: 7mm; right: 7mm;
+            border: 1px solid var(--gold);
+            pointer-events: none;
+        }
+
+        header {
+            display: grid;
+            grid-template-columns: 1fr 1.50fr 1fr;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid var(--navy);
+        }
+
+        .header-left h2 { font-family: 'Cinzel', serif; font-size: 28px; color: var(--navy); margin: 0; line-height: 1; }
+        .header-left p { font-size: 10px; letter-spacing: 3px; font-weight: 700; color: var(--navy); margin: 2px 0; }
+
+        .header-center { text-align: center; }
+        .header-center h3 { 
+            font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 900; color: var(--navy); 
+            letter-spacing: 8px; border-top: 1px solid var(--gold); border-bottom: 1px solid var(--gold);
+            display: inline-block; padding: 0 20px; margin: 0;
+        }
+        .header-center p { font-size: 9px; letter-spacing: 5px; font-weight: 600; margin-top: 5px; }
+
+        .header-right { text-align: right; font-weight: 800; font-size: 12px; color: var(--navy); }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            flex: 1;
+        }
+
+        .column { display: flex; flex-direction: column; gap: 8px; }
+
+        .section-card {
+            border: 1px solid #eee;
+            border-radius: 6px;
+            padding: 5px;
+            background: #fff;
+            position: relative;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            border-bottom: 1px solid var(--gold);
+            padding-bottom: 3px;
+        }
+
+        .cat-photo {
+            width: 45px;
+            height: 45px;
+            border-radius: 4px;
+            object-fit: cover;
+            border: 1px solid var(--gold);
+        }
+
+        .cat-number {
+            background: var(--navy);
+            color: #fff;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 900;
+        }
+
+        .cat-title {
+            font-family: 'Cinzel', serif;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--navy);
+            flex: 1;
+        }
+
+        .item-list { display: flex; flex-direction: column; gap: 2px; }
+
+        .menu-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            font-size: 9px;
+        }
+
+        .item-name { font-weight: 700; color: var(--text-dark); text-transform: uppercase; }
+        .item-dots { flex: 1; border-bottom: 1px dotted #ddd; margin: 0 8px; }
+        .item-price { font-weight: 800; color: var(--navy); }
+
+        .treebo-box { border: 1.5px solid #d32f2f; background: #fffafa; }
+        .treebo-box .cat-number { background: #d32f2f; }
+        .treebo-box .cat-title { color: #d32f2f; }
+
+        .thali-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 5px; }
+        .thali-item { border-top: 1px solid #f0f0f0; padding-top: 2px; }
+        .thali-item span { font-weight: 800; font-size: 9px; color: var(--navy); }
+        .thali-desc { font-size: 7px; color: #666; margin: 0; line-height: 1.1; }
+
+        footer {
+            margin-top: auto;
+            border-top: 2px solid var(--navy);
+            padding: 5px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 10px;
+            font-weight: 800;
+            color: var(--navy);
+        }
+
+        .gst-note { background: var(--gold); color: #fff; padding: 3px 10px; border-radius: 4px; font-size: 9px; }
+        .reception { background: var(--navy); color: #fff; padding: 3px 10px; border-radius: 4px; text-align: center; }
+        .reception span { font-size: 7px; display: block; opacity: 0.8; }
+
+        .tag { font-size: 6px; padding: 1px 3px; border-radius: 2px; margin-left: 4px; border: 1px solid currentColor; }
+        .tag-chef { background: #fff8e1; color: #ffa000; }
+        .tag-best { background: #e8f5e9; color: #2e7d32; }
+
+        /* Icon extraction classes */
+        .crop-3 { object-position: 0% 0%; }
+        .crop-4 { object-position: 50% 0%; }
+        .crop-5 { object-position: 100% 0%; }
+        .crop-6 { object-position: 0% 0%; }
+        .crop-7 { object-position: 25% 0%; }
+        .crop-8 { object-position: 50% 0%; }
+        .crop-9 { object-position: 75% 0%; }
+        .crop-10 { object-position: 100% 0%; }
+
+    </style>
+</head>
+<body>
+    <div class="menu-container">
+        <div class="border-decor"></div>
+        <div class="inner-decor"></div>
+
+        <header>
+            <div class="header-left">
+                <h2>HOTEL SKY-5</h2>
+                <p>PURE VEG RESTAURANT</p>
+            </div>
+            <div class="header-center">
+                <h3>MENU</h3>
+                <p>GOOD FOOD. GREAT STAY.</p>
+            </div>
+            <div class="header-right">
+                ORDER: DIAL NO. 9
+            </div>
+        </header>
+
+        <div class="menu-grid">
+            <!-- COLUMN 1 -->
+            <div class="column">
+                <!-- 01 TREEBO -->
+                <section class="section-card treebo-box">
+                    <div class="section-header">
+                        <img src="../04_Digital_Assets/cat_01.png" class="cat-photo">
+                        <div class="cat-number">01</div>
+                        <div class="cat-title">TREEBO COMPLEMENTARY BREAKFAST</div>
+                    </div>
+                    <div class="item-list">
+                        <div class="menu-item"><span class="item-name">Aloo / Gobhi / Mix Paratha</span><span class="item-dots"></span><span class="item-price">₹70/80</span></div>
+                        <div class="menu-item"><span class="item-name">Bread Toast / Veg Sandwich</span><span class="item-dots"></span><span class="item-price">₹60/100</span></div>
+                        <div class="menu-item"><span class="item-name">Omelette (Plain / Bread)</span><span class="item-dots"></span><span class="item-price">₹70/80</span></div>
+                        <div class="menu-item"><span class="item-name">Poha / Tea / Milk</span><span class="item-dots"></span><span class="item-price">₹60/50/60</span></div>
+                    </div>
+                </section>
+
+                <!-- 02 BREAKFAST -->
+                <section class="section-card">
+                    <div class="section-header">
+                        <img src="../04_Digital_Assets/cat_02.png" class="cat-photo">
+                        <div class="cat-number">02</div>
+                        <div class="cat-title">FRESH MORNING BREAKFAST</div>
+                    </div>
+                    <div class="item-list">
+                        <div class="menu-item"><span class="item-name">Aloo Paratha / Paneer Paratha</span><span class="item-dots"></span><span class="item-price">₹70 / 90</span></div>
+                        <div class="menu-item"><span class="item-name">Plain / Bread Omelette</span><span class="item-dots"></span><span class="item-price">₹70 / 80</span></div>
+                        <div class="menu-item"><span class="item-name">Poha / Curd Bowl</span><span class="item-dots"></span><span class="item-price">₹60 / 50</span></div>
+                        <div class="menu-item"><span class="item-name">Tea / Coffee / Milk</span><span class="item-dots"></span><span class="item-price">₹50 / 60 / 60</span></div>
+                    </div>
+                </section>
+
+                <!-- 03 SNACKS -->
+                <section class="section-card">
+                    <div class="section-header">
+                        <img src="../04_Digital_Assets/cat_03_05.png" class="cat-photo crop-3">
+                        <div class="cat-number">03</div>
+                        <div class="cat-title">ALL DAY SAVORY SNACKS</div>
+                    </div>
+                    <div class="item-list">
+                        <div class="menu-item"><span class="item-name">Mix Pakora (12 Pcs)</span><span class="tag tag-best">BEST SELLER</span><span class="item-dots"></span><span class="item-price">₹150</span></div>
+                        <div class="menu-item"><span class="item-name">French Fries / Masala / Roast Papad</span><span class="item-dots"></span><span class="item-price">₹120 / 80</span></div>
+                        <div class="menu-item"><span class="item-name">Veg Sandwich / Toast / Grilled</span><span class="item-dots"></span><span class="item-price">₹100</span></div>
+                        <div class="menu-item"><span class="item-name">Veg Maggi / Cheese Maggi</span><span class="item-dots"></span><span class="item-price">₹80</span></div>
+                        <div class="menu-item"><span class="item-name">Cheese Chilli (Dry)</span><span class="item-dots"></span><span class="item-price">₹200</span></div>
+                    </div>
+                </section>
+
+                <!-- 04 CHINESE -->
+                <section class="section-card">
+                    <div class="section-header">
+                        <img src="../04_Digital_Assets/cat_03_05.png" class="cat-photo crop-4">
+                        <div class="cat-number">04</div>
+                        <div class="cat-title">CHINESE WOK SPECIALS</div>
+                    </div>
+                    <div class="item-list">
+                        <div class="menu-item"><span class="item-name">Veg Fried Rice / Hakka Noodles</span><span class="item-dots"></span><span class="item-price">₹150</span></div>
+                        <div class="menu-item"><span class="item-name">Chilly Potato / Paneer</span><span class="item-dots"></span><span class="item-price">₹150 / 200</span></div>
+                    </div>
+                </section>
+
+                <!-- 05 MAIN COURSE -->
+                <section class="section-card">
+                    <div class="section-header">
+                        <img src="../04_Digital_Assets/cat_03_05.png" class="cat-photo crop-5">
+                        <div class="cat-number">05</div>
+                        <div class="cat-title">ROYAL MAIN COURSE</div>
+                    </div>
+                    <div class="item-list">
+                        <div class="menu-item"><span class="item-name">Dal Makhani / Kadhai Paneer</span><span class="item-dots"></span><span class="item-price">₹220/280</span></div>
+                        <div class="menu-item"><span class="item-name">Butter Chicken / Chicken Curry</span><span class="item-dots"></span><span class="item-price">₹400</span></div>
+                        <div class="menu-item"><span class="item-name">Mix Vegetable / Chana Masala</span><span class="item-dots"></span><span class="item-price">₹200</span></div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- COLUMN 2 -->
+            <div class="column">
+                <!-- 06 RICE -->
+                <section class="section-card">
+                    <div class="section-header">
+                        <img src="../04_Digital_Assets/cat_06_10.png" class="cat-photo crop-6">
+                        <div class="cat-number">06</div>
+                        <div class="cat-title">RICE & BASMATI DELIGHTS</div>
+                    </div>
+                    <div class="item-list">
+                        <div class="menu-item"><span class="item-name">Veg Biryani</span><span class="tag tag-best">BEST</span><span class="item-dots"></span><span class="item-price">₹220</span></div>
+                        <div class="menu-item"><span class="item-name">Jeera Rice / Peas Pulao</span><span class="item-dots"></span><span class="item-price">₹120 / 180</span></div>
+                    </div>
+                </section>
+
+                <!-- 07 SALADS -->
+                <section class="section-card">
+                    <div class="section-header">
+                        <img src="../04_Digital_Assets/cat_06_10.png" class="cat-photo crop-7">
+                        <div class="cat-number">07</div>
+                        <div class="cat-title">FRESH PROFESSIONAL SALADS</div>
+                    </div>
+                    <div class="item-list">
+                        <div class="menu-item"><span class="item-name">Russian Salad (Fruit & Cream)</span><span class="item-dots"></span><span class="item-price">₹150</span></div>
+                        <div class="menu-item"><span class="item-name">Kachumber / Green Salad</span><span class="item-dots"></span><span class="item-price">₹90 / 70</span></div>
+                    </div>
+                </section>
+
+                <!-- 08 BREADS -->
+                <section class="section-card">
+                    <div class="section-header">
+                        <img src="../04_Digital_Assets/cat_06_10.png" class="cat-photo crop-8">
+                        <div class="cat-number">08</div>
+                        <div class="cat-title">TRADITIONAL INDIAN BREADS</div>
+                    </div>
+                    <div class="item-list">
+                        <div class="menu-item"><span class="item-name">Butter Roti / Tawa Paratha</span><span class="item-dots"></span><span class="item-price">₹30 / 40</span></div>
+                        <div class="menu-item"><span class="item-name">Tawa Roti Plain</span><span class="item-dots"></span><span class="item-price">₹25</span></div>
+                    </div>
+                </section>
+
+                <!-- 09 BEVERAGES -->
+                <section class="section-card">
+                    <div class="section-header">
+                        <img src="../04_Digital_Assets/cat_06_10.png" class="cat-photo crop-9">
+                        <div class="cat-number">09</div>
+                        <div class="cat-title">BEVERAGES & SHAKES</div>
+                    </div>
+                    <div class="item-list">
+                        <div class="menu-item"><span class="item-name">Sweet Lassi / Fresh Lime Soda / Ice Cubes</span><span class="item-dots"></span><span class="item-price">₹100 / 100 / 20</span></div>
+                        <div class="menu-item"><span class="item-name">Milkshake / Cold Drink (500ml)</span><span class="item-dots"></span><span class="item-price">₹120 / 60</span></div>
+                        <div class="menu-item"><span class="item-name">Amul / Coke (250ml) / Soda (200ml)</span><span class="item-dots"></span><span class="item-price">₹30</span></div>
+                    </div>
+                </section>
+
+                <!-- 10 THALI -->
+                <section class="section-card">
+                    <div class="section-header">
+                        <img src="../04_Digital_Assets/cat_06_10.png" class="cat-photo crop-10">
+                        <div class="cat-number">10</div>
+                        <div class="cat-title">PREMIUM ROYAL THALI</div>
+                    </div>
+                    <div class="thali-grid">
+                        <div class="thali-item"><span>VEG THALI</span><span style="float:right">₹210</span><p class="thali-desc">4 Roti, Rice, Dal, Mix Veg, Salad</p></div>
+                        <div class="thali-item"><span>DELUXE</span><span style="float:right">₹250</span><p class="thali-desc">Dal Makhani, Paneer, 4 Roti, Rice</p></div>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <footer>
+            <span>THANK YOU FOR VISITING HOTEL SKY-5</span>
+            <div class="gst-note">+5% GST APPLICABLE</div>
+            <div class="reception">
+                <span>RECEPTION</span>
+                DIAL NO. 9
+            </div>
+        </footer>
+    </div>
+</body>
+</html>
