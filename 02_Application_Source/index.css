@@ -2143,6 +2143,132 @@ header {
   font-size: 0.9rem;
 }
 
+/* Modern Hero Premium UI */
+.modern-hero {
+  background: linear-gradient(135deg, var(--primary-navy) 0%, #112240 50%, #0a192f 100%);
+  border-radius: 30px;
+  margin: 20px;
+  padding: 40px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(10, 25, 47, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.modern-hero::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(circle at top right, rgba(212, 175, 55, 0.05) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.hero-search-wrapper {
+  position: relative;
+  z-index: 2;
+}
+
+.hero-search-pill {
+  background: var(--white);
+  border-radius: 50px;
+  padding: 15px 25px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  max-width: 600px;
+}
+
+.hero-promo {
+  position: relative;
+  z-index: 2;
+}
+
+.hero-promo h1 {
+  color: var(--white);
+  font-size: 2.5rem;
+  line-height: 1.2;
+  margin-bottom: 15px;
+}
+
+.hero-promo h1 span {
+  color: var(--signature-gold);
+}
+
+.shop-now-btn {
+  background: var(--signature-gold);
+  color: var(--primary-navy);
+  border: none;
+  padding: 12px 28px;
+  border-radius: 50px;
+  font-weight: 800;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3);
+}
+
+.shop-now-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(212, 175, 55, 0.4);
+  background: #ecd06c;
+}
+
+/* Enhanced Filter Chips */
+.modern-filters {
+  display: flex;
+  gap: 15px;
+  overflow-x: auto;
+  padding: 10px 20px 20px 20px;
+  scrollbar-width: none;
+  margin-bottom: 20px;
+}
+
+.filter-chip {
+  background: var(--white);
+  border: 1px solid rgba(0,0,0,0.05);
+  border-radius: 16px;
+  padding: 15px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 90px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+}
+
+.filter-chip:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+  border-color: rgba(212, 175, 55, 0.3);
+}
+
+.filter-chip.active {
+  background: var(--primary-navy);
+  color: var(--white);
+  border-color: var(--primary-navy);
+  box-shadow: 0 10px 20px rgba(10, 25, 47, 0.15);
+}
+
+.filter-chip.active .filter-name {
+  color: var(--white);
+}
+
+.filter-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-grey);
+}
+
+.filter-icon {
+  font-size: 1.5rem;
+}
+
 /* A4 Menu Card Full Screen Optimization */
 .a4-menu-layout {
   display: flex;
@@ -2238,8 +2364,8 @@ header {
     gap: 40px !important;
     padding: 60px 100px !important;
     max-width: 1500px !important;
-    height: calc(100vh - 100px);
-    overflow: hidden;
+    height: auto;
+    overflow: visible;
     margin: 50px auto !important;
     border-radius: 40px;
     box-shadow: 0 40px 100px rgba(0,0,0,0.3);

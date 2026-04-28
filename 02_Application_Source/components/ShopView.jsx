@@ -4,7 +4,7 @@ import { rooms } from '../data/rooms';
 import { ambiance } from '../data/ambiance';
 import Logo from './Logo';
 
-function ShopView({ onNavigate }) {
+function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
     const [toast, setToast] = useState(null);
 
     const showToast = (message, type = 'success') => {
@@ -23,12 +23,22 @@ function ShopView({ onNavigate }) {
     });
 
     const [paymentMethod, setPaymentMethod] = useState('UPI');
+    const [tableNumber, setTableNumber] = useState('');
     const [showCart, setShowCart] = useState(false);
     const [showPayment, setShowPayment] = useState(false);
     const [showMenuCard, setShowMenuCard] = useState(false);
     const [showRoomModal, setShowRoomModal] = useState(null);
     const [showInvoice, setShowInvoice] = useState(false);
     const [currentOrder, setCurrentOrder] = useState(null);
+
+    // Auto-detect table number from URL (e.g. ?table=5)
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const tableParam = params.get('table');
+        if (tableParam) {
+            setTableNumber('Table ' + tableParam);
+        }
+    }, []);
 
     // Save cart
     useEffect(() => {
@@ -43,10 +53,10 @@ function ShopView({ onNavigate }) {
     // Mapping these to our actual logic or just visual for now.
     // We keep our Categories but style them like chips.
     // Pure Veg Category List
-    const categories = ['All', 'Stays', 'Ambiance', ...new Set(combos.map(c => c.category))].filter(c => c !== 'Non-Veg');
+    const categories = ['All', 'Stays', 'Ambiance', ...new Set(menuItems.map(c => c.category))].filter(c => c !== 'Non-Veg');
 
     const filteredCombos = useMemo(() => {
-        let result = combos;
+        let result = menuItems;
         if (activeCategory !== 'All') {
             result = result.filter(c => c.category === activeCategory);
         }
@@ -54,7 +64,7 @@ function ShopView({ onNavigate }) {
             result = result.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
         }
         return result;
-    }, [activeCategory, searchTerm]);
+    }, [activeCategory, searchTerm, menuItems]);
 
     const addToCart = (id) => {
         setCart(prev => ({
@@ -68,7 +78,7 @@ function ShopView({ onNavigate }) {
     const cartTotalItems = Object.values(cart).reduce((a, b) => a + b, 0);
 
     const { totalPrice, totalMrp } = Object.entries(cart).reduce((acc, [id, qty]) => {
-        const item = combos.find(c => c.id === parseInt(id)) || rooms.find(r => r.id === parseInt(id));
+        const item = menuItems.find(c => c.id === parseInt(id)) || rooms.find(r => r.id === parseInt(id));
         if (item) {
             acc.totalPrice += item.price * qty;
             acc.totalMrp += (item.originalPrice || item.price) * qty;
@@ -81,18 +91,25 @@ function ShopView({ onNavigate }) {
     const grandTotal = totalPrice + gst;
 
     const processCheckout = () => {
-        if (totalItems === 0) {
+        if (cartTotalItems === 0) {
             showToast('Bag is empty!', 'error');
             return;
         }
+        if (!tableNumber.trim()) {
+            showToast('Please enter Table/Room Number', 'error');
+            return;
+        }
         
+        const orderItemsList = Object.keys(cart).map(id => {
+            const item = menuItems.find(c => c.id === parseInt(id)) || rooms.find(r => r.id === parseInt(id));
+            return { ...item, quantity: cart[id] };
+        });
+
         const orderData = {
             id: `SKY5-${Math.floor(1000 + Math.random() * 9000)}`,
+            table: tableNumber,
             date: new Date().toLocaleString(),
-            items: Object.keys(cart).map(id => {
-                const item = combos.find(c => c.id === parseInt(id));
-                return { ...item, quantity: cart[id] };
-            }),
+            items: orderItemsList,
             subtotal: totalPrice,
             gst: gst,
             total: grandTotal
@@ -101,13 +118,30 @@ function ShopView({ onNavigate }) {
         setCurrentOrder(orderData);
         setShowInvoice(true);
         setShowCart(false);
+        setShowPayment(false);
         setCart({}); // Clear cart after checkout
+
+        // Push order to global admin state
+        if (onPlaceOrder) {
+            const formattedItemsText = orderItemsList.map(i => `${i.quantity}x ${i.name}`).join(', ');
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            
+            onPlaceOrder({
+                id: orderData.id,
+                table: tableNumber,
+                items: formattedItemsText,
+                status: 'Pending',
+                time: timeStr,
+                details: orderItemsList
+            }, grandTotal);
+        }
     };
 
     const shareOnWhatsApp = () => {
         if (!currentOrder) return;
         
-        const message = `*Hotel Sky 5 - Bill Receipt*\n\nOrder ID: ${currentOrder.id}\nDate: ${currentOrder.date}\n\n*Items:*\n${currentOrder.items.map(i => `- ${i.name} (${i.quantity})`).join('\n')}\n\n*Total Amount: ₹${currentOrder.total}*\n\nThank you for visiting! 🙏`;
+        const message = `🏨 *HOTEL SKY 5 - OFFICIAL INVOICE* 🏨\n----------------------------------------\n🧾 *Order ID:* #${currentOrder.id}\n📅 *Date:* ${currentOrder.date}\n🚪 *Room / Table:* ${currentOrder.table}\n\n🍽️ *ORDER DETAILS:*\n${currentOrder.items.map(i => `▪️ ${i.quantity}x ${i.name}`).join('\n')}\n\n💰 *Subtotal:* ₹${currentOrder.subtotal}\n🏛️ *GST (5%):* ₹${currentOrder.gst}\n----------------------------------------\n✅ *GRAND TOTAL: ₹${currentOrder.total}*\n----------------------------------------\n🙏 Thank you for dining with Hotel Sky 5!`;
         const encoded = encodeURIComponent(message);
         window.open(`https://wa.me/?text=${encoded}`, '_blank');
     };
@@ -123,20 +157,35 @@ function ShopView({ onNavigate }) {
                     padding: '60px', 
                     boxShadow: '0 20px 60px rgba(0,0,0,0.1)',
                     border: '1px solid #eee',
-                    fontFamily: 'Inter, sans-serif'
+                    fontFamily: 'Inter, sans-serif',
+                    position: 'relative',
+                    overflow: 'hidden'
                 }} id="invoice-sheet">
+                    {/* Watermark Logo */}
+                    <div style={{
+                        position: 'absolute',
+                        top: '55%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        opacity: 0.04,
+                        pointerEvents: 'none',
+                        zIndex: 0
+                    }}>
+                        <Logo size={450} noBorder={true} />
+                    </div>
+                    
                     {/* Invoice Header */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #0a192f', paddingBottom: '30px', marginBottom: '40px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', backgroundColor: '#0a192f', color: 'white', padding: '40px', margin: '-60px -60px 40px -60px', borderBottom: '4px solid #d4af37', position: 'relative', zIndex: 1 }}>
                         <div>
-                            <Logo size={100} />
-                            <h1 style={{ color: '#0a192f', margin: '15px 0 5px 0', fontSize: '2rem' }}>Hotel Sky 5</h1>
-                            <p style={{ color: '#666', fontSize: '0.9rem' }}>Sector 4, Panchkula, Haryana 134112</p>
-                            <p style={{ color: '#666', fontSize: '0.9rem' }}>📞 +91 081464 07934</p>
+                            <Logo size={100} noBorder={true} />
+                            <h1 style={{ color: 'white', margin: '15px 0 5px 0', fontSize: '2rem' }}>Hotel Sky 5</h1>
+                            <p style={{ color: '#aaa', fontSize: '0.9rem' }}>Sector 4, Panchkula, Haryana 134112</p>
+                            <p style={{ color: '#aaa', fontSize: '0.9rem' }}>📞 +91 081464 07934</p>
                         </div>
                         <div style={{ textAlign: 'right' }}>
                             <h2 style={{ color: '#d4af37', fontSize: '2.5rem', margin: '0' }}>INVOICE</h2>
-                            <p style={{ fontWeight: '800', margin: '10px 0 5px 0' }}># {currentOrder.id}</p>
-                            <p style={{ color: '#666' }}>{currentOrder.date}</p>
+                            <p style={{ fontWeight: '800', margin: '10px 0 5px 0', color: 'white' }}># {currentOrder.id}</p>
+                            <p style={{ color: '#aaa' }}>{currentOrder.date}</p>
                         </div>
                     </div>
 
@@ -213,7 +262,7 @@ function ShopView({ onNavigate }) {
                     {['Breakfast', 'Snacks', 'Chinese', 'Thalis', 'Main Course', 'Rice', 'Raita & Salad', 'Breads', 'Beverages'].map(cat => (
                         <div key={cat} className="a4-category-block">
                             <h3 style={{ color: '#d4af37', borderBottom: '2px solid #eee', paddingBottom: '8px', textTransform: 'uppercase', fontSize: '1.1rem', letterSpacing: '2px', fontWeight: '800' }}>{cat}</h3>
-                            {combos.filter(item => item.category === cat).map(item => (
+                            {menuItems.filter(item => item.category === cat && item.isActive).map(item => (
                                 <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px dashed #f0f0f0' }}>
                                     <div style={{ flex: 1 }}>
                                         <div style={{ fontWeight: '700', color: '#0a192f', display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -228,8 +277,21 @@ function ShopView({ onNavigate }) {
                             ))}
                         </div>
                     ))}
+                    <div style={{ gridColumn: '1 / -1', borderTop: '2px dashed #eee', marginTop: '30px', paddingTop: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
+                        <div>
+                            <p style={{ margin: '0', fontWeight: 'bold', color: '#0a192f', fontSize: '1.2rem' }}>THANK YOU FOR CHOOSING HOTEL SKY-5</p>
+                            <p style={{ margin: '5px 0 0 0', color: '#d4af37', fontWeight: 'bold', fontSize: '0.9rem' }}>+5% GST APPLICABLE ON ALL ITEMS</p>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', padding: '15px', background: '#f8f9fa', borderRadius: '12px', border: '1px solid #eee' }}>
+                            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(window.location.origin.includes('localhost') ? 'http://192.168.2.153:5175/menu.pdf' : window.location.origin + '/menu.pdf')}`} alt="Scan to View PDF" style={{ width: '100px', height: '100px', borderRadius: '8px', border: '2px solid #0a192f' }} />
+                            <div>
+                                <h4 style={{ margin: '0 0 5px 0', color: '#0a192f', fontSize: '1.1rem' }}>SCAN TO VIEW MENU</h4>
+                                <p style={{ margin: 0, fontSize: '0.8rem', color: '#666' }}>Download full PDF</p>
+                            </div>
+                        </div>
+                    </div>
                     
-                    <div style={{ gridColumn: '1 / -1', textAlign: 'center', marginTop: '60px' }}>
+                    <div style={{ gridColumn: '1 / -1', textAlign: 'center', marginTop: '40px' }}>
                         <button className="checkout-btn" style={{ width: '300px' }} onClick={() => setShowMenuCard(false)}>CLOSE FULL CARD</button>
                     </div>
                 </div>
@@ -258,7 +320,7 @@ function ShopView({ onNavigate }) {
                                 </div>
                             ) : (
                                 Object.entries(cart).map(([id, qty]) => {
-                                    const item = combos.find(c => c.id === parseInt(id)) || rooms.find(r => r.id === parseInt(id));
+                                    const item = menuItems.find(c => c.id === parseInt(id)) || rooms.find(r => r.id === parseInt(id));
                                     if (!item) return null;
                                     return (
                                         <div key={id} className="cart-item">
@@ -309,6 +371,17 @@ function ShopView({ onNavigate }) {
                         </div>
 
                         <div className="payment-container">
+                            <div style={{ marginBottom: '20px' }}>
+                                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px', color: '#0a192f' }}>Table / Room Number <span style={{color: 'red'}}>*</span></label>
+                                <input 
+                                    type="text" 
+                                    value={tableNumber} 
+                                    onChange={(e) => setTableNumber(e.target.value)}
+                                    placeholder="e.g. Table 4 or Room 102"
+                                    style={{ width: '100%', padding: '15px', borderRadius: '8px', border: '1px solid #ccc', boxSizing: 'border-box', fontSize: '1rem' }}
+                                />
+                            </div>
+                            
                             <div className="payment-options">
                                 {['UPI', 'Card', 'Room Charge', 'COD'].map((method) => (
                                     <div
@@ -324,10 +397,7 @@ function ShopView({ onNavigate }) {
                                 ))}
                             </div>
 
-                            <button className="checkout-btn" onClick={() => {
-                                setCart({});
-                                setShowCart(false);
-                            }}>
+                            <button className="checkout-btn" onClick={processCheckout}>
                                 {paymentMethod === 'Room Charge' ? 'CONFIRM ROOM CHARGE' : 'PLACE ORDER'}
                             </button>
                         </div>
