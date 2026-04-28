@@ -2145,7 +2145,7 @@ header {
 
 /* Modern Hero Premium UI */
 .modern-hero {
-  background: linear-gradient(135deg, var(--primary-navy) 0%, #112240 50%, #0a192f 100%);
+  background: linear-gradient(135deg, rgba(10, 25, 47, 0.9) 0%, rgba(10, 25, 47, 0.6) 100%), url('/images/hero_bg.png') center/cover no-repeat;
   border-radius: 30px;
   margin: 20px;
   padding: 40px;
@@ -2161,7 +2161,7 @@ header {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: radial-gradient(circle at top right, rgba(212, 175, 55, 0.05) 0%, transparent 60%);
+  background: radial-gradient(circle at top right, rgba(212, 175, 55, 0.15) 0%, transparent 60%);
   pointer-events: none;
 }
 

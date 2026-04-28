@@ -13,9 +13,9 @@ export const ambiance = [
     },
     {
         id: "amb-003",
-        title: "Divine Temple Area",
-        description: "A peaceful shrine for spiritual moments during your stay.",
-        image: "/images/actual_temple.jpg"
+        title: "Near Mata Mansa Devi Temple",
+        description: "Located close to the holy Mata Mansa Devi Temple, offering spiritual peace during your stay.",
+        image: "/images/actual_temple.png"
     },
     {
         id: "amb-004",
