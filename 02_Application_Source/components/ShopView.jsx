@@ -210,7 +210,7 @@ function ShopView({ onNavigate }) {
                         <p style={{ fontStyle: 'italic', color: '#666' }}>The Art of Pure Vegetarian Dining</p>
                     </div>
                     
-                    {['Breakfast', 'Snacks', 'Thalis', 'Main Course', 'Rice', 'Breads', 'Raita & Salad', 'Beverages'].map(cat => (
+                    {['Breakfast', 'Snacks', 'Chinese', 'Thalis', 'Main Course', 'Rice', 'Raita & Salad', 'Breads', 'Beverages'].map(cat => (
                         <div key={cat} className="a4-category-block">
                             <h3 style={{ color: '#d4af37', borderBottom: '2px solid #eee', paddingBottom: '8px', textTransform: 'uppercase', fontSize: '1.1rem', letterSpacing: '2px', fontWeight: '800' }}>{cat}</h3>
                             {combos.filter(item => item.category === cat).map(item => (

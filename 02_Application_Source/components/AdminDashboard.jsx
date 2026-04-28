@@ -74,25 +74,49 @@ function AdminDashboard({ onNavigate }) {
 
                 {/* Tab: Reception (Room Grid) */}
                 {activeTab === 'Reception' && (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '30px' }}>
-                        {rooms.map(room => (
-                            <div key={room.id} style={{ background: 'white', borderRadius: '20px', padding: '25px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', position: 'relative' }}>
-                                <div style={{ 
-                                    position: 'absolute', top: '20px', right: '20px', 
-                                    background: room.status === 'Clean' ? '#27ae60' : room.status === 'Occupied' ? '#3498db' : '#e74c3c',
-                                    color: 'white', padding: '5px 12px', borderRadius: '10px', fontSize: '0.7rem', fontWeight: 'bold'
-                                }}>{room.status.toUpperCase()}</div>
-                                
-                                <h3 style={{ margin: '0 0 10px 0', fontSize: '1.2rem', color: 'var(--primary-navy)' }}>Room {room.id}</h3>
-                                <div style={{ color: '#666', fontSize: '0.85rem', marginBottom: '20px' }}>{room.type}</div>
-                                
-                                <div style={{ display: 'flex', gap: '10px' }}>
-                                    {room.status === 'Clean' && <button className="checkout-btn" style={{ padding: '8px', fontSize: '0.8rem' }} onClick={() => updateRoomStatus(room.id, 'Occupied')}>CHECK-IN</button>}
-                                    {room.status === 'Occupied' && <button className="checkout-btn" style={{ padding: '8px', fontSize: '0.8rem', background: '#34495e' }} onClick={() => updateRoomStatus(room.id, 'Dirty')}>CHECK-OUT</button>}
-                                    {room.status === 'Dirty' && <button className="checkout-btn" style={{ padding: '8px', fontSize: '0.8rem', background: 'var(--accent)', color: 'black' }} onClick={() => updateRoomStatus(room.id, 'Clean')}>MARK CLEANED</button>}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
+                        {['Super Deluxe Room', 'Deluxe Room', 'Standard Room'].map(roomType => {
+                            const categoryRooms = rooms.filter(r => r.type === roomType);
+                            if (categoryRooms.length === 0) return null;
+                            return (
+                                <div key={roomType}>
+                                    <h2 style={{ fontSize: '1.5rem', color: 'var(--primary-navy)', marginBottom: '20px', borderBottom: '2px solid #e0e0e0', paddingBottom: '10px' }}>
+                                        {roomType}s
+                                    </h2>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '30px' }}>
+                                        {categoryRooms.map(room => (
+                                            <div key={room.id} style={{ background: 'white', borderRadius: '20px', padding: '25px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', position: 'relative' }}>
+                                                <div style={{ 
+                                                    position: 'absolute', top: '20px', right: '20px', 
+                                                    background: room.status === 'Clean' ? '#27ae60' : room.status === 'Occupied' ? '#3498db' : '#e74c3c',
+                                                    color: 'white', padding: '5px 12px', borderRadius: '10px', fontSize: '0.7rem', fontWeight: 'bold'
+                                                }}>{room.status.toUpperCase()}</div>
+                                                
+                                                <h3 style={{ margin: '0 0 5px 0', fontSize: '1.4rem', color: 'var(--primary-navy)' }}>Room {room.id}</h3>
+                                                <div style={{ color: '#27ae60', fontSize: '0.85rem', marginBottom: '10px', fontWeight: 'bold' }}>{room.description}</div>
+                                                <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: '15px' }}>Features: {room.amenities.join(', ')}</div>
+                                                
+                                                {room.status === 'Occupied' && room.guest ? (
+                                                    <div style={{ background: '#f8f9fa', padding: '12px', borderRadius: '8px', marginBottom: '20px', borderLeft: '4px solid #3498db', fontSize: '0.8rem' }}>
+                                                        <div style={{ fontWeight: '800', color: '#0a192f', marginBottom: '5px' }}>👤 {room.guest.name}</div>
+                                                        <div style={{ color: '#555', marginBottom: '3px' }}>📞 {room.guest.phone}</div>
+                                                        <div style={{ color: '#888', fontSize: '0.7rem' }}>🕒 In: {room.guest.checkIn}</div>
+                                                    </div>
+                                                ) : (
+                                                    <div style={{ height: '70px', marginBottom: '20px' }}></div>
+                                                )}
+                                                
+                                                <div style={{ display: 'flex', gap: '10px' }}>
+                                                    {room.status === 'Clean' && <button className="checkout-btn" style={{ padding: '8px', fontSize: '0.8rem' }} onClick={() => updateRoomStatus(room.id, 'Occupied')}>CHECK-IN</button>}
+                                                    {room.status === 'Occupied' && <button className="checkout-btn" style={{ padding: '8px', fontSize: '0.8rem', background: '#34495e' }} onClick={() => updateRoomStatus(room.id, 'Dirty')}>CHECK-OUT</button>}
+                                                    {room.status === 'Dirty' && <button className="checkout-btn" style={{ padding: '8px', fontSize: '0.8rem', background: 'var(--accent)', color: 'black' }} onClick={() => updateRoomStatus(room.id, 'Clean')}>MARK CLEANED</button>}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
 
