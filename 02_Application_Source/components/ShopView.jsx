@@ -251,8 +251,8 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
     
     if (showMenuCard) {
         return (
-            <div className="mobile-app-container" style={{ background: '#f5f5f5', maxWidth: '100%', height: 'auto', minHeight: '100vh', overflowY: 'auto', padding: '40px 20px', display: 'flex', justifyContent: 'center' }}>
-                <div style={{ 
+            <div className="menu-print-container" style={{ background: '#f5f5f5', maxWidth: '100%', height: 'auto', minHeight: '100vh', overflowY: 'auto', padding: '20px', display: 'flex', justifyContent: 'center' }}>
+                <div className="menu-card-design" style={{ 
                     background: '#ffffff', 
                     width: '100%',
                     maxWidth: '1000px', 
@@ -303,7 +303,7 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                         </div>
 
                         {/* Menu Columns Grid */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '50px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
                             
                             {/* LEFT COLUMN */}
                             <div>
@@ -540,8 +540,8 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                         </div>
 
                         {/* Footer Bar */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '3px solid #0a192f', paddingTop: '15px', marginTop: '20px' }}>
-                            <div style={{ fontWeight: '900', color: '#0a192f', fontSize: '1.1rem', letterSpacing: '1px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '3px solid #0a192f', paddingTop: '15px', marginTop: '10px' }}>
+                            <div style={{ fontWeight: '900', color: '#0a192f', fontSize: '1rem', letterSpacing: '1px' }}>
                                 THANK YOU FOR CHOOSING HOTEL SKY-5
                             </div>
                             <div style={{ background: '#c89d3a', color: '#fff', padding: '6px 15px', borderRadius: '5px', fontWeight: '900', fontSize: '0.9rem' }}>
@@ -555,20 +555,56 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                     </div>
                 </div>
 
-                {/* Close Action - completely outside the menu card */}
-                <div style={{ textAlign: 'center', position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)', zIndex: 100 }}>
+                {/* Glassy Bottom Action Bar */}
+                <div style={{ 
+                    position: 'fixed', 
+                    bottom: '0', 
+                    left: '0', 
+                    right: '0', 
+                    background: 'rgba(255, 255, 255, 0.8)', 
+                    backdropFilter: 'blur(10px)',
+                    padding: '15px 20px',
+                    borderTop: '1px solid rgba(0,0,0,0.1)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    gap: '15px',
+                    zIndex: 1000
+                }}>
+                    <button style={{ 
+                        background: '#25D366', 
+                        color: 'white', 
+                        border: 'none', 
+                        padding: '12px 25px', 
+                        borderRadius: '30px', 
+                        fontWeight: 'bold', 
+                        fontSize: '0.9rem',
+                        boxShadow: '0 5px 15px rgba(37, 211, 102, 0.3)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        whiteSpace: 'nowrap'
+                    }} onClick={() => {
+                        window.print();
+                        const msg = encodeURIComponent("Check out the official Menu Card of Hotel Sky 5! (Generated PDF attached)");
+                        window.open(`https://wa.me/?text=${msg}`, '_blank');
+                    }}>
+                        <span>💬</span> SHARE ON WHATSAPP
+                    </button>
+
                     <button style={{ 
                         background: '#0a192f', 
                         color: 'white', 
                         border: '2px solid #d4af37', 
-                        padding: '12px 30px', 
+                        padding: '12px 25px', 
                         borderRadius: '30px', 
                         fontWeight: 'bold', 
-                        fontSize: '1rem',
-                        boxShadow: '0 10px 20px rgba(0,0,0,0.3)',
-                        cursor: 'pointer'
+                        fontSize: '0.9rem',
+                        boxShadow: '0 5px 15px rgba(10, 25, 47, 0.3)',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
                     }} onClick={() => setShowMenuCard(false)}>
-                        CLOSE MENU CARD
+                        CLOSE MENU
                     </button>
                 </div>
             </div>

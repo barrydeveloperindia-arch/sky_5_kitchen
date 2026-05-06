@@ -2423,3 +2423,49 @@ header {
     display: inline-block;
 }
 
+
+/* --- MENU CARD PRINT OPTIMIZATION (1-PAGE FORCE) --- */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  body * {
+    visibility: hidden; /* Hide everything else */
+  }
+
+  .menu-print-container, .menu-print-container * {
+    visibility: visible; /* Show only the menu */
+  }
+
+  .menu-print-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: white !important;
+  }
+
+  .menu-card-design {
+    box-shadow: none !important;
+    border-width: 2px !important; /* Thinner border for print clarity */
+    width: 210mm !important; /* A4 Width */
+    height: 297mm !important; /* A4 Height */
+    transform: scale(0.92); /* Micro-scale to ensure 1-page fit */
+    transform-origin: top center;
+    margin: 0 auto !important;
+  }
+
+  /* Hide the action buttons during print */
+  .menu-print-container div[style*="position: fixed"] {
+    display: none !important;
+  }
+
+  /* Tighten text for print */
+  .menu-card-design h1 { font-size: 2rem !important; }
+  .menu-card-design h2 { font-size: 2.2rem !important; }
+  .menu-card-design h3 { font-size: 1.1rem !important; }
+}
