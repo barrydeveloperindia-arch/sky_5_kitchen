@@ -141,7 +141,7 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
     const shareOnWhatsApp = () => {
         if (!currentOrder) return;
         
-        const message = `🏨 *HOTEL SKY 5 - OFFICIAL INVOICE* 🏨\n----------------------------------------\n🧾 *Order ID:* #${currentOrder.id}\n📅 *Date:* ${currentOrder.date}\n🚪 *Room / Table:* ${currentOrder.table}\n\n🍽️ *ORDER DETAILS:*\n${currentOrder.items.map(i => `▪️ ${i.quantity}x ${i.name}`).join('\n')}\n\n💰 *Subtotal:* ₹${currentOrder.subtotal}\n🏛️ *GST (5%):* ₹${currentOrder.gst}\n----------------------------------------\n✅ *GRAND TOTAL: ₹${currentOrder.total}*\n----------------------------------------\n🙏 Thank you for dining with Hotel Sky 5!`;
+        const message = `🏨 *Hotel Sky 5 - OFFICIAL INVOICE* 🏨\n----------------------------------------\n🧾 *Order ID:* #${currentOrder.id}\n📅 *Date:* ${currentOrder.date}\n🚪 *Room / Table:* ${currentOrder.table}\n\n🍽️ *ORDER DETAILS:*\n${currentOrder.items.map(i => `▪️ ${i.quantity}x ${i.name}`).join('\n')}\n\n💰 *Subtotal:* ₹${currentOrder.subtotal}\n🏛️ *GST (5%):* ₹${currentOrder.gst}\n----------------------------------------\n✅ *GRAND TOTAL: ₹${currentOrder.total}*\n----------------------------------------\n🙏 Thank you for dining with Hotel Sky 5!`;
         const encoded = encodeURIComponent(message);
         window.open(`https://wa.me/?text=${encoded}`, '_blank');
     };
@@ -272,7 +272,7 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                             {/* Left: Brand Name */}
                             <div style={{ flex: 1 }}>
                                 <h1 style={{ fontFamily: 'Georgia, serif', color: '#0a192f', fontSize: '2.4rem', margin: '0', lineHeight: '1.1', fontWeight: '900', letterSpacing: '1px' }}>
-                                    HOTEL<br/>SKY-5
+                                    HOTEL<br/>SKY 5
                                 </h1>
                                 <p style={{ margin: '5px 0 0 0', color: '#0a192f', fontWeight: '800', letterSpacing: '4px', fontSize: '0.8rem' }}>RESTAURANT</p>
                             </div>
@@ -542,7 +542,7 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                         {/* Footer Bar */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '3px solid #0a192f', paddingTop: '15px', marginTop: '10px' }}>
                             <div style={{ fontWeight: '900', color: '#0a192f', fontSize: '1rem', letterSpacing: '1px' }}>
-                                THANK YOU FOR CHOOSING HOTEL SKY-5
+                                THANK YOU FOR CHOOSING HOTEL SKY 5
                             </div>
                             <div style={{ background: '#c89d3a', color: '#fff', padding: '6px 15px', borderRadius: '5px', fontWeight: '900', fontSize: '0.9rem' }}>
                                 +5% GST APPLICABLE ON ALL ITEMS

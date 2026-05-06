@@ -11,6 +11,11 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
     
     // Official Staff Registry
     const staffRegistry = {
+        reception: [
+            { name: 'Gaurav Panchal', role: 'Front Desk', shift: '08:30 AM – 06:30 PM', phone: '9779395934', duties: 'Front desk management and guest check-ins.' },
+            { name: 'Arjun Tiwari', role: 'Front Desk', shift: '09:00 AM – 07:00 PM', phone: '9876484439', duties: 'Reception operations and billing.' },
+            { name: 'Ratnesh', role: 'Night Manager', shift: '07:00 PM – 08:30 AM', phone: '8360585697', duties: 'Overnight guest support and security.' }
+        ],
         kitchen: [
             { name: 'Varun', role: 'Kitchen Staff', shift: '07:00 AM – 11:00 AM', phone: '7986962196', duties: 'Morning operations and food preparation.' },
             { name: 'Karan', role: 'Helper', shift: '08:00 AM – 09:00 PM', phone: '6284615502', duties: 'Kitchen work and operational support.' },
@@ -22,12 +27,24 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
         ],
         special: [
             { name: 'Karan (School Duty)', shift: '08:15 AM – 08:30 AM | 11:00 AM – 11:15 AM', location: 'Disha Arcade Building' }
+        ],
+        dailySchedule: [
+            { event: 'BREAKFAST', time: '09:15 AM TO 10:15 AM' },
+            { event: 'TEA BREAK', time: '10:15 AM TO 10:30 AM' },
+            { event: 'LUNCH BREAK', time: '01:30 PM TO 02:15 PM' },
+            { event: 'EVENING TEA', time: '06:15 PM TO 06:30 PM' },
+            { event: 'DINNER TIME', time: '10:00 PM TO 11:00 PM' }
         ]
     };
 
+    const cleaningChecklist = [
+        'A/C REMOTE', 'TV REMOTE', 'REMOTE CELL', 'BED SHEET', 'TOWEL', 
+        'CHARGER', 'SLIPPER', 'BUCKET', 'TEA GLASS', 'TOILET'
+    ];
+
     const [cleaningLogs, setCleaningLogs] = useState([
-        { id: 101, roomNumber: 3, roomType: 'Deluxe Room', staffName: 'Veerwati', inTime: '06-May, 08:30 AM', outTime: '06-May, 09:15 AM', missingItems: 'None', remarks: 'Full turnover completed.' },
-        { id: 102, roomNumber: 9, roomType: 'Deluxe Room', staffName: 'Bhawana', inTime: '06-May, 09:45 AM', outTime: '06-May, 10:30 AM', missingItems: '1 Hand Towel', remarks: 'Guest took towel, added to bill.' },
+        { id: 101, roomNumber: 3, roomType: 'Deluxe Room', staffName: 'Veerwati', inTime: '06-May, 08:30 AM', outTime: '06-May, 09:15 AM', missingItems: 'Slipper', remarks: 'Missing item noted during turnover.' },
+        { id: 102, roomNumber: 9, roomType: 'Deluxe Room', staffName: 'Bhawana', inTime: '06-May, 09:45 AM', outTime: '06-May, 10:30 AM', missingItems: 'None', remarks: 'Room perfectly ready.' },
     ]);
     const [cleaningForm, setCleaningForm] = useState({ roomNumber: '', staffName: '', inTime: '', outTime: '', missingItems: 'None', remarks: '' });
 
@@ -168,6 +185,179 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
         setCleaningRoom(null);
     };
 
+    const handleShareWorkforce = () => {
+        const missingItemsSummary = cleaningLogs
+            .filter(log => log.missingItems && log.missingItems.toLowerCase() !== 'none')
+            .map(log => `* Room ${log.roomNumber}:* ${log.missingItems}`)
+            .join('\n') || '• No missing items reported.';
+
+        const formatSection = (title, staffList) => {
+            return `*${title}*\n` +
+                   `----------------------------\n` +
+                   staffList.map(s => 
+                       `• *${s.name}* (${s.role})\n` +
+                       `  Shift: ${s.shift}\n` +
+                       `  Contact: ${s.phone || 'N/A'}\n` +
+                       `  Duties: ${s.duties || 'Standard Operations'}`
+                   ).join('\n\n');
+        };
+
+        const scheduleText = staffRegistry.dailySchedule.map(s => `• ${s.event}: ${s.time}`).join('\n');
+
+        const text = `*Hotel Sky 5*\n` +
+            `Address: 5th floor, Disha Arcade Building, IT Park Rd, Mansa Devi Complex, Sector 4, Panchkula, Haryana 134114\n` +
+            `Front Office: 08146407934\n` +
+            `----------------------------\n` +
+            `*EXECUTIVE DUTY ROSTER* | Daily Report\n\n` +
+            formatSection('FRONT DESK & MANAGEMENT', staffRegistry.reception) + `\n\n` +
+            formatSection('KITCHEN & OPERATIONS', staffRegistry.kitchen) + `\n\n` +
+            formatSection('HOUSEKEEPING & TURNOVER', staffRegistry.housekeeping) + `\n\n` +
+            `*DAILY STAFF SCHEDULE*\n` +
+            `----------------------------\n` +
+            scheduleText + `\n\n` +
+            `*INVENTORY & MISSING ITEMS*\n` +
+            `----------------------------\n` +
+            missingItemsSummary + `\n\n` +
+            `*OPERATIONAL ALERTS*\n` +
+            `----------------------------\n` +
+            `• Karan: School Duty (08:15-08:30 & 11:00-11:15)\n` +
+            `• Location: Disha Arcade Building (On-Call)\n\n` +
+            `_Generated by Hotel Sky 5 Management OS_`;
+        
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    };
+
+    const handlePrintReceipt = (room) => {
+        if (!room.guest) return;
+        
+        const printWindow = window.open('', '_blank');
+        const roomTotal = Number(room.price) || 0;
+        const foodTotal = Number(room.foodBill) || 0;
+        const subtotal = roomTotal + foodTotal;
+        const gst = Math.round(subtotal * 0.12); // Standard 12% GST for Luxury Stays
+        const grandTotal = subtotal + gst;
+        const advance = Number(room.guest.advance) || 0;
+        const balance = grandTotal - advance;
+
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Official Receipt - Room ${room.id}</title>
+                    <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Inter:wght@400;600;800&display=swap');
+                        body { font-family: 'Inter', sans-serif; padding: 40px; color: #0a192f; line-height: 1.6; }
+                        .receipt-container { max-width: 800px; margin: 0 auto; border: 2px solid #0a192f; padding: 50px; border-radius: 15px; position: relative; }
+                        .header { text-align: center; border-bottom: 3px solid #d4af37; padding-bottom: 30px; margin-bottom: 40px; }
+                        .brand { font-family: 'Cinzel', serif; fontSize: 2.5rem; margin: 0; color: #0a192f; letter-spacing: 2px; }
+                        .address { font-size: 0.8rem; color: #666; margin-top: 10px; max-width: 400px; margin-left: auto; margin-right: auto; }
+                        .receipt-info { display: flex; justify-content: space-between; margin-bottom: 40px; font-size: 0.9rem; }
+                        .billing-table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
+                        .billing-table th { text-align: left; background: #0a192f; color: white; padding: 12px 15px; font-size: 0.8rem; text-transform: uppercase; }
+                        .billing-table td { padding: 15px; border-bottom: 1px solid #eee; }
+                        .total-section { margin-left: auto; width: 300px; }
+                        .total-row { display: flex; justify-content: space-between; padding: 8px 0; }
+                        .grand-total { border-top: 2px solid #0a192f; margin-top: 10px; padding-top: 10px; font-weight: 800; font-size: 1.2rem; color: #0a192f; }
+                        .footer { margin-top: 60px; display: flex; justify-content: space-between; align-items: flex-end; }
+                        .signature-box { border-top: 1px solid #0a192f; width: 200px; text-align: center; padding-top: 10px; font-size: 0.8rem; font-weight: 700; }
+                        .stamp { border: 3px double #d4af37; color: #d4af37; padding: 10px 20px; font-weight: 900; transform: rotate(-15deg); border-radius: 10px; }
+                        @media print { .no-print { display: none; } }
+                    </style>
+                </head>
+                <body>
+                    <div class="receipt-container">
+                        <div class="header">
+                            <!-- Visual Logo -->
+                            <div style="display: inline-flex; align-items: center; background: #0a192f; padding: 10px 20px; border-radius: 12px; border-left: 4px solid #d4af37; min-width: fit-content; margin-bottom: 20px;">
+                                <div style="display: flex; flex-direction: column; line-height: 1.1; text-align: left;">
+                                    <div style="font-size: 14px; color: white; letter-spacing: 1px; font-weight: 500; text-transform: uppercase;">Hotel</div>
+                                    <div style="display: flex; align-items: baseline; gap: 8px;">
+                                        <div style="font-size: 30px; font-weight: 900; color: #d4af37; font-family: 'Cinzel', serif; letter-spacing: 2px;">SKY</div>
+                                        <div style="font-size: 42px; font-weight: 900; color: #d4af37; font-family: 'Cinzel', serif;">5</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="address">
+                                5th floor, Disha Arcade Building, IT Park Rd, Mansa Devi Complex, Sector 4, Panchkula, Haryana 134114<br/>
+                                📞 08146407934 | ✉️ contact@hotelsky5.com
+                            </div>
+                        </div>
+
+                        <div class="receipt-info">
+                            <div>
+                                <div style="font-weight: 800; text-transform: uppercase; color: #d4af37; margin-bottom: 5px;">Guest Details</div>
+                                <div style="font-size: 1.1rem; font-weight: 700;">${room.guest.name}</div>
+                                <div>${room.guest.phone}</div>
+                                <div style="max-width: 250px;">${room.guest.address || 'N/A'}</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-weight: 800; text-transform: uppercase; color: #d4af37; margin-bottom: 5px;">Folio Information</div>
+                                <div><b>Room Number:</b> ${room.id}</div>
+                                <div><b>Room Type:</b> ${room.type}</div>
+                                <div><b>Check-In:</b> ${room.guest.checkIn}</div>
+                                <div><b>Invoice Date:</b> ${new Date().toLocaleDateString('en-GB')}</div>
+                            </div>
+                        </div>
+
+                        <table class="billing-table">
+                            <thead>
+                                <tr>
+                                    <th>Description</th>
+                                    <th style="text-align: right;">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Room Rent & Services (Room ${room.id})</td>
+                                    <td style="text-align: right;">₹${roomTotal.toLocaleString()}</td>
+                                </tr>
+                                <tr>
+                                    <td>Food & Beverage Bill (Restaurant Sync)</td>
+                                    <td style="text-align: right;">₹${foodTotal.toLocaleString()}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="total-section">
+                            <div class="total-row">
+                                <span>Subtotal:</span>
+                                <span>₹${subtotal.toLocaleString()}</span>
+                            </div>
+                            <div class="total-row">
+                                <span>GST (12%):</span>
+                                <span>₹${gst.toLocaleString()}</span>
+                            </div>
+                            <div class="grand-total total-row">
+                                <span>GRAND TOTAL:</span>
+                                <span>₹${grandTotal.toLocaleString()}</span>
+                            </div>
+                            <div class="total-row" style="color: #27ae60; font-weight: 700; margin-top: 10px;">
+                                <span>Advance Paid (${room.guest.advanceType}):</span>
+                                <span>- ₹${advance.toLocaleString()}</span>
+                            </div>
+                            <div class="total-row" style="font-weight: 800; border-top: 1px dashed #ccc; margin-top: 5px; padding-top: 5px;">
+                                <span>NET PAYABLE:</span>
+                                <span>₹${balance.toLocaleString()}</span>
+                            </div>
+                        </div>
+
+                        <div class="footer">
+                            <div class="stamp">PAID & VERIFIED</div>
+                            <div>
+                                <div class="signature-box">FRONT OFFICE MANAGER</div>
+                                <div style="font-size: 0.6rem; color: #888; margin-top: 5px;">Hotel Sky 5 Management OS - Verified Artifact</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="text-align: center; margin-top: 30px;" class="no-print">
+                        <button onclick="window.print()" style="padding: 15px 40px; background: #0a192f; color: #d4af37; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; box-shadow: 0 10px 20px rgba(0,0,0,0.2);">🖨️ CONFIRM & PRINT RECEIPT</button>
+                    </div>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+    };
+
     const handlePrintSlip = (log) => {
         const printWindow = window.open('', '_blank');
         printWindow.document.write(`
@@ -194,11 +384,14 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                 </head>
                 <body>
                     <div class="header" style="display: flex; align-items: center; justify-content: center; gap: 30px;">
-                        <div style="background: #0a192f; padding: 15px 25px; border-radius: 8px; display: flex; align-items: center; gap: 15px; border-left: 5px solid #d4af37;">
-                            <div style="display: flex; flex-direction: column; line-height: 1; text-align: left;">
-                                <div style="font-family: 'Cinzel', serif; font-size: 22px; font-weight: 900; color: #d4af37; letter-spacing: 2px;">SKY</div>
-                                <div style="font-family: 'Cinzel', serif; font-size: 32px; font-weight: 900; color: #d4af37; margin-top: -5px;">5</div>
-                                <div style="font-size: 10px; color: white; letter-spacing: 1px; text-transform: uppercase; margin-top: 5px; font-weight: 500;">Boutique Hotel</div>
+                        <!-- Visual Logo -->
+                        <div style="display: inline-flex; align-items: center; background: #0a192f; padding: 10px 20px; border-radius: 12px; border-left: 4px solid #d4af37; min-width: fit-content;">
+                            <div style="display: flex; flex-direction: column; line-height: 1.1; text-align: left;">
+                                <div style="font-size: 14px; color: white; letter-spacing: 1px; font-weight: 500; text-transform: uppercase;">Hotel</div>
+                                <div style="display: flex; align-items: baseline; gap: 8px;">
+                                    <div style="font-size: 30px; font-weight: 900; color: #d4af37; font-family: 'Cinzel', serif; letter-spacing: 2px;">SKY</div>
+                                    <div style="font-size: 42px; font-weight: 900; color: #d4af37; font-family: 'Cinzel', serif;">5</div>
+                                </div>
                             </div>
                         </div>
                         <div class="slip-title" style="margin-top: 0; padding-top: 5px;">Housekeeping Verification</div>
@@ -233,7 +426,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                     </div>
 
                     <div class="footer">
-                        OFFICIAL HOUSEKEEPING RECORD • GENERATED BY SKY-OPS CENTER • ${new Date().toLocaleString()}<br>
+                        OFFICIAL HOUSEKEEPING RECORD • GENERATED BY Sky-Ops Center • ${new Date().toLocaleString()}<br>
                         "Redefining Luxury with Precision"
                     </div>
                     <script>
@@ -249,7 +442,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
     };
 
     const handleShareWhatsApp = (log) => {
-        const message = `*SKY 5 BOUTIQUE HOTEL*%0A------------------------------------%0A*Room:* ${log.roomNumber} (${log.roomType})%0A*Staff:* ${log.staffName}%0A*In Time:* ${log.inTime}%0A*Out Time:* ${log.outTime}%0A*Missing Items:* ${log.missingItems}%0A*Remarks:* ${log.remarks || 'None'}%0A------------------------------------%0A_Generated via Sky-Ops Center_`;
+        const message = `*Hotel Sky 5*%0A------------------------------------%0A*Room:* ${log.roomNumber} (${log.roomType})%0A*Staff:* ${log.staffName}%0A*In Time:* ${log.inTime}%0A*Out Time:* ${log.outTime}%0A*Missing Items:* ${log.missingItems}%0A*Remarks:* ${log.remarks || 'None'}%0A------------------------------------%0A_Generated via Sky-Ops Center_`;
         
         window.open(`https://wa.me/?text=${message}`, '_blank');
     };
@@ -266,11 +459,14 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
             slipsHtml += `
                 <div class="slip">
                     <div class="slip-header">
-                        <div style="background: #0a192f; padding: 6px 12px; border-radius: 4px; display: flex; align-items: center; gap: 8px; border-left: 3px solid #d4af37;">
-                            <div style="display: flex; flex-direction: column; line-height: 1; text-align: left;">
-                                <div style="font-family: 'Cinzel', serif; font-size: 10px; font-weight: 900; color: #d4af37; letter-spacing: 1px;">SKY</div>
-                                <div style="font-family: 'Cinzel', serif; font-size: 14px; font-weight: 900; color: #d4af37; margin-top: -2px;">5</div>
-                                <div style="font-size: 5px; color: white; letter-spacing: 0.5px; text-transform: uppercase; font-weight: 500;">Boutique Hotel</div>
+                        <!-- Visual Logo Mini -->
+                        <div style="display: inline-flex; align-items: center; background: #0a192f; padding: 5px 10px; border-radius: 6px; border-left: 2px solid #d4af37; min-width: fit-content;">
+                            <div style="display: flex; flex-direction: column; line-height: 1.1; text-align: left;">
+                                <div style="font-size: 7px; color: white; letter-spacing: 0.5px; font-weight: 500; text-transform: uppercase;">Hotel</div>
+                                <div style="display: flex; align-items: baseline; gap: 4px;">
+                                    <div style="font-size: 15px; font-weight: 900; color: #d4af37; font-family: 'Cinzel', serif; letter-spacing: 1px;">SKY</div>
+                                    <div style="font-size: 20px; font-weight: 900; color: #d4af37; font-family: 'Cinzel', serif;">5</div>
+                                </div>
                             </div>
                         </div>
                         <span class="slip-type">HOUSEKEEPING CHECKLIST</span>
@@ -373,7 +569,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                         borderRadius: '30px',
                         minHeight: '800px',
                         position: 'relative',
-                        background: 'linear-gradient(rgba(10, 25, 47, 0.85), rgba(10, 25, 47, 0.85)), url("/sky5_luxury_reception_background_1778060409023.png")',
+                        background: 'linear-gradient(rgba(10, 25, 47, 0.85), rgba(10, 25, 47, 0.85)), url("/sky5_luxury_reception_background.png")',
                         backgroundSize: 'cover',
                         backgroundPosition: 'center',
                         boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
@@ -490,6 +686,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                                     {room.status === 'Occupied' && (
                                                         <>
                                                             <button className="checkout-btn" style={{ padding: '8px', fontSize: '0.8rem', background: '#e67e22' }} onClick={() => handleCheckInClick(room)}>EDIT GUEST</button>
+                                                            <button className="checkout-btn" style={{ padding: '8px', fontSize: '0.8rem', background: '#27ae60' }} onClick={() => handlePrintReceipt(room)}>PRINT RECEIPT</button>
                                                             <button className="checkout-btn" style={{ padding: '8px', fontSize: '0.8rem', background: '#34495e' }} onClick={() => updateRoomStatus(room.id, 'Dirty')}>CHECK-OUT</button>
                                                         </>
                                                     )}
@@ -546,6 +743,19 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                 🧹 Rooms Awaiting Turnover 
                                 <span style={{ fontSize: '0.9rem', background: '#e74c3c', color: 'white', padding: '4px 12px', borderRadius: '20px' }}>{stats.dirty} Pending</span>
                             </h2>
+                            
+                            {/* Forensic Room Checklist Card */}
+                            <div style={{ background: '#0a192f', color: 'white', padding: '25px', borderRadius: '20px', marginBottom: '30px', borderLeft: '8px solid var(--accent)', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}>
+                                <h3 style={{ margin: '0 0 15px 0', color: 'var(--accent)', fontSize: '1rem', letterSpacing: '1px' }}>📋 OFFICIAL 10-ITEM ROOM INSPECTION CHECKLIST</h3>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
+                                    {cleaningChecklist.map((item, idx) => (
+                                        <div key={idx} style={{ fontSize: '0.75rem', fontWeight: '700', background: 'rgba(255,255,255,0.1)', padding: '8px', borderRadius: '8px', textAlign: 'center' }}>
+                                            {idx + 1}. {item}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
                             <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
                                 <button 
                                     onClick={handlePrintBlankSlips}
@@ -650,6 +860,10 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
                         {/* Summary Stats Row */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+                            <div style={{ background: 'white', padding: '25px', borderRadius: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.05)', borderLeft: '6px solid #e67e22' }}>
+                                <h4 style={{ margin: 0, color: '#888', fontSize: '0.8rem', textTransform: 'uppercase' }}>Front Desk</h4>
+                                <div style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-navy)' }}>3 STAFF</div>
+                            </div>
                             <div style={{ background: 'white', padding: '25px', borderRadius: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.05)', borderLeft: '6px solid #3498db' }}>
                                 <h4 style={{ margin: 0, color: '#888', fontSize: '0.8rem', textTransform: 'uppercase' }}>Kitchen Personnel</h4>
                                 <div style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-navy)' }}>3 STAFF</div>
@@ -658,14 +872,116 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                 <h4 style={{ margin: 0, color: '#888', fontSize: '0.8rem', textTransform: 'uppercase' }}>Housekeeping</h4>
                                 <div style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-navy)' }}>2 STAFF</div>
                             </div>
-                            <div style={{ background: 'white', padding: '25px', borderRadius: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.05)', borderLeft: '6px solid var(--accent)' }}>
-                                <h4 style={{ margin: 0, color: '#888', fontSize: '0.8rem', textTransform: 'uppercase' }}>On-Duty Now</h4>
-                                <div style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--accent)' }}>ACTIVE</div>
+                        </div>
+
+                        {/* 24-Hour Duty Timeline (Per Day Wise Details) */}
+                        <div style={{ background: 'white', borderRadius: '30px', padding: '30px', boxShadow: '0 15px 50px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+                                <h2 style={{ fontSize: '1.3rem', color: 'var(--primary-navy)', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>🕒 Daily Coverage Timeline (24h)</h2>
+                                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                    <button 
+                                        onClick={handleShareWorkforce}
+                                        style={{ background: '#25D366', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 5px 15px rgba(37, 211, 102, 0.3)' }}
+                                    >
+                                        💬 SHARE ON WHATSAPP
+                                    </button>
+                                    <span style={{ fontSize: '0.8rem', background: '#f0f2f5', padding: '5px 15px', borderRadius: '20px', color: '#555', fontWeight: 'bold' }}>LIVE TRACKING ACTIVE</span>
+                                </div>
+                            </div>
+
+                            {/* Daily Schedule Row */}
+                            <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '15px', marginBottom: '30px', border: '1px solid #eee' }}>
+                                <h3 style={{ margin: '0 0 15px 0', fontSize: '0.9rem', color: 'var(--primary-navy)', fontWeight: '800' }}>🥗 OFFICIAL STAFF BREAK SCHEDULE</h3>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
+                                    {staffRegistry.dailySchedule.map((s, idx) => (
+                                        <div key={idx} style={{ flex: 1, background: 'white', padding: '12px', borderRadius: '10px', boxShadow: '0 4px 10px rgba(0,0,0,0.03)', textAlign: 'center' }}>
+                                            <div style={{ fontSize: '0.65rem', color: '#888', fontWeight: 'bold' }}>{s.event}</div>
+                                            <div style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--primary-navy)' }}>{s.time}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div style={{ position: 'relative', paddingLeft: '120px' }}>
+                                {/* Time Labels (06:00 to 22:00) */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #eee', paddingBottom: '10px', marginBottom: '20px' }}>
+                                    {['6AM', '8AM', '10AM', '12PM', '2PM', '4PM', '6PM', '8PM', '10PM'].map(time => (
+                                        <span key={time} style={{ fontSize: '0.65rem', color: '#aaa', fontWeight: 'bold' }}>{time}</span>
+                                    ))}
+                                </div>
+
+                                {/* Timeline Grid Bars */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                    {[...staffRegistry.reception, ...staffRegistry.kitchen, ...staffRegistry.housekeeping].map(staff => {
+                                        // Calculate bar position (mocking based on shift string for UI demo)
+                                        let left = '0%';
+                                        let width = '0%';
+                                        
+                                        if (staff.name === 'Gaurav Panchal') { left = '15.6%'; width = '41.6%'; }
+                                        if (staff.name === 'Arjun Tiwari') { left = '18.75%'; width = '41.6%'; }
+                                        if (staff.name === 'Ratnesh') { left = '81.25%'; width = '18.75%'; } // Wraps visually for night
+                                        if (staff.name === 'Varun') { left = '6.25%'; width = '16.6%'; }
+                                        if (staff.name === 'Karan') { left = '12.5%'; width = '54.1%'; }
+                                        if (staff.name === 'Amar Singh') { left = '12.5%'; width = '50%'; }
+                                        if (staff.name === 'Veerwati') { left = '25%'; width = '37.5%'; }
+                                        if (staff.name === 'Bhawana') { left = '15.6%'; width = '35.4%'; }
+
+                                        let color = '#3498db'; // Kitchen default
+                                        if (staffRegistry.reception.includes(staff)) color = '#e67e22'; // Reception
+                                        if (staffRegistry.housekeeping.includes(staff)) color = '#27ae60'; // Housekeeping
+
+                                        return (
+                                            <div key={staff.name} style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                                                <div style={{ width: '100px', textAlign: 'right', fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--primary-navy)', position: 'absolute', left: 0 }}>
+                                                    {staff.name}
+                                                </div>
+                                                <div style={{ flex: 1, height: '12px', background: '#f0f2f5', borderRadius: '6px', position: 'relative', overflow: 'hidden' }}>
+                                                    <div style={{ 
+                                                        position: 'absolute', 
+                                                        left: left, 
+                                                        width: width, 
+                                                        height: '100%', 
+                                                        background: color, 
+                                                        borderRadius: '6px',
+                                                        boxShadow: `0 0 10px ${color}44`
+                                                    }} />
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Current Time Indicator Mock */}
+                                <div style={{ position: 'absolute', top: '25px', bottom: 0, left: '35%', width: '2px', background: 'var(--accent)', zIndex: 10 }}>
+                                    <div style={{ position: 'absolute', top: '-5px', left: '-4px', width: '10px', height: '10px', borderRadius: '50%', background: 'var(--accent)' }} />
+                                </div>
                             </div>
                         </div>
 
                         {/* Shift Roster Details */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '30px' }}>
+                            {/* Reception & Front Desk */}
+                            <div style={{ background: 'white', borderRadius: '25px', padding: '30px', boxShadow: '0 10px 40px rgba(0,0,0,0.05)' }}>
+                                <h2 style={{ fontSize: '1.3rem', color: 'var(--primary-navy)', marginBottom: '25px', display: 'flex', alignItems: 'center', gap: '10px' }}>🛎️ Front Desk</h2>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                    {staffRegistry.reception.map(staff => (
+                                        <div key={staff.name} style={{ padding: '15px', borderRadius: '15px', background: '#f8f9fa', border: '1px solid #eee' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                                <span style={{ fontWeight: '800', fontSize: '1.1rem', color: 'var(--primary-navy)' }}>{staff.name}</span>
+                                                <span style={{ fontSize: '0.7rem', background: '#e67e22', color: 'white', padding: '3px 10px', borderRadius: '10px' }}>{staff.role}</span>
+                                            </div>
+                                            <div style={{ fontSize: '0.85rem', color: '#555', marginBottom: '10px' }}>⏰ {staff.shift}</div>
+                                            <div style={{ fontSize: '0.8rem', color: '#888', fontStyle: 'italic', marginBottom: '10px' }}>{staff.duties}</div>
+                                            {staff.phone && (
+                                                <a href={`tel:${staff.phone}`} style={{ textDecoration: 'none', color: '#27ae60', fontWeight: 'bold', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                    📞 {staff.phone} • CALL NOW
+                                                </a>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
                             {/* Kitchen & Helpers */}
                             <div style={{ background: 'white', borderRadius: '25px', padding: '30px', boxShadow: '0 10px 40px rgba(0,0,0,0.05)' }}>
                                 <h2 style={{ fontSize: '1.3rem', color: 'var(--primary-navy)', marginBottom: '25px', display: 'flex', alignItems: 'center', gap: '10px' }}>🍳 Kitchen & Operations</h2>
