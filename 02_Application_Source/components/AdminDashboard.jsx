@@ -8,6 +8,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
     const [cleaningRoom, setCleaningRoom] = useState(null);
     const [editingLog, setEditingLog] = useState(null);
     const [guestForm, setGuestForm] = useState({ name: '', phone: '', address: '', advance: '', advanceType: 'Cash', foodBill: '', checkInTime: '', checkOutTime: '' });
+    const [showBill, setShowBill] = useState(false);
     
     // Official Staff Registry State
     const [staffRegistry, setStaffRegistry] = useState({
@@ -23,11 +24,14 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
         ],
         housekeeping: [
             { id: 'H1', name: 'Veerwati', role: 'Housekeeping', shift: '10:00 AM – 07:00 PM', phone: '9878645698', duties: 'Room setup, cleaning, and dusting.' },
-            { id: 'H2', name: 'Bhawana', role: 'Housekeeping', shift: '08:30 AM – 05:00 PM', phone: '', duties: 'Hotel cleaning and room arrangement.' }
+            { id: 'H2', name: 'Bhawna', role: 'Housekeeping', shift: '08:30 AM – 05:00 PM', phone: '', duties: 'Hotel cleaning and room arrangement.' },
+            { id: 'H3', name: 'Amresh Kumar', role: 'Housekeeping', shift: 'Task-based (Flexible)', phone: '7307757067', duties: 'Primary focus: Cleaning 10 toilets daily (Fixed mandate).' }
         ],
         special: [
             { id: 'S1', name: 'Karan (School Duty)', shift: '08:15 AM – 08:30 AM | 11:00 AM – 11:15 AM', location: 'Disha Arcade Building', remarks: 'Available on-call for hotel emergencies.' },
-            { id: 'S2', name: 'Veerwati (Half-Day Leave)', shift: '07-May (Post Lunch)', location: 'DC Office (Official Work)', remarks: 'Duty will resume after lunch; schedule to be managed accordingly.' }
+            { id: 'S2', name: 'Veerwati (Half-Day Leave)', shift: '06-May (Post Lunch)', location: 'Official Work (DC Office)', remarks: 'Duty will resume after lunch; schedule to be managed accordingly.' },
+            { id: 'S3', name: 'MD Sir (Management Directive)', shift: 'High Priority / Immediate', location: 'Full Hotel Premises', remarks: 'Ensure absolute discipline, professional uniform compliance, and audit-ready room standards.' },
+            { id: 'S4', name: 'Veerwati (First-Half Off)', shift: '07-May (Reporting 02:00 PM)', location: 'Authorized Leave', remarks: 'Duty will commence from the second half (post-lunch).' }
         ],
         dailySchedule: [
             { event: 'BREAKFAST', time: '09:15 AM TO 10:15 AM' },
@@ -48,7 +52,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
 
     const [cleaningLogs, setCleaningLogs] = useState([
         { id: 101, roomNumber: 3, roomType: 'Deluxe Room', staffName: 'Veerwati', inTime: '06-May, 08:30 AM', outTime: '06-May, 09:15 AM', missingItems: 'Slipper', remarks: 'Missing item noted during turnover.' },
-        { id: 102, roomNumber: 9, roomType: 'Deluxe Room', staffName: 'Bhawana', inTime: '06-May, 09:45 AM', outTime: '06-May, 10:30 AM', missingItems: 'None', remarks: 'Room perfectly ready.' },
+        { id: 102, roomNumber: 9, roomType: 'Deluxe Room', staffName: 'Bhawna', inTime: '06-May, 09:45 AM', outTime: '06-May, 10:30 AM', missingItems: 'None', remarks: 'Room perfectly ready.' },
     ]);
     const [cleaningForm, setCleaningForm] = useState({ roomNumber: '', staffName: '', inTime: '', outTime: '', missingItems: 'None', remarks: '' });
 
@@ -60,8 +64,9 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
         { id: 4, staffName: 'Varun', date: '06-May', checkIn: '07:10 AM', checkOut: '11:15 AM', status: 'Present' },
         { id: 5, staffName: 'Karan', date: '06-May', checkIn: '08:05 AM', checkOut: '--', status: 'Present' },
         { id: 6, staffName: 'Amar Singh', date: '06-May', checkIn: '08:15 AM', checkOut: '--', status: 'Present' },
-        { id: 7, staffName: 'Veerwati', date: '06-May', checkIn: '09:50 AM', checkOut: '--', status: 'Present' },
-        { id: 8, staffName: 'Bhawana', date: '06-May', checkIn: '08:40 AM', checkOut: '05:10 PM', status: 'Present' },
+        { id: 7, staffName: 'Veerwati', date: '06-May', checkIn: '09:50 AM', checkOut: '--', status: 'Half-Day Leave' },
+        { id: 8, staffName: 'Bhawna', date: '06-May', checkIn: '08:40 AM', checkOut: '05:10 PM', status: 'Present' },
+        { id: 9, staffName: 'Amresh Kumar', date: '06-May', checkIn: '--', checkOut: '--', status: 'Present' },
     ]);
 
     const [holidays, setHolidays] = useState([
@@ -69,6 +74,41 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
         { date: '02-Oct', event: 'Gandhi Jayanti', type: 'National' },
         { date: '25-Dec', event: 'Christmas', type: 'Hotel Holiday' },
     ]);
+
+    const [showAttendanceModal, setShowAttendanceModal] = useState(false);
+    const [attendanceForm, setAttendanceForm] = useState({ staffName: '', date: '', checkIn: '', checkOut: '', status: 'Present' });
+
+    const [showStaffModal, setShowStaffModal] = useState(false);
+    const [enrollmentForm, setEnrollmentForm] = useState({ name: '', role: '', department: 'reception', shift: '', phone: '', duties: '', photo: '' });
+
+    const [activeAttendanceDate, setActiveAttendanceDate] = useState(new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }));
+    const [calendarView, setCalendarView] = useState('list'); // 'list' or 'grid'
+
+    const roomRateData = [
+        { rooms: '1, 5, 14', category: 'PREMIUM SUITE', min: 2500, max: 3500, color: '#d4af37' },
+        { rooms: '2, 3, 4, 6, 7, 8, 9', category: 'EXECUTIVE DELUXE', min: 1500, max: 2500, color: '#3498db' },
+        { rooms: '10, 11, 12', category: 'EXECUTIVE STANDARD', min: 1500, max: 2500, color: '#27ae60' },
+        { rooms: '16, 17, 19, 20', category: 'BUDGET COMFORT', min: 1200, max: 1800, color: '#7f8c8d' }
+    ];
+
+    const handleShareRateCard = () => {
+        let message = `*🏨 HOTEL SKY 5 - OFFICIAL RATE CARD*\n`;
+        message += `------------------------------------\n`;
+        roomRateData.forEach(tier => {
+            message += `*${tier.category}*\n`;
+            message += `Rooms: ${tier.rooms}\n`;
+            message += `Rent: ₹${tier.min} - ₹${tier.max}\n`;
+            message += `------------------------------------\n`;
+        });
+        message += `_Confidential for Reception Use Only_`;
+        const encoded = encodeURIComponent(message);
+        window.open(`https://wa.me/?text=${encoded}`, '_blank');
+    };
+
+    const handleShareAlert = (leave) => {
+        const message = `*HOTEL SKY 5 - OFFICIAL ALERT*%0A------------------------------------%0A*Name:* ${leave.name}%0A*Schedule:* ${leave.shift}%0A*Context:* ${leave.location}%0A*Directive:* ${leave.remarks}%0A------------------------------------%0A_Authorized by Sky-Ops Center_`;
+        window.open(`https://wa.me/?text=${message}`, '_blank');
+    };
 
     const stats = useMemo(() => {
         const occupied = rooms.filter(r => r.status === 'Occupied').length;
@@ -103,7 +143,11 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
             advanceType: room.guest.advanceType || 'Cash', 
             foodBill: room.foodBill || '',
             checkInTime: room.guest.checkIn || defaultCheckIn,
-            checkOutTime: room.guest.checkOut || ''
+            checkOutTime: room.guest.checkOut || '',
+            extraGuests: room.guest.extraGuests || '',
+            gstEnabled: room.guest.gstEnabled !== undefined ? room.guest.gstEnabled : true,
+            adults: room.guest.adults || 1,
+            children: room.guest.children || 0
         } : { 
             name: '', 
             phone: '', 
@@ -112,7 +156,11 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
             advanceType: 'Cash', 
             foodBill: room.foodBill || '',
             checkInTime: defaultCheckIn,
-            checkOutTime: ''
+            checkOutTime: '',
+            extraGuests: '',
+            gstEnabled: true,
+            adults: 1,
+            children: 0
         });
         setEditingRoom(room);
     };
@@ -137,7 +185,11 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                 checkIn: guestForm.checkInTime || checkInTime, 
                 checkOut: guestForm.checkOutTime,
                 advance: Number(guestForm.advance) || 0, 
-                advanceType: guestForm.advanceType 
+                advanceType: guestForm.advanceType,
+                extraGuests: guestForm.extraGuests,
+                gstEnabled: guestForm.gstEnabled,
+                adults: guestForm.adults,
+                children: guestForm.children
             }
         } : r));
         
@@ -247,6 +299,131 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
             `_Generated by Hotel Sky 5 Management OS_`;
         
         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    };
+
+    const handleSaveAttendance = () => {
+        if (!attendanceForm.staffName || !attendanceForm.date) {
+            alert("Staff Name and Date are required.");
+            return;
+        }
+        const newLog = {
+            id: attendanceLogs.length + 1,
+            ...attendanceForm
+        };
+        setAttendanceLogs([...attendanceLogs, newLog]);
+        setShowAttendanceModal(false);
+        setAttendanceForm({ staffName: '', date: '', checkIn: '', checkOut: '', status: 'Present' });
+    };
+
+    const handleEnrollStaff = () => {
+        if (!enrollmentForm.name || !enrollmentForm.role) {
+            alert("Name and Role are required.");
+            return;
+        }
+        
+        const dept = enrollmentForm.department;
+        const newId = `${dept.charAt(0).toUpperCase()}${staffRegistry[dept].length + 1}`;
+        const newStaff = {
+            id: newId,
+            ...enrollmentForm
+        };
+
+        setStaffRegistry(prev => ({
+            ...prev,
+            [dept]: [...prev[dept], newStaff]
+        }));
+
+        // Also add to attendance logs as 'Pending' for today
+        const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+        setAttendanceLogs(prev => [...prev, { 
+            id: prev.length + 1, 
+            staffName: enrollmentForm.name, 
+            date: today, 
+            checkIn: '--', 
+            checkOut: '--', 
+            status: 'Pending' 
+        }]);
+
+        setShowStaffModal(false);
+        setEnrollmentForm({ name: '', role: '', department: 'reception', shift: '', phone: '', duties: '' });
+    };
+
+    const handleExportAttendance = (type) => {
+        const headers = ["ID", "Staff Name", "Date", "Check-In", "Check-Out", "Status"];
+        let filteredLogs = [...attendanceLogs];
+        
+        const now = new Date();
+        if (type === 'monthly') {
+            const currentMonth = now.toLocaleDateString('en-GB', { month: 'short' });
+            filteredLogs = attendanceLogs.filter(log => log.date.includes(currentMonth));
+        } else if (type === 'yearly') {
+            // Simplified for local state
+            filteredLogs = [...attendanceLogs];
+        }
+
+        const rows = filteredLogs.map(log => [log.id, log.staffName, log.date, log.checkIn, log.checkOut, log.status]);
+        const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `HotelSky5_Attendance_${type.toUpperCase()}_${now.toISOString().slice(0,10)}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const handleQuickCheckIn = (staffName) => {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        const today = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+        
+        setAttendanceLogs(prev => {
+            const index = prev.findIndex(l => l.staffName === staffName && l.date === today);
+            if (index !== -1) {
+                const newLogs = [...prev];
+                newLogs[index] = { ...newLogs[index], checkIn: timeStr, status: 'Present' };
+                return newLogs;
+            }
+            return [...prev, { id: prev.length + 1, staffName, date: today, checkIn: timeStr, checkOut: '--', status: 'Present' }];
+        });
+    };
+
+    const handleQuickCheckOut = (staffName) => {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        const today = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+        
+        setAttendanceLogs(prev => {
+            const index = prev.findIndex(l => l.staffName === staffName && l.date === today);
+            if (index !== -1) {
+                const newLogs = [...prev];
+                newLogs[index] = { ...newLogs[index], checkOut: timeStr };
+                return newLogs;
+            }
+            return prev;
+        });
+    };
+
+    const handleShareAttendanceWhatsApp = () => {
+        const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+        const presentCount = attendanceLogs.filter(l => l.status === 'Present').length;
+        const leaveCount = attendanceLogs.filter(l => l.status.includes('Leave')).length;
+        
+        let message = `*🏨 HOTEL SKY 5 - ATTENDANCE REPORT (${today})*\n\n`;
+        message += `✅ *Present:* ${presentCount}\n`;
+        message += `⚠️ *On Leave:* ${leaveCount}\n`;
+        message += `📊 *Total Staff:* ${attendanceLogs.length}\n\n`;
+        message += `*--- DAILY LEDGER ---*\n`;
+        
+        attendanceLogs.forEach(log => {
+            message += `• ${log.staffName}: ${log.status} (${log.checkIn} - ${log.checkOut})\n`;
+        });
+        
+        message += `\n_Generated by Sky-Ops Center_`;
+        const encoded = encodeURIComponent(message);
+        window.open(`https://wa.me/?text=${encoded}`, '_blank');
     };
 
     const handleEditStaff = (staff) => {
@@ -603,7 +780,9 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
             {/* Main Operational Area */}
             <main style={{ flex: 1, padding: '50px', overflowY: 'auto' }}>
                 <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
-                    <h1 style={{ fontSize: '2.5rem', fontWeight: '800', color: 'var(--primary-navy)' }}>{activeTab} Dashboard</h1>
+                    <h1 style={{ fontSize: '2.5rem', fontWeight: '800', color: 'var(--primary-navy)' }}>
+                        {activeTab === 'Attendance' ? 'Personnel Attendance' : `${activeTab} Dashboard`}
+                    </h1>
                     <div style={{ display: 'flex', gap: '20px' }}>
                         <div className="stat-pill">Occupied: <b>{stats.occupied}</b></div>
                         <div className="stat-pill" style={{ color: '#e74c3c' }}>Dirty: <b>{stats.dirty}</b></div>
@@ -628,6 +807,28 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                         overflow: 'hidden'
                     }}>
                         
+                        {/* Front Desk Rate Card Overlay - New Feature */}
+                        <div style={{ background: 'white', borderRadius: '25px', padding: '25px', boxShadow: '0 10px 40px rgba(0,0,0,0.2)', marginBottom: '30px', borderLeft: '8px solid var(--accent)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                <div>
+                                    <h3 style={{ margin: 0, color: 'var(--primary-navy)', fontSize: '1.1rem', fontFamily: 'Cinzel, serif' }}>📋 RECEPTION RATE CARD</h3>
+                                    <div style={{ fontSize: '0.7rem', color: '#888' }}>Authorized Rent Ranges for All Rooms</div>
+                                </div>
+                                <button onClick={handleShareRateCard} style={{ background: '#25D366', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '10px', fontWeight: 'bold', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                    🟢 SHARE RATES
+                                </button>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
+                                {roomRateData.map((tier, i) => (
+                                    <div key={i} style={{ padding: '12px', background: '#f8f9fa', borderRadius: '12px', border: `1px solid ${tier.color}44` }}>
+                                        <div style={{ fontSize: '0.6rem', fontWeight: '900', color: tier.color, textTransform: 'uppercase' }}>{tier.category}</div>
+                                        <div style={{ fontSize: '0.9rem', fontWeight: '800', color: 'var(--primary-navy)', margin: '4px 0' }}>₹{tier.min} - ₹{tier.max}</div>
+                                        <div style={{ fontSize: '0.65rem', color: '#666' }}>Rooms: {tier.rooms}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
                         {/* Real-World Front Desk Context Row */}
                         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '20px', marginBottom: '10px' }}>
                             {/* CCTV Monitor Panel */}
@@ -659,8 +860,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                                         <img src={url} alt={`Cam ${cam}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.style.display='none'; e.target.parentElement.innerHTML=`<div style="color:#e74c3c">CAM ${cam} OFFLINE</div>`; }} />
                                                     ) : (
                                                         <span>CAM {cam}</span>
-                                                    )
-                                                    }
+                                                    )}
                                                     <div style={{ position: 'absolute', top: '5px', left: '5px', background: 'rgba(0,0,0,0.5)', padding: '2px 5px', borderRadius: '3px', fontSize: '0.5rem', color: '#aaa' }}>CAM {cam}</div>
                                                 </div>
                                             );
@@ -1170,6 +1370,276 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                     </div>
                 )}
 
+                {activeTab === 'Attendance' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+                        {/* Attendance Header Summary */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+                            <div style={{ background: 'white', padding: '25px', borderRadius: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.05)', borderLeft: '6px solid #2ecc71' }}>
+                                <h4 style={{ margin: 0, color: '#888', fontSize: '0.8rem', textTransform: 'uppercase' }}>Present Today</h4>
+                                <div style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-navy)' }}>{attendanceLogs.filter(l => l.status === 'Present').length} STAFF</div>
+                            </div>
+                            <div style={{ background: 'white', padding: '25px', borderRadius: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.05)', borderLeft: '6px solid #f1c40f' }}>
+                                <h4 style={{ margin: 0, color: '#888', fontSize: '0.8rem', textTransform: 'uppercase' }}>On Leave</h4>
+                                <div style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-navy)' }}>{staffRegistry.special.filter(s => s.name.includes('Leave')).length} STAFF</div>
+                            </div>
+                            <div style={{ background: 'white', padding: '25px', borderRadius: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.05)', borderLeft: '6px solid #3498db' }}>
+                                <h4 style={{ margin: 0, color: '#888', fontSize: '0.8rem', textTransform: 'uppercase' }}>Upcoming Holiday</h4>
+                                <div style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--primary-navy)', marginTop: '5px' }}>{holidays[0].event} ({holidays[0].date})</div>
+                            </div>
+                        </div>
+
+                        {/* Professional Daily Attendance Ledger */}
+                        <div style={{ background: 'white', borderRadius: '25px', padding: '30px', boxShadow: '0 10px 40px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
+                                <div>
+                                    <h3 style={{ margin: 0, color: 'var(--primary-navy)', fontSize: '1.4rem', fontFamily: 'Cinzel, serif' }}>FORENSIC ATTENDANCE REGISTER</h3>
+                                    <div style={{ fontSize: '0.85rem', color: '#888', marginTop: '5px' }}>Audit Date: <b style={{ color: 'var(--primary-navy)' }}>{activeAttendanceDate} 2026</b></div>
+                                </div>
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    <div style={{ position: 'relative', display: 'flex', gap: '8px' }}>
+                                        <button 
+                                            onClick={() => handleExportAttendance('daily')}
+                                            style={{ background: '#f8f9fa', color: 'var(--primary-navy)', border: '1px solid #e0e0e0', padding: '10px 15px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.75rem' }}
+                                        >
+                                            📅 DAILY
+                                        </button>
+                                        <button 
+                                            onClick={() => handleExportAttendance('monthly')}
+                                            style={{ background: '#f8f9fa', color: 'var(--primary-navy)', border: '1px solid #e0e0e0', padding: '10px 15px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.75rem' }}
+                                        >
+                                            📊 MONTHLY
+                                        </button>
+                                        <button 
+                                            onClick={() => handleExportAttendance('yearly')}
+                                            style={{ background: '#f8f9fa', color: 'var(--primary-navy)', border: '1px solid #e0e0e0', padding: '10px 15px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.75rem' }}
+                                        >
+                                            📁 YEARLY
+                                        </button>
+                                    </div>
+                                    <button 
+                                        onClick={() => setShowStaffModal(true)}
+                                        style={{ background: '#3498db', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.85rem', boxShadow: '0 4px 15px rgba(52,152,219,0.2)' }}
+                                    >
+                                        + ENROLL STAFF
+                                    </button>
+                                    <button 
+                                        onClick={() => setShowAttendanceModal(true)}
+                                        style={{ background: 'var(--primary-navy)', color: 'var(--accent)', border: 'none', padding: '10px 20px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.85rem', boxShadow: '0 4px 15px rgba(0,33,71,0.2)' }}
+                                    >
+                                        + MANUAL LOG
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div style={{ overflowX: 'auto' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                    <thead>
+                                        <tr style={{ textAlign: 'left', borderBottom: '2px solid #f0f0f0' }}>
+                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Staff Identity</th>
+                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Department</th>
+                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Scheduled Shift</th>
+                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Actual Check-In</th>
+                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Check-Out</th>
+                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Performance</th>
+                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {attendanceLogs.map(log => {
+                                            const staffInfo = [...staffRegistry.reception, ...staffRegistry.kitchen, ...staffRegistry.housekeeping].find(s => s.name === log.staffName);
+                                            const dept = staffRegistry.reception.find(s => s.name === log.staffName) ? 'Reception' : 
+                                                         staffRegistry.kitchen.find(s => s.name === log.staffName) ? 'Kitchen' : 'Housekeeping';
+                                            
+                                            // Simple Punctuality Logic
+                                            let performance = "On Time";
+                                            let perfColor = "#27ae60";
+                                            if (log.checkIn !== '--') {
+                                                const checkInTime = log.checkIn.split(' ')[0];
+                                                const shiftStart = staffInfo?.shift?.split(' – ')[0] || staffInfo?.shift?.split(' TO ')[0] || "09:00 AM";
+                                                // Forensic comparison would happen here
+                                            }
+
+                                            return (
+                                                <tr key={log.id} style={{ borderBottom: '1px solid #f9f9f9', transition: 'background 0.3s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#fcfcfc'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+                                                    <td style={{ padding: '18px 15px' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#eee', overflow: 'hidden', border: '1px solid #ddd' }}>
+                                                                <img src={staffInfo?.photo || `https://ui-avatars.com/api/?name=${log.staffName}&background=random`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="staff" />
+                                                            </div>
+                                                            <div>
+                                                                <div style={{ fontWeight: 'bold', color: 'var(--primary-navy)', fontSize: '1rem' }}>{log.staffName}</div>
+                                                                <div style={{ fontSize: '0.7rem', color: '#888' }}>ID: EMP-00{log.id}</div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td style={{ padding: '18px 15px' }}>
+                                                        <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#555', background: '#f0f2f5', padding: '4px 10px', borderRadius: '6px' }}>{dept.toUpperCase()}</span>
+                                                    </td>
+                                                    <td style={{ padding: '18px 15px', fontSize: '0.85rem', color: '#666' }}>{staffInfo?.shift || 'Flexible'}</td>
+                                                    <td style={{ padding: '18px 15px' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                            <span style={{ fontWeight: '800', color: log.checkIn === '--' ? '#ccc' : '#27ae60', fontSize: '0.95rem' }}>{log.checkIn}</span>
+                                                            {log.checkIn === '--' && (
+                                                                <button onClick={() => handleQuickCheckIn(log.staffName)} style={{ background: '#e8f5e9', color: '#2e7d32', border: 'none', padding: '5px 10px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 'bold', cursor: 'pointer' }}>CHECK-IN</button>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td style={{ padding: '18px 15px' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                            <span style={{ fontWeight: '800', color: log.checkOut === '--' ? '#ccc' : '#e67e22', fontSize: '0.95rem' }}>{log.checkOut}</span>
+                                                            {log.checkIn !== '--' && log.checkOut === '--' && (
+                                                                <button onClick={() => handleQuickCheckOut(log.staffName)} style={{ background: '#fff3e0', color: '#e65100', border: 'none', padding: '5px 10px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 'bold', cursor: 'pointer' }}>CHECK-OUT</button>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td style={{ padding: '18px 15px' }}>
+                                                        {log.status === 'Present' ? (
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#27ae60' }}></div>
+                                                                <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#27ae60' }}>EXCELLENT</span>
+                                                            </div>
+                                                        ) : log.status === 'Half-Day Leave' ? (
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#e67e22' }}></div>
+                                                                <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#e67e22' }}>PLANNED</span>
+                                                            </div>
+                                                        ) : (
+                                                            <span style={{ fontSize: '0.8rem', color: '#ccc' }}>--</span>
+                                                        )}
+                                                    </td>
+                                                    <td style={{ padding: '18px 15px' }}>
+                                                        <span style={{ 
+                                                            fontSize: '0.7rem', 
+                                                            padding: '6px 12px', 
+                                                            borderRadius: '20px', 
+                                                            background: log.status === 'Present' ? '#e8f5e9' : log.status === 'Half-Day Leave' ? '#fff3e0' : '#f5f5f5', 
+                                                            color: log.status === 'Present' ? '#2e7d32' : log.status === 'Half-Day Leave' ? '#e65100' : '#757575', 
+                                                            fontWeight: '900',
+                                                            border: `1px solid ${log.status === 'Present' ? '#c8e6c9' : log.status === 'Half-Day Leave' ? '#ffe0b2' : '#e0e0e0'}`,
+                                                            letterSpacing: '0.5px'
+                                                        }}>
+                                                            {log.status.toUpperCase()}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* Leaves & Holidays Grid */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '30px' }}>
+                            {/* Approved Leaves */}
+                            <div style={{ background: 'white', borderRadius: '25px', padding: '30px', boxShadow: '0 10px 40px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>
+                                <h3 style={{ margin: '0 0 20px 0', color: 'var(--primary-navy)', fontSize: '1.1rem' }}>📜 Approved Leaves & Alerts</h3>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                    {staffRegistry.special.map(leave => (
+                                        <div key={leave.id} style={{ 
+                                            padding: '15px', 
+                                            borderRadius: '15px', 
+                                            background: leave.name.includes('MD Sir') ? '#fffdf0' : '#fcfcfc', 
+                                            border: `1px solid ${leave.name.includes('MD Sir') ? '#d4af37' : '#eee'}`, 
+                                            display: 'flex', 
+                                            justifyContent: 'space-between', 
+                                            alignItems: 'center',
+                                            boxShadow: leave.name.includes('MD Sir') ? '0 5px 15px rgba(212, 175, 55, 0.1)' : 'none'
+                                        }}>
+                                            <div>
+                                                <div style={{ fontWeight: 'bold', color: leave.name.includes('MD Sir') ? '#b8860b' : 'var(--primary-navy)' }}>
+                                                    {leave.name.includes('MD Sir') ? '👑 ' : ''}{leave.name}
+                                                </div>
+                                                <div style={{ fontSize: '0.75rem', color: '#888' }}>Reason: {leave.location}</div>
+                                            </div>
+                                            <div style={{ textAlign: 'right' }}>
+                                                <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: leave.name.includes('MD Sir') ? '#b8860b' : '#e74c3c' }}>{leave.shift}</div>
+                                                <div style={{ 
+                                                    fontSize: '0.65rem', 
+                                                    background: leave.name.includes('MD Sir') ? '#d4af37' : '#fadbd8', 
+                                                    color: leave.name.includes('MD Sir') ? 'white' : '#c0392b', 
+                                                    padding: '2px 8px', 
+                                                    borderRadius: '5px', 
+                                                    marginTop: '4px',
+                                                    fontWeight: 'bold'
+                                                }}>
+                                                    {leave.name.includes('MD Sir') ? 'EXECUTIVE' : 'OFFICIAL'}
+                                                </div>
+                                                <button 
+                                                    onClick={() => handleShareAlert(leave)}
+                                                    style={{ background: '#e8f5e9', color: '#2e7d32', border: 'none', padding: '4px 8px', borderRadius: '6px', fontSize: '0.6rem', fontWeight: 'bold', marginTop: '8px', cursor: 'pointer', display: 'block', marginLeft: 'auto' }}
+                                                >
+                                                    SHARE 🟢
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Holiday & Attendance Calendar */}
+                            <div style={{ background: '#0a192f', borderRadius: '25px', padding: '30px', color: 'white', minHeight: '400px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                    <h3 style={{ margin: 0, color: 'var(--accent)', fontSize: '1.1rem' }}>🗓️ Sky-Ops Interactive Calendar</h3>
+                                    <div style={{ display: 'flex', gap: '5px', background: 'rgba(255,255,255,0.1)', padding: '5px', borderRadius: '8px' }}>
+                                        <button onClick={() => setCalendarView('grid')} style={{ background: calendarView === 'grid' ? 'var(--accent)' : 'transparent', border: 'none', color: calendarView === 'grid' ? 'var(--primary-navy)' : 'white', padding: '5px 12px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer' }}>GRID</button>
+                                        <button onClick={() => setCalendarView('list')} style={{ background: calendarView === 'list' ? 'var(--accent)' : 'transparent', border: 'none', color: calendarView === 'list' ? 'var(--primary-navy)' : 'white', padding: '5px 12px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer' }}>LIST</button>
+                                    </div>
+                                </div>
+
+                                {calendarView === 'grid' ? (
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px' }}>
+                                        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => <div key={d} style={{ textAlign: 'center', fontSize: '0.65rem', fontWeight: '800', color: '#8892b0', paddingBottom: '5px' }}>{d}</div>)}
+                                        {Array.from({ length: 31 }).map((_, i) => {
+                                            const day = i + 1;
+                                            const dateStr = `${day.toString().padStart(2, '0')}-May`;
+                                            const isHoliday = holidays.find(h => h.date.startsWith(day.toString().padStart(2, '0')));
+                                            const isActive = activeAttendanceDate === dateStr;
+                                            
+                                            return (
+                                                <div 
+                                                    key={i} 
+                                                    onClick={() => setActiveAttendanceDate(dateStr)}
+                                                    style={{ 
+                                                        height: '45px', 
+                                                        background: isActive ? 'var(--accent)' : isHoliday ? 'rgba(212, 175, 55, 0.2)' : 'rgba(255,255,255,0.03)', 
+                                                        borderRadius: '10px', 
+                                                        display: 'flex', 
+                                                        flexDirection: 'column',
+                                                        alignItems: 'center', 
+                                                        justifyContent: 'center', 
+                                                        cursor: 'pointer',
+                                                        border: isActive ? 'none' : isHoliday ? '1px solid var(--accent)' : '1px solid rgba(255,255,255,0.05)',
+                                                        transition: 'all 0.3s'
+                                                    }}
+                                                >
+                                                    <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: isActive ? 'var(--primary-navy)' : isHoliday ? 'var(--accent)' : 'white' }}>{day}</span>
+                                                    {isHoliday && <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: isActive ? 'var(--primary-navy)' : 'var(--accent)', marginTop: '2px' }}></div>}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                        {holidays.map((h, idx) => (
+                                            <div key={idx} style={{ padding: '15px', borderRadius: '15px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <div>
+                                                    <div style={{ fontWeight: 'bold', color: 'var(--accent)' }}>{h.event}</div>
+                                                    <div style={{ fontSize: '0.75rem', color: '#8892b0' }}>{h.type}</div>
+                                                </div>
+                                                <div style={{ fontWeight: '800', color: 'white' }}>{h.date}</div>
+                                            </div>
+                                        ))}
+                                        <div style={{ marginTop: '10px', padding: '15px', borderRadius: '15px', border: '1px dashed rgba(255,255,255,0.2)', textAlign: 'center', fontSize: '0.75rem', color: '#8892b0' }}>
+                                            Select GRID mode for interactive day-wise logs
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {activeTab === 'Finance' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
                         {/* Financial Summary Cards */}
@@ -1329,43 +1799,71 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
 
             </main>
 
-            {/* Check-In / Edit Modal */}
-            {editingRoom && (
-                <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0, 33, 71, 0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(5px)' }}>
-                    <div style={{ background: 'white', borderRadius: '24px', width: '450px', boxShadow: '0 25px 50px rgba(0,0,0,0.3)', overflow: 'hidden' }}>
-                        {/* Modal Header */}
-                        <div style={{ background: 'var(--primary-navy)', padding: '25px 30px', borderBottom: '3px solid var(--accent)' }}>
-                            <h2 style={{ margin: '0', color: 'white', fontFamily: 'Cinzel, serif', fontSize: '1.6rem', letterSpacing: '1px' }}>
-                                {editingRoom.status === 'Occupied' ? 'GUEST DOSSIER' : 'GUEST REGISTRATION'}
-                            </h2>
-                            <div style={{ color: 'var(--accent)', fontSize: '0.9rem', marginTop: '5px', letterSpacing: '1px' }}>
-                                ROOM {editingRoom.id} • {editingRoom.type.toUpperCase()}
+            {/* Modals & Overlays Group */}
+            <div className="modals-overlay">
+                
+                {/* Guest Dossier / Registration Modal */}
+                {editingRoom && (
+                    <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0, 33, 71, 0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(5px)' }}>
+                        <div style={{ background: 'white', borderRadius: '24px', width: '450px', boxShadow: '0 25px 50px rgba(0,0,0,0.3)', overflow: 'hidden' }}>
+                            {/* Modal Header */}
+                            <div style={{ background: 'var(--primary-navy)', padding: '25px 30px', borderBottom: '3px solid var(--accent)' }}>
+                                <h2 style={{ margin: '0', color: 'white', fontFamily: 'Cinzel, serif', fontSize: '1.6rem', letterSpacing: '1px' }}>
+                                    {editingRoom.status === 'Occupied' ? 'GUEST DOSSIER' : 'GUEST REGISTRATION'}
+                                </h2>
+                                <div style={{ color: 'var(--accent)', fontSize: '0.9rem', marginTop: '5px', letterSpacing: '1px' }}>
+                                    ROOM {editingRoom.id} • {editingRoom.type.toUpperCase()}
+                                </div>
                             </div>
-                        </div>
 
-                        {/* Modal Body */}
-                        <div style={{ padding: '30px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase', letterSpacing: '1px' }}>Full Name <span style={{color: '#e74c3c'}}>*</span></label>
+                            {/* Modal Body */}
+                            <div style={{ padding: '30px', display: 'flex', flexDirection: 'column', gap: '20px', maxHeight: '70vh', overflowY: 'auto' }}>
+                                <div>
+                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase', letterSpacing: '1px' }}>Primary Guest Identity <span style={{color: '#e74c3c'}}>*</span></label>
                                 <input 
                                     type="text" 
                                     value={guestForm.name} 
                                     onChange={(e) => setGuestForm({...guestForm, name: e.target.value})}
-                                    style={{ width: '100%', padding: '15px', borderRadius: '12px', border: '1px solid #e0e0e0', background: '#f8f9fa', fontSize: '1rem', color: '#333', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.3s' }}
-                                    placeholder="Enter guest's full name"
-                                    onFocus={(e) => e.target.style.borderColor = 'var(--accent)'}
-                                    onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+                                    style={{ width: '100%', padding: '15px', borderRadius: '12px', border: '1px solid #e0e0e0', background: '#f8f9fa', fontSize: '1rem', color: '#333', outline: 'none', boxSizing: 'border-box' }}
+                                    placeholder="Lead Guest Full Name"
                                 />
                             </div>
+
+                            {/* Granular Occupancy Grid */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Adult Occupants</label>
+                                    <select 
+                                        value={guestForm.adults} 
+                                        onChange={(e) => setGuestForm({...guestForm, adults: Number(e.target.value)})}
+                                        style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #e0e0e0', background: '#f8f9fa', outline: 'none', fontWeight: 'bold' }}
+                                    >
+                                        {[1,2,3,4,5,6].map(n => <option key={n} value={n}>{n} Adult(s)</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Child Occupants</label>
+                                    <select 
+                                        value={guestForm.children} 
+                                        onChange={(e) => setGuestForm({...guestForm, children: Number(e.target.value)})}
+                                        style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #e0e0e0', background: '#f8f9fa', outline: 'none', fontWeight: 'bold' }}
+                                    >
+                                        {[0,1,2,3,4].map(n => <option key={n} value={n}>{n} Child(ren)</option>)}
+                                    </select>
+                                </div>
+                            </div>
+
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase', letterSpacing: '1px' }}>Contact Number</label>
+                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase', letterSpacing: '1px' }}>Contact Number & Communication</label>
                                 <input 
                                     type="text" 
                                     value={guestForm.phone} 
                                     onChange={(e) => setGuestForm({...guestForm, phone: e.target.value})}
-                                    style={{ width: '100%', padding: '15px', borderRadius: '12px', border: '1px solid #e0e0e0', background: '#f8f9fa', fontSize: '1rem', color: '#333', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.3s' }}
-                                    placeholder="Enter mobile number"
-                                    onFocus={(e) => e.target.style.borderColor = 'var(--accent)'}
+                                    style={{ width: '100%', padding: '15px', borderRadius: '12px', border: '1px solid #e0e0e0', background: '#f8f9fa', fontSize: '1rem', color: '#333', outline: 'none', boxSizing: 'border-box' }}
+                                    placeholder="Verified Mobile Number"
+                                />
+                            </div>
+   onFocus={(e) => e.target.style.borderColor = 'var(--accent)'}
                                     onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
                                 />
                             </div>
@@ -1413,8 +1911,6 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                         onChange={(e) => setGuestForm({...guestForm, advance: e.target.value})}
                                         style={{ flex: 2, padding: '15px', borderRadius: '12px', border: '1px solid #e0e0e0', background: '#f8f9fa', fontSize: '1rem', color: '#333', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.3s' }}
                                         placeholder="0"
-                                        onFocus={(e) => e.target.style.borderColor = 'var(--accent)'}
-                                        onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
                                     />
                                     <select
                                         value={guestForm.advanceType}
@@ -1429,28 +1925,69 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                     </select>
                                 </div>
                             </div>
+                            {/* Tax Config & Person-Wise Ledger */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8f9fa', padding: '15px', borderRadius: '12px', border: '1px solid #eee' }}>
+                                <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--primary-navy)' }}>GST TAXATION ENABLED</span>
+                                <div 
+                                    onClick={() => setGuestForm({...guestForm, gstEnabled: !guestForm.gstEnabled})}
+                                    style={{ width: '50px', height: '26px', background: guestForm.gstEnabled ? '#2ecc71' : '#bdc3c7', borderRadius: '13px', position: 'relative', cursor: 'pointer', transition: 'background 0.3s' }}
+                                >
+                                    <div style={{ width: '20px', height: '20px', background: 'white', borderRadius: '50%', position: 'absolute', top: '3px', left: guestForm.gstEnabled ? '27px' : '3px', transition: 'left 0.3s' }} />
+                                </div>
+                            </div>
+
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase', letterSpacing: '1px' }}>Food Bill (₹)</label>
-                                <input 
-                                    type="number" 
-                                    value={guestForm.foodBill} 
-                                    onChange={(e) => setGuestForm({...guestForm, foodBill: e.target.value})}
-                                    style={{ width: '100%', padding: '15px', borderRadius: '12px', border: '1px solid #e0e0e0', background: '#f8f9fa', fontSize: '1rem', color: '#333', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.3s' }}
-                                    placeholder="0"
-                                    onFocus={(e) => e.target.style.borderColor = 'var(--accent)'}
-                                    onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase', letterSpacing: '1px' }}>Occupant Ledger (Person-Wise Names)</label>
+                                <textarea 
+                                    value={guestForm.extraGuests} 
+                                    onChange={(e) => setGuestForm({...guestForm, extraGuests: e.target.value})}
+                                    style={{ width: '100%', padding: '15px', borderRadius: '12px', border: '1px solid #e0e0e0', background: '#f8f9fa', fontSize: '0.9rem', color: '#333', outline: 'none', boxSizing: 'border-box', minHeight: '60px' }}
+                                    placeholder="List all adult & child names staying in the room..."
                                 />
+                            </div>
+
+                            {/* Forensic Tax Summary Panel */}
+                            <div style={{ background: '#0a192f', padding: '25px', borderRadius: '20px', color: 'white', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '12px' }}>
+                                    <span style={{ color: '#8892b0' }}>Base Room Rent:</span>
+                                    <span style={{ fontWeight: 'bold' }}>₹{editingRoom.price.toLocaleString()}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '12px' }}>
+                                    <span style={{ color: '#8892b0' }}>Sky Kitchen (Dining):</span>
+                                    <span style={{ fontWeight: 'bold' }}>₹{(Number(guestForm.foodBill) || 0).toLocaleString()}</span>
+                                </div>
+                                {guestForm.gstEnabled && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--accent)', marginBottom: '15px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '12px' }}>
+                                        <span>GST Applied (12%):</span>
+                                        <span style={{ fontWeight: 'bold' }}>₹{Math.round((editingRoom.price + (Number(guestForm.foodBill) || 0)) * 0.12).toLocaleString()}</span>
+                                    </div>
+                                )}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.3rem', fontWeight: '900', marginTop: '10px' }}>
+                                    <span style={{ color: '#fff' }}>TOTAL BILLED:</span>
+                                    <span style={{ color: 'var(--accent)' }}>₹{Math.round((editingRoom.price + (Number(guestForm.foodBill) || 0)) * (guestForm.gstEnabled ? 1.12 : 1.0)).toLocaleString()}</span>
+                                </div>
+                                <div style={{ fontSize: '0.65rem', color: '#8892b0', marginTop: '10px', textAlign: 'center', letterSpacing: '1px' }}>
+                                    {guestForm.gstEnabled ? 'INCLUSIVE OF ALL APPLICABLE TAXES' : 'EXCLUDING GST AS PER OPERATIONAL OVERRIDE'}
+                                </div>
                             </div>
                             
                             {/* Modal Footer */}
-                            <div style={{ display: 'flex', gap: '15px', marginTop: '15px' }}>
-                                <button style={{ flex: 1, padding: '15px', background: 'white', border: '2px solid #e0e0e0', borderRadius: '12px', color: '#555', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s', fontSize: '0.9rem', letterSpacing: '1px' }} onClick={() => setEditingRoom(null)} onMouseOver={(e) => e.target.style.background='#f0f0f0'} onMouseOut={(e) => e.target.style.background='white'}>CANCEL</button>
-                                <button style={{ flex: 1, padding: '15px', background: 'var(--primary-navy)', border: 'none', borderRadius: '12px', color: 'var(--accent)', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s', fontSize: '0.9rem', letterSpacing: '1px', boxShadow: '0 4px 15px rgba(0,33,71,0.2)' }} onClick={handleSaveGuest} onMouseOver={(e) => e.target.style.transform='translateY(-2px)'} onMouseOut={(e) => e.target.style.transform='translateY(0)'}>AUTHORIZE</button>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+                                <button 
+                                    style={{ width: '100%', padding: '15px', background: 'var(--accent)', border: 'none', borderRadius: '12px', color: 'var(--primary-navy)', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.9rem', letterSpacing: '1px', boxShadow: '0 4px 15px rgba(212,175,55,0.2)' }}
+                                    onClick={() => setShowBill(true)}
+                                >
+                                    📄 GENERATE PRINTABLE BILL
+                                </button>
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    <button style={{ flex: 1, padding: '15px', background: 'white', border: '2px solid #e0e0e0', borderRadius: '12px', color: '#555', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s', fontSize: '0.9rem', letterSpacing: '1px' }} onClick={() => setEditingRoom(null)}>CANCEL</button>
+                                    <button style={{ flex: 1, padding: '15px', background: 'var(--primary-navy)', border: 'none', borderRadius: '12px', color: 'var(--accent)', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s', fontSize: '0.9rem', letterSpacing: '1px', boxShadow: '0 4px 15px rgba(0,33,71,0.2)' }} onClick={handleSaveGuest}>AUTHORIZE & SAVE</button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
+
             {/* Cleaning Entry Modal */}
             {cleaningRoom && (
                 <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0, 33, 71, 0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(5px)' }}>
@@ -1552,6 +2089,266 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                     </div>
                 </div>
             )}
+                {/* Professional Bill Modal */}
+                {showBill && (
+                    <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '20px' }}>
+                        <div style={{ background: 'white', width: '500px', borderRadius: '5px', padding: '40px', boxShadow: '0 0 50px rgba(0,0,0,0.5)', fontFamily: 'serif', color: '#000', position: 'relative' }}>
+                            {/* Hotel Header */}
+                            <div style={{ textAlign: 'center', borderBottom: '2px solid #000', paddingBottom: '20px', marginBottom: '25px' }}>
+                                <div style={{ fontSize: '2rem', fontWeight: 'bold', letterSpacing: '2px' }}>HOTEL SKY 5</div>
+                                <div style={{ fontSize: '0.8rem', color: '#555', marginTop: '5px' }}>Zirakpur-Panchkula Highway, Near Chandigarh</div>
+                                <div style={{ fontSize: '0.9rem', fontWeight: 'bold', marginTop: '10px', color: '#000' }}>OFFICIAL TAX INVOICE</div>
+                            </div>
+
+                            {/* Guest & Room Info */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', fontSize: '0.9rem', marginBottom: '30px' }}>
+                                <div>
+                                    <div style={{ color: '#888', fontSize: '0.7rem', fontWeight: 'bold' }}>GUEST NAME</div>
+                                    <div style={{ fontWeight: 'bold' }}>{guestForm.name.toUpperCase()}</div>
+                                    <div style={{ color: '#555', marginTop: '5px' }}>{guestForm.phone}</div>
+                                </div>
+                                <div style={{ textAlign: 'right' }}>
+                                    <div style={{ color: '#888', fontSize: '0.7rem', fontWeight: 'bold' }}>ROOM / TYPE</div>
+                                    <div style={{ fontWeight: 'bold' }}>ROOM {editingRoom.id}</div>
+                                    <div style={{ color: '#555', marginTop: '5px' }}>{editingRoom.type.toUpperCase()}</div>
+                                </div>
+                            </div>
+
+                            {/* Occupancy Detail */}
+                            <div style={{ background: '#f9f9f9', padding: '10px 15px', borderRadius: '4px', fontSize: '0.8rem', display: 'flex', justifyContent: 'space-between', marginBottom: '30px', border: '1px solid #eee' }}>
+                                <span><strong>OCCUPANCY:</strong> {guestForm.adults} Adult(s), {guestForm.children} Child(ren)</span>
+                                <span><strong>CHECK-IN:</strong> {new Date(guestForm.checkInTime).toLocaleDateString()}</span>
+                            </div>
+
+                            {/* Itemized Table */}
+                            <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '30px' }}>
+                                <thead>
+                                    <tr style={{ borderBottom: '1px solid #000', textAlign: 'left', fontSize: '0.8rem' }}>
+                                        <th style={{ padding: '10px 0' }}>DESCRIPTION</th>
+                                        <th style={{ textAlign: 'right' }}>AMOUNT (₹)</th>
+                                    </tr>
+                                </thead>
+                                <tbody style={{ fontSize: '0.95rem' }}>
+                                    <tr>
+                                        <td style={{ padding: '12px 0' }}>Room Rent Charge ({editingRoom.type})</td>
+                                        <td style={{ textAlign: 'right' }}>{editingRoom.price.toLocaleString()}.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td style={{ padding: '12px 0' }}>Sky Kitchen (Room Service / Dining)</td>
+                                        <td style={{ textAlign: 'right' }}>{(Number(guestForm.foodBill) || 0).toLocaleString()}.00</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            {/* Calculation Section */}
+                            <div style={{ borderTop: '2px solid #000', paddingTop: '15px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '8px' }}>
+                                    <span>SUBTOTAL</span>
+                                    <span>₹{(editingRoom.price + (Number(guestForm.foodBill) || 0)).toLocaleString()}.00</span>
+                                </div>
+                                {guestForm.gstEnabled && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '8px', color: '#444' }}>
+                                        <span>GST (12.0%)</span>
+                                        <span>₹{Math.round((editingRoom.price + (Number(guestForm.foodBill) || 0)) * 0.12).toLocaleString()}.00</span>
+                                    </div>
+                                )}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.4rem', fontWeight: 'bold', marginTop: '10px', borderTop: '1px double #000', paddingTop: '10px' }}>
+                                    <span>NET PAYABLE</span>
+                                    <span>₹{Math.round((editingRoom.price + (Number(guestForm.foodBill) || 0)) * (guestForm.gstEnabled ? 1.12 : 1.0)).toLocaleString()}.00</span>
+                                </div>
+                            </div>
+
+                            {/* Note */}
+                            <div style={{ marginTop: '40px', fontSize: '0.7rem', color: '#777', fontStyle: 'italic', textAlign: 'center' }}>
+                                This is a computer-generated invoice. Thank you for choosing Hotel Sky 5.
+                            </div>
+
+                            {/* Bill Actions */}
+                            <div style={{ marginTop: '30px', display: 'flex', gap: '10px' }}>
+                                <button 
+                                    onClick={() => window.print()}
+                                    style={{ flex: 1, padding: '12px', background: '#000', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}
+                                >
+                                    🖨️ PRINT BILL
+                                </button>
+                                <button 
+                                    onClick={() => setShowBill(false)}
+                                    style={{ flex: 1, padding: '12px', background: '#fff', color: '#000', border: '1px solid #000', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}
+                                >
+                                    CLOSE
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Manual Attendance Entry Modal */}
+                {showAttendanceModal && (
+                    <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0, 33, 71, 0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, backdropFilter: 'blur(5px)' }}>
+                        <div style={{ background: 'white', borderRadius: '24px', width: '450px', boxShadow: '0 25px 50px rgba(0,0,0,0.3)', overflow: 'hidden' }}>
+                            <div style={{ background: 'var(--primary-navy)', padding: '25px 30px', borderBottom: '3px solid var(--accent)' }}>
+                                <h2 style={{ margin: '0', color: 'white', fontFamily: 'Cinzel, serif', fontSize: '1.4rem', letterSpacing: '1px' }}>MANUAL ATTENDANCE</h2>
+                                <div style={{ color: 'var(--accent)', fontSize: '0.8rem', marginTop: '5px' }}>FORENSIC PERSONNEL LOG</div>
+                            </div>
+                            <div style={{ padding: '30px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Staff Name</label>
+                                    <select 
+                                        value={attendanceForm.staffName}
+                                        onChange={(e) => setAttendanceForm({...attendanceForm, staffName: e.target.value})}
+                                        style={{ width: '100%', padding: '15px', borderRadius: '12px', border: '1px solid #e0e0e0', background: '#f8f9fa', fontSize: '1rem' }}
+                                    >
+                                        <option value="">Select Staff...</option>
+                                        {[...staffRegistry.reception, ...staffRegistry.kitchen, ...staffRegistry.housekeeping].map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Date</label>
+                                    <input 
+                                        type="text" 
+                                        value={attendanceForm.date}
+                                        onChange={(e) => setAttendanceForm({...attendanceForm, date: e.target.value})}
+                                        placeholder="e.g., 06-May"
+                                        style={{ width: '100%', padding: '15px', borderRadius: '12px', border: '1px solid #e0e0e0', background: '#f8f9fa', fontSize: '1rem', boxSizing: 'border-box' }}
+                                    />
+                                </div>
+                                <div style={{ display: 'flex', gap: '15px' }}>
+                                    <div style={{ flex: 1 }}>
+                                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Check-In</label>
+                                        <input 
+                                            type="text" 
+                                            value={attendanceForm.checkIn}
+                                            onChange={(e) => setAttendanceForm({...attendanceForm, checkIn: e.target.value})}
+                                            placeholder="09:00 AM"
+                                            style={{ width: '100%', padding: '15px', borderRadius: '12px', border: '1px solid #e0e0e0', background: '#f8f9fa', fontSize: '1rem', boxSizing: 'border-box' }}
+                                        />
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Check-Out</label>
+                                        <input 
+                                            type="text" 
+                                            value={attendanceForm.checkOut}
+                                            onChange={(e) => setAttendanceForm({...attendanceForm, checkOut: e.target.value})}
+                                            placeholder="06:00 PM"
+                                            style={{ width: '100%', padding: '15px', borderRadius: '12px', border: '1px solid #e0e0e0', background: '#f8f9fa', fontSize: '1rem', boxSizing: 'border-box' }}
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Status</label>
+                                    <select 
+                                        value={attendanceForm.status}
+                                        onChange={(e) => setAttendanceForm({...attendanceForm, status: e.target.value})}
+                                        style={{ width: '100%', padding: '15px', borderRadius: '12px', border: '1px solid #e0e0e0', background: '#f8f9fa', fontSize: '1rem' }}
+                                    >
+                                        <option value="Present">Present</option>
+                                        <option value="Half-Day Leave">Half-Day Leave</option>
+                                        <option value="Absent">Absent</option>
+                                        <option value="Holiday">Holiday</option>
+                                    </select>
+                                </div>
+                                <div style={{ display: 'flex', gap: '15px', marginTop: '10px' }}>
+                                    <button style={{ flex: 1, padding: '15px', background: 'white', border: '2px solid #e0e0e0', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' }} onClick={() => setShowAttendanceModal(false)}>CANCEL</button>
+                                    <button style={{ flex: 1, padding: '15px', background: 'var(--primary-navy)', border: 'none', borderRadius: '12px', color: 'var(--accent)', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,33,71,0.2)' }} onClick={handleSaveAttendance}>SAVE LOG</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* New Staff Enrollment Modal */}
+                {showStaffModal && (
+                    <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0, 33, 71, 0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, backdropFilter: 'blur(5px)' }}>
+                        <div style={{ background: 'white', borderRadius: '24px', width: '500px', boxShadow: '0 25px 50px rgba(0,0,0,0.3)', overflow: 'hidden' }}>
+                            <div style={{ background: '#3498db', padding: '25px 30px', borderBottom: '3px solid rgba(255,255,255,0.2)' }}>
+                                <h2 style={{ margin: '0', color: 'white', fontFamily: 'Cinzel, serif', fontSize: '1.4rem', letterSpacing: '1px' }}>PERSONNEL ENROLLMENT</h2>
+                                <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.8rem', marginTop: '5px' }}>OFFICIAL STAFF ONBOARDING SYSTEM</div>
+                            </div>
+                            <div style={{ padding: '30px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                <div style={{ display: 'flex', gap: '15px' }}>
+                                    <div style={{ flex: 1.5 }}>
+                                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Full Name</label>
+                                        <input 
+                                            type="text" 
+                                            value={enrollmentForm.name}
+                                            onChange={(e) => setEnrollmentForm({...enrollmentForm, name: e.target.value})}
+                                            placeholder="Enter Name"
+                                            style={{ width: '100%', padding: '15px', borderRadius: '12px', border: '1px solid #e0e0e0', background: '#f8f9fa', fontSize: '1rem', boxSizing: 'border-box' }}
+                                        />
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Department</label>
+                                        <select 
+                                            value={enrollmentForm.department}
+                                            onChange={(e) => setEnrollmentForm({...enrollmentForm, department: e.target.value})}
+                                            style={{ width: '100%', padding: '15px', borderRadius: '12px', border: '1px solid #e0e0e0', background: '#f8f9fa', fontSize: '1rem' }}
+                                        >
+                                            <option value="reception">Reception</option>
+                                            <option value="kitchen">Kitchen</option>
+                                            <option value="housekeeping">Housekeeping</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Official Role</label>
+                                    <input 
+                                        type="text" 
+                                        value={enrollmentForm.role}
+                                        onChange={(e) => setEnrollmentForm({...enrollmentForm, role: e.target.value})}
+                                        placeholder="e.g., Front Desk, Chef"
+                                        style={{ width: '100%', padding: '15px', borderRadius: '12px', border: '1px solid #e0e0e0', background: '#f8f9fa', fontSize: '1rem', boxSizing: 'border-box' }}
+                                    />
+                                </div>
+                                <div style={{ display: 'flex', gap: '15px' }}>
+                                    <div style={{ flex: 1 }}>
+                                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Shift Timing</label>
+                                        <input 
+                                            type="text" 
+                                            value={enrollmentForm.shift}
+                                            onChange={(e) => setEnrollmentForm({...enrollmentForm, shift: e.target.value})}
+                                            placeholder="09:00 AM – 06:00 PM"
+                                            style={{ width: '100%', padding: '15px', borderRadius: '12px', border: '1px solid #e0e0e0', background: '#f8f9fa', fontSize: '1rem', boxSizing: 'border-box' }}
+                                        />
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Phone Number</label>
+                                        <input 
+                                            type="text" 
+                                            value={enrollmentForm.phone}
+                                            onChange={(e) => setEnrollmentForm({...enrollmentForm, phone: e.target.value})}
+                                            placeholder="+91..."
+                                            style={{ width: '100%', padding: '15px', borderRadius: '12px', border: '1px solid #e0e0e0', background: '#f8f9fa', fontSize: '1rem', boxSizing: 'border-box' }}
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Duty Responsibilities</label>
+                                    <textarea 
+                                        value={enrollmentForm.duties}
+                                        onChange={(e) => setEnrollmentForm({...enrollmentForm, duties: e.target.value})}
+                                        placeholder="Detailed duties..."
+                                        style={{ width: '100%', padding: '15px', borderRadius: '12px', border: '1px solid #e0e0e0', background: '#f8f9fa', fontSize: '0.9rem', minHeight: '80px', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Staff Photo URL</label>
+                                    <input 
+                                        type="text" 
+                                        value={enrollmentForm.photo}
+                                        onChange={(e) => setEnrollmentForm({...enrollmentForm, photo: e.target.value})}
+                                        placeholder="https://example.com/photo.jpg"
+                                        style={{ width: '100%', padding: '15px', borderRadius: '12px', border: '1px solid #e0e0e0', background: '#f8f9fa', fontSize: '1rem', boxSizing: 'border-box' }}
+                                    />
+                                </div>
+                                <div style={{ display: 'flex', gap: '15px', marginTop: '10px' }}>
+                                    <button style={{ flex: 1, padding: '15px', background: 'white', border: '2px solid #e0e0e0', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' }} onClick={() => setShowStaffModal(false)}>CANCEL</button>
+                                    <button style={{ flex: 1, padding: '15px', background: '#3498db', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(52,152,219,0.2)' }} onClick={handleEnrollStaff}>ENROLL PERSONNEL</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
