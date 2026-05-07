@@ -15,4 +15,13 @@ export default defineConfig({
       '@': path.resolve(__dirname, './02_Application_Source'),
     },
   },
+  server: {
+    proxy: {
+      '/api-timestation': {
+        target: 'https://api.mytimestation.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api-timestation/, '')
+      }
+    }
+  }
 })

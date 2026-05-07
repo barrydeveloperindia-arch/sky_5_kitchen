@@ -1,0 +1,51 @@
+[
+  {
+    "staffName": "Varun",
+    "time": "07:11",
+    "activity": "Punch In",
+    "date": "07 May",
+    "timestamp": 1778159897059
+  },
+  {
+    "staffName": "Hafeez",
+    "time": "09:07",
+    "activity": "Punch In",
+    "date": "07 May",
+    "timestamp": 1778159897059
+  },
+  {
+    "staffName": "Sahil",
+    "time": "11:42",
+    "activity": "Punch In",
+    "date": "07 May",
+    "timestamp": 1778159897059
+  },
+  {
+    "staffName": "PARMOD BAHL",
+    "time": "12:06",
+    "activity": "Punch In",
+    "date": "07 May",
+    "timestamp": 1778159897059
+  },
+  {
+    "staffName": "Veerwati",
+    "time": "13:07",
+    "activity": "Punch In",
+    "date": "07 May",
+    "timestamp": 1778159897059
+  },
+  {
+    "staffName": "Varun",
+    "time": "17:28",
+    "activity": "Punch Out",
+    "date": "07 May",
+    "timestamp": 1778159897059
+  },
+  {
+    "staffName": "Sahil",
+    "time": "18:24",
+    "activity": "Punch Out",
+    "date": "07 May",
+    "timestamp": 1778159897059
+  }
+]

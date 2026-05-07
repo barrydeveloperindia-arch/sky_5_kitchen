@@ -1,0 +1,20 @@
+{
+    "dvr_brand": "CP Plus",
+    "camera_brand": "W Box",
+    "ip_address": "192.168.1.100",
+    "rtsp_port": 554,
+    "http_port": 8080,
+    "username": "admin",
+    "password": "Ram@2026",
+    "channels": [
+        {"id": 1, "name": "RECEPTION MAIN", "subtype": 0},
+        {"id": 2, "name": "KITCHEN ENTRY", "subtype": 1},
+        {"id": 3, "name": "PARKING AREA", "subtype": 1},
+        {"id": 4, "name": "CORRIDOR 1ST FL", "subtype": 1},
+        {"id": 5, "name": "BACK EXIT", "subtype": 1},
+        {"id": 6, "name": "STAFF ROOM", "subtype": 1}
+    ],
+    "motion_detection": true,
+    "p2p_enabled": true,
+    "remote_access_enabled": true
+}

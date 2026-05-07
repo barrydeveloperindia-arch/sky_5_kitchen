@@ -25,3 +25,7 @@ dist-ssr
 # Automation Ledger
 03_Automation_System/ledger/db.json
 03_Automation_System/ledger/db_failed.json  
+
+# Backups
+AdminDashboard_*.jsx
+03_Automation_System/*.txt
