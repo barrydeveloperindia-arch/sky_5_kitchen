@@ -71,8 +71,14 @@ async function saveToDatabase(commandName, payload) {
 async function pushToGithub(commandName, payload) {
     if (!config.AUTO_GITHUB_PUSH) return;
 
-    // Ensure logs directory exists at the project root
-    const logsDir = path.join(process.cwd(), '06_Forensic_Logs');
+    // Route logs to specific subdirectories for absolute traceability
+    let subDir = '';
+    const lowerCommand = commandName.toLowerCase();
+    if (lowerCommand.includes('attendance')) subDir = 'attendance';
+    else if (lowerCommand.includes('revenue') || lowerCommand.includes('bill') || lowerCommand.includes('order')) subDir = 'revenue';
+    else if (lowerCommand.includes('housekeeping') || lowerCommand.includes('cleaning')) subDir = 'housekeeping';
+
+    const logsDir = path.join(process.cwd(), '06_Forensic_Logs', subDir);
     if (!fs.existsSync(logsDir)) {
         fs.mkdirSync(logsDir, { recursive: true });
     }

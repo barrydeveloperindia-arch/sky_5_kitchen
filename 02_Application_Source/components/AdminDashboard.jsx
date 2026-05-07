@@ -60,13 +60,23 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
     const [attendanceLogs, setAttendanceLogs] = useState([
         { id: 1, staffName: 'Gaurav Panchal', date: '06-May', checkIn: '08:25 AM', checkOut: '06:35 PM', status: 'Present' },
         { id: 2, staffName: 'Arjun Tiwari', date: '06-May', checkIn: '08:55 AM', checkOut: '--', status: 'Present' },
-        { id: 3, staffName: 'Ratnesh', date: '06-May', checkIn: '06:55 PM', checkOut: '--', status: 'Present' },
+        { id: 3, staffName: 'Ratnesh', date: '06-May', checkIn: '06:55 PM', checkOut: '08:30 AM', status: 'Present' },
         { id: 4, staffName: 'Varun', date: '06-May', checkIn: '07:10 AM', checkOut: '11:15 AM', status: 'Present' },
         { id: 5, staffName: 'Karan', date: '06-May', checkIn: '08:05 AM', checkOut: '--', status: 'Present' },
         { id: 6, staffName: 'Amar Singh', date: '06-May', checkIn: '08:15 AM', checkOut: '--', status: 'Present' },
         { id: 7, staffName: 'Veerwati', date: '06-May', checkIn: '09:50 AM', checkOut: '--', status: 'Half-Day Leave' },
         { id: 8, staffName: 'Bhawna', date: '06-May', checkIn: '08:40 AM', checkOut: '05:10 PM', status: 'Present' },
         { id: 9, staffName: 'Amresh Kumar', date: '06-May', checkIn: '--', checkOut: '--', status: 'Present' },
+
+        // 07-May Attendance (Audit Ready)
+        { id: 10, staffName: 'Gaurav Panchal', date: '07-May', checkIn: '08:00 AM', checkOut: '--', status: 'Present', uniformStatus: 'Verified' },
+        { id: 11, staffName: 'Arjun Tiwari', date: '07-May', checkIn: '09:00 AM', checkOut: '--', status: 'Present', uniformStatus: 'Verified' },
+        { id: 12, staffName: 'Varun', date: '07-May', checkIn: '07:00 AM', checkOut: '--', status: 'Present', uniformStatus: 'Verified' },
+        { id: 13, staffName: 'Karan', date: '07-May', checkIn: '08:30 AM', checkOut: '--', status: 'Present', uniformStatus: 'Verified' },
+        { id: 14, staffName: 'Amar Singh', date: '07-May', checkIn: '08:00 AM', checkOut: '--', status: 'Present', uniformStatus: 'Verified' },
+        { id: 15, staffName: 'Bhawna', date: '07-May', checkIn: '08:30 AM', checkOut: '--', status: 'Present', uniformStatus: 'Verified' },
+        { id: 16, staffName: 'Veerwati', date: '07-May', checkIn: '--', checkOut: '--', status: 'Absent', uniformStatus: '--' },
+        { id: 17, staffName: 'Amresh Kumar', date: '07-May', checkIn: '--', checkOut: '--', status: 'Present', uniformStatus: '--' },
     ]);
 
     const [holidays, setHolidays] = useState([
@@ -76,7 +86,9 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
     ]);
 
     const [showAttendanceModal, setShowAttendanceModal] = useState(false);
-    const [attendanceForm, setAttendanceForm] = useState({ staffName: '', date: '', checkIn: '', checkOut: '', status: 'Present' });
+    const [showEditAttendanceModal, setShowEditAttendanceModal] = useState(false);
+    const [editingAttendance, setEditingAttendance] = useState(null);
+    const [attendanceForm, setAttendanceForm] = useState({ staffName: '', date: '', checkIn: '', checkOut: '', status: 'Present', uniformStatus: 'Pending' });
 
     const [showStaffModal, setShowStaffModal] = useState(false);
     const [enrollmentForm, setEnrollmentForm] = useState({ name: '', role: '', department: 'reception', shift: '', phone: '', duties: '', photo: '' });
@@ -87,8 +99,8 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
     const roomRateData = [
         { rooms: '1, 5, 14', category: 'PREMIUM SUITE', min: 2500, max: 3500, color: '#d4af37' },
         { rooms: '2, 3, 4, 6, 7, 8, 9', category: 'EXECUTIVE DELUXE', min: 1500, max: 2500, color: '#3498db' },
-        { rooms: '10, 11, 12', category: 'EXECUTIVE STANDARD', min: 1500, max: 2500, color: '#27ae60' },
-        { rooms: '16, 17, 19, 20', category: 'BUDGET COMFORT', min: 1200, max: 1800, color: '#7f8c8d' }
+        { rooms: '10, 11, 12, 13, 15', category: 'EXECUTIVE STANDARD', min: 1500, max: 2500, color: '#27ae60' },
+        { rooms: '16, 17, 18, 19, 20', category: 'BUDGET COMFORT', min: 1200, max: 1800, color: '#7f8c8d' }
     ];
 
     const handleShareRateCard = () => {
@@ -108,6 +120,19 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
     const handleShareAlert = (leave) => {
         const message = `*HOTEL SKY 5 - OFFICIAL ALERT*%0A------------------------------------%0A*Name:* ${leave.name}%0A*Schedule:* ${leave.shift}%0A*Context:* ${leave.location}%0A*Directive:* ${leave.remarks}%0A------------------------------------%0A_Authorized by Sky-Ops Center_`;
         window.open(`https://wa.me/?text=${message}`, '_blank');
+    };
+
+    const initializeDayLogs = () => {
+        const allStaff = [...staffRegistry.reception, ...staffRegistry.kitchen, ...staffRegistry.housekeeping];
+        const newLogs = allStaff.map((staff, idx) => ({
+            id: Date.now() + idx,
+            staffName: staff.name,
+            date: activeAttendanceDate,
+            checkIn: '--',
+            checkOut: '--',
+            status: 'Absent'
+        }));
+        setAttendanceLogs(prev => [...prev, ...newLogs]);
     };
 
     const stats = useMemo(() => {
@@ -306,13 +331,35 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
             alert("Staff Name and Date are required.");
             return;
         }
-        const newLog = {
-            id: attendanceLogs.length + 1,
-            ...attendanceForm
-        };
-        setAttendanceLogs([...attendanceLogs, newLog]);
-        setShowAttendanceModal(false);
-        setAttendanceForm({ staffName: '', date: '', checkIn: '', checkOut: '', status: 'Present' });
+
+        if (editingAttendance) {
+            setAttendanceLogs(prev => prev.map(log => 
+                log.id === editingAttendance.id ? { ...log, ...attendanceForm } : log
+            ));
+            setEditingAttendance(null);
+            setShowEditAttendanceModal(false);
+        } else {
+            const newLog = {
+                id: Date.now(),
+                ...attendanceForm
+            };
+            setAttendanceLogs([...attendanceLogs, newLog]);
+            setShowAttendanceModal(false);
+        }
+        setAttendanceForm({ staffName: '', date: '', checkIn: '', checkOut: '', status: 'Present', uniformStatus: 'Pending' });
+    };
+
+    const handleOpenEditAttendance = (log) => {
+        setEditingAttendance(log);
+        setAttendanceForm({
+            staffName: log.staffName,
+            date: log.date,
+            checkIn: log.checkIn,
+            checkOut: log.checkOut,
+            status: log.status,
+            uniformStatus: log.uniformStatus || 'Pending'
+        });
+        setShowEditAttendanceModal(true);
     };
 
     const handleEnrollStaff = () => {
@@ -383,11 +430,18 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
             const index = prev.findIndex(l => l.staffName === staffName && l.date === today);
             if (index !== -1) {
                 const newLogs = [...prev];
-                newLogs[index] = { ...newLogs[index], checkIn: timeStr, status: 'Present' };
+                // Default uniform status to 'Pending' on quick check-in
+                newLogs[index] = { ...newLogs[index], checkIn: timeStr, status: 'Present', uniformStatus: 'Pending' };
                 return newLogs;
             }
-            return [...prev, { id: prev.length + 1, staffName, date: today, checkIn: timeStr, checkOut: '--', status: 'Present' }];
+            return [...prev, { id: prev.length + 1, staffName, date: today, checkIn: timeStr, checkOut: '--', status: 'Present', uniformStatus: 'Pending' }];
         });
+    };
+
+    const handleVerifyUniform = (id) => {
+        setAttendanceLogs(prev => prev.map(log => 
+            log.id === id ? { ...log, uniformStatus: 'Verified' } : log
+        ));
     };
 
     const handleQuickCheckOut = (staffName) => {
@@ -1417,6 +1471,12 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                         </button>
                                     </div>
                                     <button 
+                                        onClick={handleShareAttendanceWhatsApp}
+                                        style={{ background: '#25D366', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.85rem', boxShadow: '0 4px 15px rgba(37,211,102,0.2)' }}
+                                    >
+                                        🟢 SHARE DAILY
+                                    </button>
+                                    <button 
                                         onClick={() => setShowStaffModal(true)}
                                         style={{ background: '#3498db', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.85rem', boxShadow: '0 4px 15px rgba(52,152,219,0.2)' }}
                                     >
@@ -1432,102 +1492,169 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                             </div>
 
                             <div style={{ overflowX: 'auto' }}>
-                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                    <thead>
-                                        <tr style={{ textAlign: 'left', borderBottom: '2px solid #f0f0f0' }}>
-                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Staff Identity</th>
-                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Department</th>
-                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Scheduled Shift</th>
-                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Actual Check-In</th>
-                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Check-Out</th>
-                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Performance</th>
-                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {attendanceLogs.map(log => {
-                                            const staffInfo = [...staffRegistry.reception, ...staffRegistry.kitchen, ...staffRegistry.housekeeping].find(s => s.name === log.staffName);
-                                            const dept = staffRegistry.reception.find(s => s.name === log.staffName) ? 'Reception' : 
-                                                         staffRegistry.kitchen.find(s => s.name === log.staffName) ? 'Kitchen' : 'Housekeeping';
-                                            
-                                            // Simple Punctuality Logic
-                                            let performance = "On Time";
-                                            let perfColor = "#27ae60";
-                                            if (log.checkIn !== '--') {
-                                                const checkInTime = log.checkIn.split(' ')[0];
-                                                const shiftStart = staffInfo?.shift?.split(' – ')[0] || staffInfo?.shift?.split(' TO ')[0] || "09:00 AM";
-                                                // Forensic comparison would happen here
-                                            }
-
-                                            return (
-                                                <tr key={log.id} style={{ borderBottom: '1px solid #f9f9f9', transition: 'background 0.3s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#fcfcfc'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
-                                                    <td style={{ padding: '18px 15px' }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#eee', overflow: 'hidden', border: '1px solid #ddd' }}>
-                                                                <img src={staffInfo?.photo || `https://ui-avatars.com/api/?name=${log.staffName}&background=random`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="staff" />
+                                {attendanceLogs.filter(log => log.date === activeAttendanceDate).length === 0 ? (
+                                    <div style={{ textAlign: 'center', padding: '50px', background: '#f8f9fa', borderRadius: '20px', border: '2px dashed #eee' }}>
+                                        <div style={{ fontSize: '2rem', marginBottom: '10px' }}>📋</div>
+                                        <h4 style={{ margin: 0, color: 'var(--primary-navy)' }}>No Records for {activeAttendanceDate}</h4>
+                                        <p style={{ fontSize: '0.8rem', color: '#888', marginBottom: '20px' }}>Start the day by initializing the staff register for this date.</p>
+                                        <button 
+                                            onClick={initializeDayLogs}
+                                            style={{ background: 'var(--primary-navy)', color: 'white', border: 'none', padding: '12px 30px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' }}
+                                        >
+                                            🚀 INITIALIZE {activeAttendanceDate.toUpperCase()} REGISTER
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                        <thead>
+                                            <tr style={{ textAlign: 'left', borderBottom: '2px solid #f0f0f0' }}>
+                                                <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Staff Identity</th>
+                                                <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Department</th>
+                                                <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Scheduled Shift</th>
+                                                <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Check-In</th>
+                                                <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Uniform Compliance</th>
+                                                <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Check-Out</th>
+                                                <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Performance</th>
+                                                <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Status</th>
+                                                <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {attendanceLogs.filter(log => log.date === activeAttendanceDate).map(log => {
+                                                const staffInfo = [...staffRegistry.reception, ...staffRegistry.kitchen, ...staffRegistry.housekeeping].find(s => s.name === log.staffName);
+                                                const dept = staffRegistry.reception.find(s => s.name === log.staffName) ? 'Reception' : 
+                                                            staffRegistry.kitchen.find(s => s.name === log.staffName) ? 'Kitchen' : 'Housekeeping';
+                                                
+                                                return (
+                                                    <tr key={log.id} style={{ borderBottom: '1px solid #f9f9f9', transition: 'background 0.3s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#fcfcfc'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+                                                        <td style={{ padding: '18px 15px' }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#eee', overflow: 'hidden', border: '1px solid #ddd' }}>
+                                                                    <img src={staffInfo?.photo || `https://ui-avatars.com/api/?name=${log.staffName}&background=random`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="staff" />
+                                                                </div>
+                                                                <div>
+                                                                    <div style={{ fontWeight: 'bold', color: 'var(--primary-navy)', fontSize: '1rem' }}>{log.staffName}</div>
+                                                                    <div style={{ fontSize: '0.7rem', color: '#888' }}>ID: EMP-00{log.id}</div>
+                                                                </div>
                                                             </div>
-                                                            <div>
-                                                                <div style={{ fontWeight: 'bold', color: 'var(--primary-navy)', fontSize: '1rem' }}>{log.staffName}</div>
-                                                                <div style={{ fontSize: '0.7rem', color: '#888' }}>ID: EMP-00{log.id}</div>
+                                                        </td>
+                                                        <td style={{ padding: '18px 15px' }}>
+                                                            <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#555', background: '#f0f2f5', padding: '4px 10px', borderRadius: '6px' }}>{dept.toUpperCase()}</span>
+                                                        </td>
+                                                        <td style={{ padding: '18px 15px', fontSize: '0.85rem', color: '#666' }}>{staffInfo?.shift || 'Flexible'}</td>
+                                                        <td style={{ padding: '18px 15px' }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                                <span style={{ fontWeight: '800', color: log.checkIn === '--' ? '#ccc' : (log.uniformStatus === 'Verified' ? '#27ae60' : '#e67e22'), fontSize: '0.95rem' }}>{log.checkIn}</span>
+                                                                {log.checkIn === '--' && (
+                                                                    <button onClick={() => handleQuickCheckIn(log.staffName)} style={{ background: 'var(--primary-navy)', color: 'var(--accent)', border: 'none', padding: '5px 12px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 'bold', cursor: 'pointer' }}>START SHIFT</button>
+                                                                )}
                                                             </div>
-                                                        </div>
-                                                    </td>
-                                                    <td style={{ padding: '18px 15px' }}>
-                                                        <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#555', background: '#f0f2f5', padding: '4px 10px', borderRadius: '6px' }}>{dept.toUpperCase()}</span>
-                                                    </td>
-                                                    <td style={{ padding: '18px 15px', fontSize: '0.85rem', color: '#666' }}>{staffInfo?.shift || 'Flexible'}</td>
-                                                    <td style={{ padding: '18px 15px' }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                            <span style={{ fontWeight: '800', color: log.checkIn === '--' ? '#ccc' : '#27ae60', fontSize: '0.95rem' }}>{log.checkIn}</span>
-                                                            {log.checkIn === '--' && (
-                                                                <button onClick={() => handleQuickCheckIn(log.staffName)} style={{ background: '#e8f5e9', color: '#2e7d32', border: 'none', padding: '5px 10px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 'bold', cursor: 'pointer' }}>CHECK-IN</button>
+                                                        </td>
+                                                        <td style={{ padding: '18px 15px' }}>
+                                                            {log.checkIn !== '--' && (
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                                    {log.uniformStatus === 'Verified' ? (
+                                                                        <span style={{ color: '#27ae60', fontSize: '0.7rem', fontWeight: 'bold', background: '#eafaf1', padding: '4px 10px', borderRadius: '6px' }}>✓ UNIFORM OK</span>
+                                                                    ) : (
+                                                                        <button 
+                                                                            onClick={() => handleVerifyUniform(log.id)}
+                                                                            style={{ background: '#d4af37', color: 'black', border: 'none', padding: '4px 10px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 'bold', cursor: 'pointer' }}
+                                                                        >
+                                                                            VERIFY UNIFORM
+                                                                        </button>
+                                                                    )}
+                                                                </div>
                                                             )}
-                                                        </div>
-                                                    </td>
-                                                    <td style={{ padding: '18px 15px' }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                            <span style={{ fontWeight: '800', color: log.checkOut === '--' ? '#ccc' : '#e67e22', fontSize: '0.95rem' }}>{log.checkOut}</span>
-                                                            {log.checkIn !== '--' && log.checkOut === '--' && (
-                                                                <button onClick={() => handleQuickCheckOut(log.staffName)} style={{ background: '#fff3e0', color: '#e65100', border: 'none', padding: '5px 10px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 'bold', cursor: 'pointer' }}>CHECK-OUT</button>
+                                                        </td>
+                                                        <td style={{ padding: '18px 15px' }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                                <span style={{ fontWeight: '800', color: log.checkOut === '--' ? '#ccc' : '#e67e22', fontSize: '0.95rem' }}>{log.checkOut}</span>
+                                                                {log.checkIn !== '--' && log.checkOut === '--' && (
+                                                                    <button onClick={() => handleQuickCheckOut(log.staffName)} style={{ background: '#fff3e0', color: '#e65100', border: 'none', padding: '5px 10px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 'bold', cursor: 'pointer' }}>CHECK-OUT</button>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                        <td style={{ padding: '18px 15px' }}>
+                                                            {log.status === 'Present' ? (
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#27ae60' }}></div>
+                                                                    <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#27ae60' }}>EXCELLENT</span>
+                                                                </div>
+                                                            ) : (
+                                                                <span style={{ fontSize: '0.8rem', color: '#ccc' }}>--</span>
                                                             )}
-                                                        </div>
-                                                    </td>
-                                                    <td style={{ padding: '18px 15px' }}>
-                                                        {log.status === 'Present' ? (
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#27ae60' }}></div>
-                                                                <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#27ae60' }}>EXCELLENT</span>
-                                                            </div>
-                                                        ) : log.status === 'Half-Day Leave' ? (
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#e67e22' }}></div>
-                                                                <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#e67e22' }}>PLANNED</span>
-                                                            </div>
-                                                        ) : (
-                                                            <span style={{ fontSize: '0.8rem', color: '#ccc' }}>--</span>
-                                                        )}
-                                                    </td>
-                                                    <td style={{ padding: '18px 15px' }}>
-                                                        <span style={{ 
-                                                            fontSize: '0.7rem', 
-                                                            padding: '6px 12px', 
-                                                            borderRadius: '20px', 
-                                                            background: log.status === 'Present' ? '#e8f5e9' : log.status === 'Half-Day Leave' ? '#fff3e0' : '#f5f5f5', 
-                                                            color: log.status === 'Present' ? '#2e7d32' : log.status === 'Half-Day Leave' ? '#e65100' : '#757575', 
-                                                            fontWeight: '900',
-                                                            border: `1px solid ${log.status === 'Present' ? '#c8e6c9' : log.status === 'Half-Day Leave' ? '#ffe0b2' : '#e0e0e0'}`,
-                                                            letterSpacing: '0.5px'
-                                                        }}>
-                                                            {log.status.toUpperCase()}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
+                                                        </td>
+                                                        <td style={{ padding: '18px 15px' }}>
+                                                            <span style={{ 
+                                                                fontSize: '0.7rem', 
+                                                                padding: '6px 12px', 
+                                                                borderRadius: '20px', 
+                                                                background: log.status === 'Present' ? '#e8f5e9' : log.status === 'Half-Day Leave' ? '#fff3e0' : '#f5f5f5', 
+                                                                color: log.status === 'Present' ? '#2e7d32' : log.status === 'Half-Day Leave' ? '#e65100' : '#757575', 
+                                                                fontWeight: '900',
+                                                                border: `1px solid ${log.status === 'Present' ? '#c8e6c9' : log.status === 'Half-Day Leave' ? '#ffe0b2' : '#e0e0e0'}`,
+                                                                letterSpacing: '0.5px'
+                                                            }}>
+                                                                {log.status.toUpperCase()}
+                                                            </span>
+                                                        </td>
+                                                        <td style={{ padding: '18px 15px' }}>
+                                                            <button 
+                                                                onClick={() => handleOpenEditAttendance(log)}
+                                                                style={{ background: 'transparent', border: '1px solid #ddd', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', color: 'var(--primary-navy)', fontWeight: 'bold', fontSize: '0.7rem' }}
+                                                            >
+                                                                EDIT
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                )}
                             </div>
                         </div>
+
+                        {/* Edit Attendance Modal */}
+                        {showEditAttendanceModal && (
+                            <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0, 33, 71, 0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(5px)' }}>
+                                <div style={{ background: 'white', borderRadius: '24px', width: '450px', boxShadow: '0 25px 50px rgba(0,0,0,0.3)', overflow: 'hidden', margin: 'auto' }}>
+                                    <div style={{ background: 'var(--primary-navy)', padding: '25px 30px', borderBottom: '3px solid var(--accent)' }}>
+                                        <h2 style={{ margin: '0', color: 'white', fontFamily: 'Cinzel, serif', fontSize: '1.6rem', letterSpacing: '1px' }}>EDIT ATTENDANCE</h2>
+                                        <div style={{ color: 'var(--accent)', fontSize: '0.9rem', marginTop: '5px', letterSpacing: '1px' }}>Forensic Log Override</div>
+                                    </div>
+                                    <div style={{ padding: '30px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)' }}>STAFF NAME</label>
+                                            <input disabled value={attendanceForm.staffName} style={{ width: '100%', padding: '15px', borderRadius: '12px', border: '1px solid #eee', background: '#f5f5f5', color: '#888' }} />
+                                        </div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)' }}>CHECK-IN</label>
+                                                <input type="text" value={attendanceForm.checkIn} onChange={(e) => setAttendanceForm({...attendanceForm, checkIn: e.target.value})} style={{ width: '100%', padding: '15px', borderRadius: '12px', border: '1px solid #e0e0e0' }} />
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)' }}>CHECK-OUT</label>
+                                                <input type="text" value={attendanceForm.checkOut} onChange={(e) => setAttendanceForm({...attendanceForm, checkOut: e.target.value})} style={{ width: '100%', padding: '15px', borderRadius: '12px', border: '1px solid #e0e0e0' }} />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)' }}>STATUS</label>
+                                            <select value={attendanceForm.status} onChange={(e) => setAttendanceForm({...attendanceForm, status: e.target.value})} style={{ width: '100%', padding: '15px', borderRadius: '12px', border: '1px solid #e0e0e0' }}>
+                                                <option value="Present">Present</option>
+                                                <option value="Absent">Absent</option>
+                                                <option value="Half-Day Leave">Half-Day Leave</option>
+                                                <option value="Pending">Pending</option>
+                                            </select>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '15px', marginTop: '10px' }}>
+                                            <button style={{ flex: 1, padding: '15px', background: 'white', border: '2px solid #eee', borderRadius: '12px', fontWeight: 'bold' }} onClick={() => setShowEditAttendanceModal(false)}>CANCEL</button>
+                                            <button style={{ flex: 1, padding: '15px', background: 'var(--primary-navy)', border: 'none', borderRadius: '12px', color: 'var(--accent)', fontWeight: 'bold' }} onClick={handleSaveAttendance}>SAVE CHANGES</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) }
 
                         {/* Leaves & Holidays Grid */}
                         <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '30px' }}>
@@ -1861,9 +1988,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                     onChange={(e) => setGuestForm({...guestForm, phone: e.target.value})}
                                     style={{ width: '100%', padding: '15px', borderRadius: '12px', border: '1px solid #e0e0e0', background: '#f8f9fa', fontSize: '1rem', color: '#333', outline: 'none', boxSizing: 'border-box' }}
                                     placeholder="Verified Mobile Number"
-                                />
-                            </div>
-   onFocus={(e) => e.target.style.borderColor = 'var(--accent)'}
+                                    onFocus={(e) => e.target.style.borderColor = 'var(--accent)'}
                                     onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
                                 />
                             </div>
