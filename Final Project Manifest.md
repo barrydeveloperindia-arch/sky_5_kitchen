@@ -7,13 +7,13 @@ The **Hotel_Sky5** ecosystem has been overhauled to meet professional luxury sta
 - **Plus Code**: PVC2+QX Panchkula, Haryana
 - **Check-in**: 12:00 PM | **Check-out**: 11:00 AM
 
-## Core Objectives
-1.  **Unified Hospitality Platform**: Integrated room bookings (**SKY5 Stay**) with food services.
-2.  **Room Charge Workflow**: Enabled seamless 'Charge to Room' payment for in-hotel guests.
-3.  **Menu Curation**: Reduced item count by 50% to focus on high-quality, "star" signature dishes.
-2.  **Luxury Brand Identity**: Implemented a "Prestige Black" and "Signature Gold" aesthetic with elegant typography.
-3.  **Professional Workflow**: Established a numbered, line-wise folder structure for absolute organizational clarity.
-4.  **Hyper-Automation**: Integrated the Antigraviti Master Sync v3.0 protocol for automated command logging and GitHub archival.
+## Core Business Goals & Implementation
+
+1.  **Easier Management**: Centralized **Admin Dashboard** (`AdminDashboard.jsx`) that enables front-desk staff to manage room reservations, track workforce shifts, monitor laundry linen counts, and review room-turnover checklists.
+2.  **Better Guest Experience**: Mobile-first interactive storefront (**SKY5 Shop**) featuring digital menu ordering, a simple checkout system with 'Charge to Room', check-in/out, Google Maps navigation, and a direct Google review QR scanner.
+3.  **Strong Profitability**: Re-engineered database (`combos.js`) that curates **exactly 34 high-margin signature dishes**, removing low-margin stray items and beverages. Integrates stay upsells for premium suite categories.
+4.  **More Premium Positioning**: A premium luxury aesthetic with "Prestige Dark Navy" and "Signature Gold" color palettes, elegant typography (Cinzel, Playfair Display), custom SVG watermarks, and print-ready dual-page A4 HTML menu layouts.
+5.  **Lower Operational Chaos**: Automated operational tracking, including reception checklists (verifying keys, towels, remotes during room turnaround), shift handovers, and linen supply sheets.
 
 ## System Architecture
 - **Frontend**: React 18 + Vite (Mobile-first, premium UI).
