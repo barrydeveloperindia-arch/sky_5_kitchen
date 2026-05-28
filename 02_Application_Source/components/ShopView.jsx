@@ -565,55 +565,23 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                 </div>
 
                 {/* Glassy Bottom Action Bar */}
-                <div style={{ 
-                    position: 'fixed', 
-                    bottom: '0', 
-                    left: '0', 
-                    right: '0', 
-                    background: 'rgba(255, 255, 255, 0.8)', 
-                    backdropFilter: 'blur(10px)',
-                    padding: '15px 20px',
-                    borderTop: '1px solid rgba(0,0,0,0.1)',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    gap: '15px',
-                    zIndex: 1000
-                }}>
-                    <button style={{ 
-                        background: '#25D366', 
-                        color: 'white', 
-                        border: 'none', 
-                        padding: '12px 25px', 
-                        borderRadius: '30px', 
-                        fontWeight: 'bold', 
-                        fontSize: '0.9rem',
-                        boxShadow: '0 5px 15px rgba(37, 211, 102, 0.3)',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        whiteSpace: 'nowrap'
-                    }} onClick={() => {
-                        window.print();
-                        const msg = encodeURIComponent("Check out the official Menu Card of Hotel Sky 5!");
-                        window.open(`https://wa.me/?text=${msg}`, '_blank');
+                <div className="menu-action-bar no-print">
+                    <button className="menu-action-btn menu-action-btn-whatsapp" onClick={() => {
+                        const shareUrl = window.location.origin + "/menu.html";
+                        const msg = encodeURIComponent(`Check out the official Menu Card of Hotel Sky 5:\n${shareUrl}`);
+                        window.open(`https://api.whatsapp.com/send?text=${msg}`, '_blank');
                     }}>
                         <span>💬</span> SHARE ON WHATSAPP
                     </button>
 
-                    <button style={{ 
-                        background: '#0a192f', 
-                        color: 'white', 
-                        border: '2px solid #d4af37', 
-                        padding: '12px 25px', 
-                        borderRadius: '30px', 
-                        fontWeight: 'bold', 
-                        fontSize: '0.9rem',
-                        boxShadow: '0 5px 15px rgba(10, 25, 47, 0.3)',
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap'
-                    }} onClick={() => setShowMenuCard(false)}>
-                        CLOSE MENU
+                    <button className="menu-action-btn menu-action-btn-print" onClick={() => {
+                        window.print();
+                    }}>
+                        <span>🖨️</span> PRINT / SAVE AS PDF
+                    </button>
+
+                    <button className="menu-action-btn menu-action-btn-close" onClick={() => setShowMenuCard(false)}>
+                        <span>✕</span> CLOSE PREVIEW
                     </button>
                 </div>
             </div>
