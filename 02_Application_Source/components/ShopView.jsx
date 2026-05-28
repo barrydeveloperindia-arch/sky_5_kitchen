@@ -567,7 +567,7 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                 {/* Glassy Bottom Action Bar */}
                 <div className="menu-action-bar no-print">
                     <button className="menu-action-btn menu-action-btn-whatsapp" onClick={() => {
-                        const shareUrl = window.location.origin + "/menu.html";
+                        const shareUrl = window.location.origin + "/menu.pdf";
                         const msg = encodeURIComponent(`Check out the official Menu Card of Hotel Sky 5:\n${shareUrl}`);
                         window.open(`https://api.whatsapp.com/send?text=${msg}`, '_blank');
                     }}>
