@@ -179,8 +179,8 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                         <div>
                             <Logo size={100} noBorder={true} />
                             <h1 style={{ color: 'white', margin: '15px 0 5px 0', fontSize: '2rem' }}>Hotel Sky 5</h1>
-                            <p style={{ color: '#aaa', fontSize: '0.9rem' }}>Sector 4, Panchkula, Haryana 134112</p>
-                            <p style={{ color: '#aaa', fontSize: '0.9rem' }}>📞 +91 081464 07934</p>
+                            <p style={{ color: '#aaa', fontSize: '0.85rem', margin: '5px 0 0 0' }}>5th Floor, Disha Arcade Building, IT Park Rd, Mansa Devi Complex, Sector 4, Panchkula, Haryana 134114</p>
+                            <p style={{ color: '#aaa', fontSize: '0.85rem', margin: '3px 0 0 0' }}>📞 +91 81464 07934 | 🌐 hotelsky5.com</p>
                         </div>
                         <div style={{ textAlign: 'right' }}>
                             <h2 style={{ color: '#d4af37', fontSize: '2.5rem', margin: '0' }}>INVOICE</h2>
