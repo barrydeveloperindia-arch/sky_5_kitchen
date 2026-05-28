@@ -251,7 +251,9 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
     
     if (showMenuCard) {
         return (
-            <div className="menu-print-container" style={{ background: '#f5f5f5', maxWidth: '100%', height: 'auto', minHeight: '100vh', overflowY: 'auto', padding: '20px', display: 'flex', justifyContent: 'center' }}>
+            <div className="menu-print-container" style={{ background: '#f5f5f5', maxWidth: '100%', height: 'auto', minHeight: '100vh', overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
+                
+                {/* PAGE 1 */}
                 <div className="menu-card-design" style={{ 
                     background: '#ffffff', 
                     width: '100%',
@@ -264,7 +266,8 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                 }}>
                     <div style={{
                         border: '2px solid #d4af37', /* Inner gold border */
-                        padding: '30px'
+                        padding: '30px',
+                        minHeight: '270mm'
                     }}>
                         
                         {/* Header Row */}
@@ -286,7 +289,7 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                                         <h2 style={{ fontFamily: 'Georgia, serif', color: '#0a192f', margin: 0, fontSize: '2.5rem', background: '#fff', padding: '0 15px', position: 'relative', zIndex: 1, letterSpacing: '4px' }}>MENU</h2>
                                     </div>
                                 </div>
-                                <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: '800', letterSpacing: '3px', color: '#333' }}>GOOD FOOD. GREAT STAY.</p>
+                                <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: '800', letterSpacing: '3px', color: '#333' }}>PAGE 1 OF 2 • GOOD FOOD. GREAT STAY.</p>
                             </div>
 
                             {/* Right: Contact & Icons */}
@@ -302,30 +305,10 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                             </div>
                         </div>
 
-                        {/* Menu Columns Grid */}
+                        {/* Menu Columns Grid (Page 1) */}
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
-                            
-                            {/* LEFT COLUMN */}
+                            {/* Left Column */}
                             <div>
-                                {/* Treebo Section */}
-                                <div style={{ marginBottom: '25px' }}>
-                                    <div style={{ background: '#d32f2f', color: 'white', padding: '8px', textAlign: 'center', fontWeight: '800', fontSize: '1.1rem', marginBottom: '5px' }}>
-                                        TREEBO COMPLEMENTARY BREAKFAST
-                                    </div>
-                                    <div style={{ color: '#d32f2f', textAlign: 'center', fontWeight: '800', fontSize: '0.8rem', marginBottom: '15px' }}>
-                                        8 AM - 10 AM (FOR TREEBO GUESTS ONLY)
-                                    </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        {menuItems.filter(i => i.category === 'Breakfast').slice(0, 8).map(item => (
-                                            <div key={item.id} style={{ display: 'flex', alignItems: 'flex-end' }}>
-                                                <span style={{ fontWeight: '800', color: '#0a192f', fontSize: '0.85rem', textTransform: 'uppercase' }}>{item.name}</span>
-                                                <div style={{ flex: 1, borderBottom: '2px dotted #ccc', margin: '0 10px', position: 'relative', top: '-4px' }}></div>
-                                                <span style={{ fontWeight: '900', color: '#0a192f', fontSize: '0.95rem' }}>₹{item.price}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
                                 {/* Breakfast */}
                                 <div style={{ marginBottom: '25px' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderBottom: '2px solid #0a192f', paddingBottom: '4px', marginBottom: '15px' }}>
@@ -333,122 +316,12 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                                         <span style={{ background: '#fff3cd', color: '#856404', padding: '2px 10px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: '800' }}>8 AM - 10 AM</span>
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        {menuItems.filter(i => i.category === 'Breakfast').slice(8).map(item => (
+                                        {menuItems.filter(i => i.category === 'Breakfast').map(item => (
                                             <div key={item.id} style={{ display: 'flex', alignItems: 'flex-end' }}>
                                                 <span style={{ fontWeight: '800', color: '#0a192f', fontSize: '0.85rem', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                     {item.name}
                                                     {item.isPopular && <span style={{ border: '1px solid #f39c12', color: '#f39c12', fontSize: '0.6rem', padding: '1px 4px', borderRadius: '2px' }}>CHEF'S PICK</span>}
                                                 </span>
-                                                <div style={{ flex: 1, borderBottom: '2px dotted #ccc', margin: '0 10px', position: 'relative', top: '-4px' }}></div>
-                                                <span style={{ fontWeight: '900', color: '#0a192f', fontSize: '0.95rem' }}>₹{item.price}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Main Course - Split into Veg and Non-Veg */}
-                                <div style={{ marginBottom: '25px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderBottom: '2px solid #0a192f', paddingBottom: '4px', marginBottom: '15px' }}>
-                                        <h3 style={{ fontFamily: 'Georgia, serif', color: '#0a192f', fontSize: '1.3rem', margin: 0, fontWeight: '900' }}>MAIN COURSE</h3>
-                                        <span style={{ background: '#fff3cd', color: '#856404', padding: '2px 10px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: '800' }}>12 PM - 10 PM</span>
-                                    </div>
-                                    
-                                    <div style={{ borderLeft: '4px solid #0a192f', paddingLeft: '10px', color: '#0a192f', fontWeight: '900', fontSize: '0.9rem', marginBottom: '10px', marginTop: '10px' }}>VEG SPECIALS</div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '15px' }}>
-                                        {menuItems.filter(i => i.category === 'Main Course' && i.description.includes('🟢')).map(item => (
-                                            <div key={item.id} style={{ display: 'flex', alignItems: 'flex-end' }}>
-                                                <span style={{ color: '#24963f', fontSize: '0.8rem', marginRight: '5px', position: 'relative', top: '-1px' }}>🟢</span>
-                                                <span style={{ fontWeight: '800', color: '#0a192f', fontSize: '0.85rem', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    {item.name}
-                                                    {item.isPopular && <span style={{ border: '1px solid #28a745', color: '#28a745', fontSize: '0.6rem', padding: '1px 4px', borderRadius: '2px' }}>BEST SELLER</span>}
-                                                </span>
-                                                <div style={{ flex: 1, borderBottom: '2px dotted #ccc', margin: '0 10px', position: 'relative', top: '-4px' }}></div>
-                                                <span style={{ fontWeight: '900', color: '#0a192f', fontSize: '0.95rem' }}>₹{item.price}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    <div style={{ borderLeft: '4px solid #d32f2f', paddingLeft: '10px', color: '#d32f2f', fontWeight: '900', fontSize: '0.9rem', marginBottom: '10px' }}>NON-VEG SPECIALS</div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        {menuItems.filter(i => i.category === 'Main Course' && i.description.includes('🔴')).map(item => (
-                                            <div key={item.id} style={{ display: 'flex', alignItems: 'flex-end' }}>
-                                                <span style={{ color: '#d32f2f', fontSize: '0.8rem', marginRight: '5px', position: 'relative', top: '-1px' }}>🔴</span>
-                                                <span style={{ fontWeight: '800', color: '#0a192f', fontSize: '0.85rem', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    {item.name}
-                                                    {item.isPopular && <span style={{ border: '1px solid #f39c12', color: '#f39c12', fontSize: '0.6rem', padding: '1px 4px', borderRadius: '2px' }}>CHEF'S PICK</span>}
-                                                </span>
-                                                <div style={{ flex: 1, borderBottom: '2px dotted #ccc', margin: '0 10px', position: 'relative', top: '-4px' }}></div>
-                                                <span style={{ fontWeight: '900', color: '#0a192f', fontSize: '0.95rem' }}>₹{item.price}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Thali Banner */}
-                                <div style={{ border: '2px solid #0a192f', borderRadius: '10px', padding: '20px 15px', position: 'relative', marginTop: '40px' }}>
-                                    <div style={{ position: 'absolute', top: '-15px', left: '50%', transform: 'translateX(-50%)', background: '#0a192f', color: '#d4af37', padding: '5px 20px', borderRadius: '20px', fontWeight: '900', fontSize: '0.9rem', letterSpacing: '1px', whiteSpace: 'nowrap' }}>
-                                        THALI - OUR BEST VALUE
-                                    </div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                                        {menuItems.filter(i => i.category === 'Thalis').map(item => (
-                                            <div key={item.id}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '900', color: '#0a192f', fontSize: '1rem', textTransform: 'uppercase' }}>
-                                                    <span>{item.name}</span>
-                                                    <span>₹{item.price}</span>
-                                                </div>
-                                                <div style={{ fontSize: '0.65rem', color: '#555', fontWeight: '700', lineHeight: '1.2', marginTop: '3px' }}>
-                                                    {item.description.replace('🟢 ', '').replace('🔴 ', '')}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                            </div>
-
-                            {/* RIGHT COLUMN */}
-                            <div>
-                                {/* Rice & Basmati */}
-                                <div style={{ marginBottom: '25px' }}>
-                                    <div style={{ borderBottom: '2px solid #0a192f', paddingBottom: '4px', marginBottom: '15px' }}>
-                                        <h3 style={{ fontFamily: 'Georgia, serif', color: '#0a192f', fontSize: '1.3rem', margin: 0, fontWeight: '900' }}>RICE & BASMATI</h3>
-                                    </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        {menuItems.filter(i => i.category === 'Rice').map(item => (
-                                            <div key={item.id} style={{ display: 'flex', alignItems: 'flex-end' }}>
-                                                <span style={{ fontWeight: '800', color: '#0a192f', fontSize: '0.85rem', textTransform: 'uppercase' }}>{item.name}</span>
-                                                <div style={{ flex: 1, borderBottom: '2px dotted #ccc', margin: '0 10px', position: 'relative', top: '-4px' }}></div>
-                                                <span style={{ fontWeight: '900', color: '#0a192f', fontSize: '0.95rem' }}>₹{item.price}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Fresh Salads */}
-                                <div style={{ marginBottom: '25px' }}>
-                                    <div style={{ borderBottom: '2px solid #0a192f', paddingBottom: '4px', marginBottom: '15px' }}>
-                                        <h3 style={{ fontFamily: 'Georgia, serif', color: '#0a192f', fontSize: '1.3rem', margin: 0, fontWeight: '900' }}>FRESH SALADS</h3>
-                                    </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        {menuItems.filter(i => i.category === 'Raita & Salad').map(item => (
-                                            <div key={item.id} style={{ display: 'flex', alignItems: 'flex-end' }}>
-                                                <span style={{ fontWeight: '800', color: '#0a192f', fontSize: '0.85rem', textTransform: 'uppercase' }}>{item.name}</span>
-                                                <div style={{ flex: 1, borderBottom: '2px dotted #ccc', margin: '0 10px', position: 'relative', top: '-4px' }}></div>
-                                                <span style={{ fontWeight: '900', color: '#0a192f', fontSize: '0.95rem' }}>₹{item.price}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Indian Breads */}
-                                <div style={{ marginBottom: '25px' }}>
-                                    <div style={{ borderBottom: '2px solid #0a192f', paddingBottom: '4px', marginBottom: '15px' }}>
-                                        <h3 style={{ fontFamily: 'Georgia, serif', color: '#0a192f', fontSize: '1.3rem', margin: 0, fontWeight: '900' }}>INDIAN BREADS</h3>
-                                    </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        {menuItems.filter(i => i.category === 'Breads').map(item => (
-                                            <div key={item.id} style={{ display: 'flex', alignItems: 'flex-end' }}>
-                                                <span style={{ fontWeight: '800', color: '#0a192f', fontSize: '0.85rem', textTransform: 'uppercase' }}>{item.name}</span>
                                                 <div style={{ flex: 1, borderBottom: '2px dotted #ccc', margin: '0 10px', position: 'relative', top: '-4px' }}></div>
                                                 <span style={{ fontWeight: '900', color: '#0a192f', fontSize: '0.95rem' }}>₹{item.price}</span>
                                             </div>
@@ -466,6 +339,7 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                                         {menuItems.filter(i => i.category === 'Snacks').map(item => (
                                             <div key={item.id} style={{ display: 'flex', alignItems: 'flex-end' }}>
                                                 <span style={{ fontWeight: '800', color: '#0a192f', fontSize: '0.85rem', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    {item.description.includes('🔴') ? <span style={{ color: '#d32f2f', fontSize: '0.8rem', marginRight: '5px' }}>🔴</span> : <span style={{ color: '#24963f', fontSize: '0.8rem', marginRight: '5px' }}>🟢</span>}
                                                     {item.name}
                                                     {item.isPopular && <span style={{ border: '1px solid #28a745', color: '#28a745', fontSize: '0.6rem', padding: '1px 4px', borderRadius: '2px' }}>BEST SELLER</span>}
                                                 </span>
@@ -475,11 +349,14 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                                         ))}
                                     </div>
                                 </div>
+                            </div>
 
-                                {/* Chinese */}
+                            {/* Right Column */}
+                            <div>
+                                {/* Chinese Items */}
                                 <div style={{ marginBottom: '25px' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderBottom: '2px solid #0a192f', paddingBottom: '4px', marginBottom: '15px' }}>
-                                        <h3 style={{ fontFamily: 'Georgia, serif', color: '#0a192f', fontSize: '1.3rem', margin: 0, fontWeight: '900' }}>CHINESE</h3>
+                                        <h3 style={{ fontFamily: 'Georgia, serif', color: '#0a192f', fontSize: '1.3rem', margin: 0, fontWeight: '900' }}>CHINESE ITEMS</h3>
                                         <span style={{ background: '#fff3cd', color: '#856404', padding: '2px 10px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: '800' }}>12 PM - 10 PM</span>
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -493,13 +370,13 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                                     </div>
                                 </div>
 
-                                {/* Beverages & Shakes */}
+                                {/* Rice Items */}
                                 <div style={{ marginBottom: '25px' }}>
                                     <div style={{ borderBottom: '2px solid #0a192f', paddingBottom: '4px', marginBottom: '15px' }}>
-                                        <h3 style={{ fontFamily: 'Georgia, serif', color: '#0a192f', fontSize: '1.3rem', margin: 0, fontWeight: '900' }}>BEVERAGES & SHAKES</h3>
+                                        <h3 style={{ fontFamily: 'Georgia, serif', color: '#0a192f', fontSize: '1.3rem', margin: 0, fontWeight: '900' }}>RICE ITEMS</h3>
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        {menuItems.filter(i => i.category === 'Beverages').map(item => (
+                                        {menuItems.filter(i => i.category === 'Rice').map(item => (
                                             <div key={item.id} style={{ display: 'flex', alignItems: 'flex-end' }}>
                                                 <span style={{ fontWeight: '800', color: '#0a192f', fontSize: '0.85rem', textTransform: 'uppercase' }}>{item.name}</span>
                                                 <div style={{ flex: 1, borderBottom: '2px dotted #ccc', margin: '0 10px', position: 'relative', top: '-4px' }}></div>
@@ -509,10 +386,156 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                                     </div>
                                 </div>
 
-                                {/* Amenities Box */}
-                                <div style={{ borderTop: '2px solid #0a192f', borderBottom: '2px solid #0a192f', padding: '15px 0', marginTop: '30px' }}>
-                                    <h3 style={{ fontFamily: 'Georgia, serif', color: '#0a192f', fontSize: '1.3rem', margin: '0 0 15px 0', fontWeight: '900' }}>AMENITIES & SERVICES</h3>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '0.85rem', fontWeight: '800', color: '#0a192f' }}>
+                                {/* Sweet Dish */}
+                                <div style={{ marginBottom: '25px' }}>
+                                    <div style={{ borderBottom: '2px solid #0a192f', paddingBottom: '4px', marginBottom: '15px' }}>
+                                        <h3 style={{ fontFamily: 'Georgia, serif', color: '#0a192f', fontSize: '1.3rem', margin: 0, fontWeight: '900' }}>SWEET DISH</h3>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        {menuItems.filter(i => i.category === 'Sweet Dish').map(item => (
+                                            <div key={item.id} style={{ display: 'flex', alignItems: 'flex-end' }}>
+                                                <span style={{ fontWeight: '800', color: '#0a192f', fontSize: '0.85rem', textTransform: 'uppercase' }}>{item.name}</span>
+                                                <div style={{ flex: 1, borderBottom: '2px dotted #ccc', margin: '0 10px', position: 'relative', top: '-4px' }}></div>
+                                                <span style={{ fontWeight: '900', color: '#0a192f', fontSize: '0.95rem' }}>₹{item.price}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                {/* PAGE 2 */}
+                <div className="menu-card-design" style={{ 
+                    background: '#ffffff', 
+                    width: '100%',
+                    maxWidth: '1000px', 
+                    position: 'relative',
+                    padding: '8px', 
+                    border: '3px solid #0a192f', 
+                    boxShadow: '0 20px 50px rgba(0,0,0,0.15)',
+                    height: 'max-content'
+                }}>
+                    <div style={{
+                        border: '2px solid #d4af37', 
+                        padding: '30px',
+                        minHeight: '270mm'
+                    }}>
+                        
+                        {/* Header Row Page 2 */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '3px solid #0a192f', paddingBottom: '20px', marginBottom: '20px' }}>
+                            <div style={{ flex: 1 }}>
+                                <h1 style={{ fontFamily: 'Georgia, serif', color: '#0a192f', fontSize: '2.4rem', margin: '0', lineHeight: '1.1', fontWeight: '900', letterSpacing: '1px' }}>
+                                    HOTEL<br/>SKY 5
+                                </h1>
+                            </div>
+                            <div style={{ flex: 1, textAlign: 'center' }}>
+                                <h2 style={{ fontFamily: 'Georgia, serif', color: '#0a192f', margin: 0, fontSize: '2rem', letterSpacing: '4px' }}>MENU</h2>
+                                <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: '800', letterSpacing: '3px', color: '#333' }}>PAGE 2 OF 2 • EXQUISITE DINING</p>
+                            </div>
+                            <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', fontSize: '0.85rem', fontWeight: '800', color: '#0a192f' }}>
+                                DIAL 9 FOR ROOM SERVICE
+                            </div>
+                        </div>
+
+                        {/* Menu Columns Grid (Page 2) */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
+                            {/* Left Column */}
+                            <div>
+                                {/* Vegetarian Main Dishes */}
+                                <div style={{ marginBottom: '25px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderBottom: '2px solid #0a192f', paddingBottom: '4px', marginBottom: '15px' }}>
+                                        <h3 style={{ fontFamily: 'Georgia, serif', color: '#0a192f', fontSize: '1.3rem', margin: 0, fontWeight: '900' }}>VEGETARIAN MAIN DISHES</h3>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        {menuItems.filter(i => i.category === 'Main Course' && i.description.includes('🟢')).map(item => (
+                                            <div key={item.id} style={{ display: 'flex', alignItems: 'flex-end' }}>
+                                                <span style={{ color: '#24963f', fontSize: '0.8rem', marginRight: '5px' }}>🟢</span>
+                                                <span style={{ fontWeight: '800', color: '#0a192f', fontSize: '0.85rem', textTransform: 'uppercase' }}>{item.name}</span>
+                                                <div style={{ flex: 1, borderBottom: '2px dotted #ccc', margin: '0 10px', position: 'relative', top: '-4px' }}></div>
+                                                <span style={{ fontWeight: '900', color: '#0a192f', fontSize: '0.95rem' }}>₹{item.price}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Non-Vegetarian Main Dishes */}
+                                <div style={{ marginBottom: '25px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderBottom: '2px solid #0a192f', paddingBottom: '4px', marginBottom: '15px' }}>
+                                        <h3 style={{ fontFamily: 'Georgia, serif', color: '#0a192f', fontSize: '1.3rem', margin: 0, fontWeight: '900' }}>NON-VEGETARIAN MAIN DISHES</h3>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        {menuItems.filter(i => i.category === 'Main Course' && i.description.includes('🔴')).map(item => (
+                                            <div key={item.id} style={{ display: 'flex', alignItems: 'flex-end' }}>
+                                                <span style={{ color: '#d32f2f', fontSize: '0.8rem', marginRight: '5px' }}>🔴</span>
+                                                <span style={{ fontWeight: '800', color: '#0a192f', fontSize: '0.85rem', textTransform: 'uppercase' }}>{item.name}</span>
+                                                <div style={{ flex: 1, borderBottom: '2px dotted #ccc', margin: '0 10px', position: 'relative', top: '-4px' }}></div>
+                                                <span style={{ fontWeight: '900', color: '#0a192f', fontSize: '0.95rem' }}>₹{item.price}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Breads */}
+                                <div style={{ marginBottom: '25px' }}>
+                                    <div style={{ borderBottom: '2px solid #0a192f', paddingBottom: '4px', marginBottom: '15px' }}>
+                                        <h3 style={{ fontFamily: 'Georgia, serif', color: '#0a192f', fontSize: '1.3rem', margin: 0, fontWeight: '900' }}>BREADS</h3>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        {menuItems.filter(i => i.category === 'Breads').map(item => (
+                                            <div key={item.id} style={{ display: 'flex', alignItems: 'flex-end' }}>
+                                                <span style={{ fontWeight: '800', color: '#0a192f', fontSize: '0.85rem', textTransform: 'uppercase' }}>{item.name}</span>
+                                                <div style={{ flex: 1, borderBottom: '2px dotted #ccc', margin: '0 10px', position: 'relative', top: '-4px' }}></div>
+                                                <span style={{ fontWeight: '900', color: '#0a192f', fontSize: '0.95rem' }}>₹{item.price}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Right Column */}
+                            <div>
+                                {/* Thalis */}
+                                <div style={{ marginBottom: '25px' }}>
+                                    <div style={{ borderBottom: '2px solid #0a192f', paddingBottom: '4px', marginBottom: '15px' }}>
+                                        <h3 style={{ fontFamily: 'Georgia, serif', color: '#0a192f', fontSize: '1.3rem', margin: 0, fontWeight: '900' }}>THALIS</h3>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                        {menuItems.filter(i => i.category === 'Thalis').map(item => (
+                                            <div key={item.id} style={{ border: '1px solid #ccc', padding: '12px', borderRadius: '6px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '900', color: '#0a192f', fontSize: '1rem', textTransform: 'uppercase' }}>
+                                                    <span>{item.description.includes('🔴') ? <span style={{ color: '#d32f2f', marginRight: '5px' }}>🔴</span> : <span style={{ color: '#24963f', marginRight: '5px' }}>🟢</span>}{item.name}</span>
+                                                    <span>₹{item.price}</span>
+                                                </div>
+                                                <p style={{ margin: '5px 0 0 0', fontSize: '0.75rem', color: '#555', lineHeight: '1.4' }}>
+                                                    {item.description.replace('🟢 ', '').replace('🔴 ', '')}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Salad */}
+                                <div style={{ marginBottom: '25px' }}>
+                                    <div style={{ borderBottom: '2px solid #0a192f', paddingBottom: '4px', marginBottom: '15px' }}>
+                                        <h3 style={{ fontFamily: 'Georgia, serif', color: '#0a192f', fontSize: '1.3rem', margin: 0, fontWeight: '900' }}>SALAD</h3>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        {menuItems.filter(i => i.category === 'Salad').map(item => (
+                                            <div key={item.id} style={{ display: 'flex', alignItems: 'flex-end' }}>
+                                                <span style={{ fontWeight: '800', color: '#0a192f', fontSize: '0.85rem', textTransform: 'uppercase' }}>{item.name}</span>
+                                                <div style={{ flex: 1, borderBottom: '2px dotted #ccc', margin: '0 10px', position: 'relative', top: '-4px' }}></div>
+                                                <span style={{ fontWeight: '900', color: '#0a192f', fontSize: '0.95rem' }}>₹{item.price}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Amenities & QR Box */}
+                                <div style={{ border: '2px solid #0a192f', borderRadius: '8px', padding: '15px', marginTop: '20px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '0.8rem', fontWeight: '800', color: '#0a192f', marginBottom: '15px' }}>
                                         <div>🛎️ 24H FRONT DESK</div>
                                         <div>🛗 LIFT FACILITY</div>
                                         <div>🚗 FREE PARKING</div>
@@ -520,35 +543,21 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                                         <div>❄️ AC ROOMS</div>
                                         <div>⭐ LUXURY STAY</div>
                                     </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderTop: '1px solid #ccc', paddingTop: '15px' }}>
+                                        <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent('https://maps.app.goo.gl/vYD2Yq42HKpCsr2J9')}`} alt="QR" style={{ width: '50px', height: '50px' }} />
+                                        <div style={{ fontWeight: '900', fontSize: '0.75rem', color: '#0a192f', lineHeight: '1.2' }}>SCAN TO LEAVE A 5-STAR REVIEW ⭐⭐⭐⭐⭐</div>
+                                    </div>
                                 </div>
-
-                            </div>
-                        </div>
-
-                        {/* Terms and QR row */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', padding: '0 10px' }}>
-                            <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#555', lineHeight: '1.6' }}>
-                                • OUTSIDE FOOD IS NOT ALLOWED.<br/>
-                                • SMOKING IS NOT ALLOWED IN ROOMS.<br/>
-                                • MINIMUM SERVICE TIMING: 20-30 MINS.<br/>
-                                • ROOM SERVICE: 8:00 AM TO 10:30 PM.
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent('https://hotelsky5.com/review')}`} alt="QR" style={{ width: '60px', height: '60px' }} />
-                                <div style={{ fontWeight: '900', fontSize: '0.85rem', color: '#0a192f', lineHeight: '1.2' }}>SCAN TO<br/>LEAVE A<br/>REVIEW</div>
                             </div>
                         </div>
 
                         {/* Footer Bar */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '3px solid #0a192f', paddingTop: '15px', marginTop: '10px' }}>
-                            <div style={{ fontWeight: '900', color: '#0a192f', fontSize: '1rem', letterSpacing: '1px' }}>
-                                THANK YOU FOR CHOOSING HOTEL SKY 5
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '3px solid #0a192f', paddingTop: '15px', marginTop: '20px' }}>
+                            <div style={{ fontSize: '0.7rem', fontWeight: '700', color: '#555', lineHeight: '1.4' }}>
+                                • OUTSIDE FOOD NOT ALLOWED • ROOM SERVICE: 8:00 AM TO 10:30 PM
                             </div>
-                            <div style={{ background: '#c89d3a', color: '#fff', padding: '6px 15px', borderRadius: '5px', fontWeight: '900', fontSize: '0.9rem' }}>
-                                +5% GST APPLICABLE ON ALL ITEMS
-                            </div>
-                            <div style={{ background: '#0a192f', color: '#fff', padding: '8px 20px', borderRadius: '5px', fontWeight: '900', fontSize: '0.9rem', textAlign: 'center', lineHeight: '1.2' }}>
-                                RECEPTION<br/>DIAL NO. 9
+                            <div style={{ background: '#c89d3a', color: '#fff', padding: '4px 10px', borderRadius: '4px', fontWeight: '900', fontSize: '0.8rem' }}>
+                                +5% GST APPLICABLE
                             </div>
                         </div>
 
@@ -586,7 +595,7 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                         whiteSpace: 'nowrap'
                     }} onClick={() => {
                         window.print();
-                        const msg = encodeURIComponent("Check out the official Menu Card of Hotel Sky 5! (Generated PDF attached)");
+                        const msg = encodeURIComponent("Check out the official Menu Card of Hotel Sky 5!");
                         window.open(`https://wa.me/?text=${msg}`, '_blank');
                     }}>
                         <span>💬</span> SHARE ON WHATSAPP
@@ -821,8 +830,8 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                                                 cat === 'Non-Veg' ? '🍗' :
                                                     cat === 'Thalis' ? '🍱' :
                                                         cat === 'Breads' ? '🫓' :
-                                            cat === 'Beverages' ? '☕' : 
-                                            cat === 'Raita & Salad' ? '🥗' : '🍽️'}
+                                            cat === 'Salad' ? '🥗' : 
+                                            cat === 'Sweet Dish' ? '🍨' : '🍽️'}
                         </span>
                         <span className="filter-name">{cat}</span>
                     </div>
@@ -912,10 +921,16 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
 
                         <div className="item-content-modern">
                             <div className="item-title-modern">
-                                <span style={{ color: '#24963f', fontSize: '0.8rem', marginRight: '5px' }}>🟢</span>
+                                <span style={{ 
+                                    color: item.description.includes('🔴') ? '#d32f2f' : '#24963f', 
+                                    fontSize: '0.8rem', 
+                                    marginRight: '5px' 
+                                }}>
+                                    {item.description.includes('🔴') ? '🔴' : '🟢'}
+                                </span>
                                 {item.name}
                             </div>
-                            <div className="item-weight">{item.description.replace('🟢 ', '')}</div>
+                            <div className="item-weight">{item.description.replace('🟢 ', '').replace('🔴 ', '')}</div>
 
                             <div className="price-row-modern">
                                 <div className="item-price">₹{item.price}</div>
@@ -971,7 +986,7 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                 <div style={{ fontWeight: 'bold', color: '#0a192f', marginBottom: '10px', fontSize: '1rem' }}>Hotel Sky 5</div>
                 <p style={{ margin: '5px 0' }}>5th Floor, Disha Arcade Building, IT Park Rd, Mansa Devi Complex, Sector 4, Panchkula, Haryana 134114</p>
                 <p style={{ margin: '5px 0' }}>
-                    <a href="https://maps.app.goo.gl/2mFRxgAaLYTHS3vY7" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--sky-accent)', textDecoration: 'none' }}>
+                    <a href="https://maps.app.goo.gl/vYD2Yq42HKpCsr2J9" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--sky-accent)', textDecoration: 'none' }}>
                         📍 View on Google Maps
                     </a>
                 </p>

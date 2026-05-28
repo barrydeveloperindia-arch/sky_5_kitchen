@@ -33,14 +33,16 @@
             margin: 0;
             padding: 20px;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
         }
 
-        .menu-container {
+        .menu-page {
             width: 210mm;
             height: 297mm;
             background: linear-gradient(135deg, #01152a 0%, #011a36 50%, #010a17 100%);
-            padding: 8mm 12mm; /* Reduced vertical padding */
+            padding: 10mm 14mm;
             box-shadow: 0 0 40px rgba(0,0,0,0.5);
             position: relative;
             display: flex;
@@ -63,8 +65,9 @@
         }
 
         @media print {
-            body { padding: 0; margin: 0; background-color: white; }
-            .menu-container { box-shadow: none; border: none; width: 210mm; height: 296mm; page-break-after: avoid; page-break-before: avoid; }
+            body { padding: 0; margin: 0; background-color: white; gap: 0; }
+            .menu-page { box-shadow: none; border: none; width: 210mm; height: 297mm; page-break-after: always; page-break-before: avoid; }
+            .menu-page:last-child { page-break-after: avoid; }
         }
 
         /* Border Decoration */
@@ -96,42 +99,42 @@
             flex-direction: column;
             align-items: center;
             text-align: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
             border-bottom: 1px solid var(--border-color);
             position: relative;
             z-index: 5;
         }
 
         .logo-svg {
-            width: 70px;
-            height: 70px;
-            margin-bottom: 5px;
+            width: 55px;
+            height: 55px;
+            margin-bottom: 3px;
         }
 
         header h1 {
             font-family: 'Cinzel', serif;
-            font-size: 20px;
+            font-size: 16px;
             color: var(--gold);
             margin: 0;
-            letter-spacing: 6px;
+            letter-spacing: 5px;
             text-transform: uppercase;
         }
 
         header h2 {
             font-family: 'Cinzel', serif;
-            font-size: 42px;
+            font-size: 34px;
             color: var(--gold);
             margin: -5px 0 0 0;
-            letter-spacing: 4px;
+            letter-spacing: 3px;
         }
 
         header p {
-            font-size: 9px;
+            font-size: 8px;
             font-weight: 600;
             letter-spacing: 3px;
             color: var(--gold-light);
-            margin: 5px 0 10px 0;
+            margin: 3px 0 8px 0;
             text-transform: uppercase;
         }
 
@@ -139,14 +142,19 @@
             display: flex;
             justify-content: center;
             gap: 15px;
-            margin-top: 10px;
+            margin-top: 5px;
+        }
+
+        .service-icons {
+            display: flex;
+            gap: 15px;
         }
 
         .service-item {
             display: flex;
             flex-direction: column;
             align-items: center;
-            font-size: 7px;
+            font-size: 6.5px;
             font-weight: 600;
             color: var(--gold-light);
             text-transform: uppercase;
@@ -154,30 +162,31 @@
         }
 
         .service-item svg {
-            width: 16px;
-            height: 16px;
-            margin-bottom: 3px;
+            width: 14px;
+            height: 14px;
+            margin-bottom: 2px;
             color: var(--gold);
         }
 
         .order-badge {
             display: inline-block;
             border: 1px solid var(--gold);
-            padding: 5px 12px;
-            font-size: 11px;
+            padding: 3px 10px;
+            font-size: 9px;
             font-weight: 800;
             color: var(--gold);
             text-align: center;
             border-radius: 4px;
             background: rgba(212, 175, 55, 0.1);
             letter-spacing: 1px;
+            height: fit-content;
         }
 
         /* Menu Content */
         .menu-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            gap: 25px;
             flex: 1;
             padding: 0 5px;
             z-index: 5;
@@ -187,13 +196,13 @@
         .column {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 15px;
         }
 
         section {
             position: relative;
             background: rgba(255, 255, 255, 0.02);
-            padding: 8px 12px;
+            padding: 10px 14px;
             border-radius: 8px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             border: 1px solid rgba(212, 175, 55, 0.1);
@@ -203,25 +212,25 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 6px; /* Reduced from 12px */
+            margin-bottom: 8px;
             border-bottom: 1px solid rgba(212, 175, 55, 0.4);
             padding-bottom: 4px;
         }
 
         .section-title {
             font-family: 'Cinzel', serif;
-            font-size: 14px;
+            font-size: 13px;
             color: var(--gold);
             font-weight: 700;
-            letter-spacing: 1px;
+            letter-spacing: 1.5px;
         }
 
         .section-time {
-            font-size: 8px;
+            font-size: 7.5px;
             font-weight: 700;
             color: var(--navy);
             background: var(--gold);
-            padding: 2px 8px;
+            padding: 1px 6px;
             border-radius: 10px;
         }
 
@@ -229,7 +238,7 @@
         .item-list {
             display: flex;
             flex-direction: column;
-            gap: 2px; /* Reduced from 5px */
+            gap: 6px;
         }
 
         .menu-item {
@@ -242,15 +251,15 @@
         .item-details {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             flex: 1;
         }
 
         .item-details::after {
             content: '';
             flex: 1;
-            border-bottom: 1px dotted rgba(212, 175, 55, 0.4);
-            margin: 0 10px;
+            border-bottom: 1px dotted rgba(212, 175, 55, 0.3);
+            margin: 0 8px;
             height: 0.8em;
         }
 
@@ -263,15 +272,15 @@
         }
 
         .item-price {
-            font-size: 10.5px;
+            font-size: 10px;
             font-weight: 700;
             color: var(--gold);
         }
 
         .tag {
-            font-size: 7px;
+            font-size: 6.5px;
             font-weight: 800;
-            padding: 2px 5px;
+            padding: 1px 4px;
             border-radius: 3px;
             text-transform: uppercase;
             margin-left: 5px;
@@ -281,11 +290,11 @@
         .tag.best { background: rgba(76, 175, 80, 0.2); color: #81c784; border: 1px solid #4caf50; }
 
         .veg-icon, .nonveg-icon {
-            width: 8px;
-            height: 8px;
+            width: 7px;
+            height: 7px;
             display: inline-block;
             border-radius: 50%;
-            margin-right: 5px;
+            margin-right: 4px;
         }
         .veg-icon { background: #4caf50; outline: 1px solid #4caf50; outline-offset: 1px; }
         .nonveg-icon { background: #f44336; outline: 1px solid #f44336; outline-offset: 1px; }
@@ -308,9 +317,9 @@
             transform: translateX(-50%);
             background: var(--navy);
             color: var(--gold);
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 800;
-            padding: 2px 15px;
+            padding: 2px 12px;
             border: 1px solid var(--gold);
             border-radius: 10px;
             white-space: nowrap;
@@ -319,8 +328,8 @@
 
         .thali-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
+            grid-template-columns: 1fr;
+            gap: 10px;
             margin-top: 5px;
         }
 
@@ -338,71 +347,50 @@
         }
 
         .thali-desc {
-            font-size: 7px;
+            font-size: 7.5px;
             color: var(--text-muted);
-            margin-top: 2px;
-            line-height: 1.2;
+            margin-top: 3px;
+            line-height: 1.3;
         }
 
-        /* Illustration area */
-        .illustration-box {
-            display: flex;
-            justify-content: center;
-            margin: 5px 0;
-        }
-
-        .food-photo {
-            width: 100%;
-            height: 70px;
-            object-fit: cover;
+        /* Amenities and QR Section */
+        .amenities-box {
+            border: 1px solid rgba(212, 175, 55, 0.2);
             border-radius: 8px;
-            border: 1px solid var(--gold);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
-
-        /* Footer */
-        footer {
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.01);
             margin-top: auto;
-            border-top: 1px solid rgba(212, 175, 55, 0.4);
-            padding-top: 10px;
-            z-index: 5;
-            position: relative;
         }
 
-        .footer-main {
+        .amenities-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .amenity {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            font-size: 10px;
+            gap: 6px;
+            font-size: 8px;
             font-weight: 700;
-            color: var(--gold);
-            letter-spacing: 1px;
+            color: var(--gold-light);
+            text-transform: uppercase;
         }
 
-        .gst-note {
+        .amenity svg {
+            width: 12px;
+            height: 12px;
             color: var(--gold);
-            font-size: 9px;
-            font-weight: 800;
         }
 
-        .reception-box {
-            border: 1px solid var(--gold);
-            background: rgba(212, 175, 55, 0.1);
-            color: var(--gold);
-            padding: 4px 12px;
-            text-align: center;
-            border-radius: 4px;
-        }
-
-        .reception-box div { font-size: 8px; opacity: 0.8; }
-        .reception-box strong { font-size: 11px; }
-
-        /* Notes & QR */
         .notes-qr {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 8px;
+            margin-top: 15px;
+            border-top: 1px solid rgba(212, 175, 55, 0.2);
+            padding-top: 12px;
         }
 
         .notes-list {
@@ -428,16 +416,16 @@
         }
 
         .qr-placeholder {
-            width: 60px;
-            height: 60px;
+            width: 50px;
+            height: 50px;
             border: 1px solid var(--gold);
-            padding: 3px;
+            padding: 2px;
             background: #fff;
             border-radius: 4px;
         }
 
         .qr-text {
-            font-size: 9px;
+            font-size: 8.5px;
             font-weight: 800;
             color: var(--gold);
             text-transform: uppercase;
@@ -446,29 +434,29 @@
             letter-spacing: 1px;
         }
 
-        .treebo-box {
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            background: rgba(255, 255, 255, 0.03);
-            padding: 10px;
-            border-radius: 6px;
-            margin-bottom: 5px;
+        /* Footer */
+        footer {
+            margin-top: 15px;
+            border-top: 1px solid rgba(212, 175, 55, 0.4);
+            padding-top: 10px;
+            z-index: 5;
+            position: relative;
         }
 
-        .treebo-header {
-            color: var(--gold-light);
-            font-size: 10px;
-            font-weight: 800;
-            text-align: center;
+        .footer-main {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 9px;
+            font-weight: 700;
+            color: var(--gold);
             letter-spacing: 1px;
-            margin-bottom: 2px;
         }
 
-        .treebo-time {
-            font-size: 8px;
-            font-weight: 600;
-            color: var(--text-muted);
-            text-align: center;
-            margin-bottom: 6px;
+        .gst-note {
+            color: var(--gold);
+            font-size: 8.5px;
+            font-weight: 800;
         }
 
         /* SVG Colors */
@@ -481,7 +469,9 @@
     </style>
 </head>
 <body>
-    <div class="menu-container">
+
+    <!-- PAGE 1 -->
+    <div class="menu-page">
         <!-- Watermark -->
         <svg class="watermark" viewBox="0 0 100 100">
             <path d="M 25 85 L 25 45 A 25 25 0 0 1 75 45 L 75 85" stroke-linecap="round" stroke-width="2.5"/>
@@ -521,26 +511,6 @@
 
         <div class="menu-grid">
             <div class="column">
-                <section class="treebo-box">
-                    <div class="treebo-header">TREEBO COMPLEMENTARY BREAKFAST</div>
-                    <div class="treebo-time">8 AM - 10 AM (FOR TREEBO GUESTS ONLY)</div>
-                    <div class="item-list">
-                        <div class="menu-item"><div class="item-details"><span class="item-name">Aloo Paratha (1 Pc)</span></div><span class="item-price">₹70</span></div>
-                        <div class="menu-item"><div class="item-details"><span class="item-name">Gobhi Paratha (1 Pc)</span></div><span class="item-price">₹70</span></div>
-                        <div class="menu-item"><div class="item-details"><span class="item-name">Mix Paratha (1 Pc)</span></div><span class="item-price">₹80</span></div>
-                        <div class="menu-item"><div class="item-details"><span class="item-name">Onion Paratha (1 Pc)</span></div><span class="item-price">₹70</span></div>
-                        <div class="menu-item"><div class="item-details"><span class="item-name">Bread Toast (4 Pcs)</span></div><span class="item-price">₹60</span></div>
-                        <div class="menu-item"><div class="item-details"><span class="item-name">Veg Sandwich (4 Pcs)</span></div><span class="item-price">₹100</span></div>
-                        <div class="menu-item"><div class="item-details"><span class="item-name">Boiled Egg (2 Pcs)</span></div><span class="item-price">₹60</span></div>
-                        <div class="menu-item"><div class="item-details"><span class="item-name">Bread Omelette (2 Pcs)</span></div><span class="item-price">₹80</span></div>
-                        <div class="menu-item"><div class="item-details"><span class="item-name">Plain Omelette</span></div><span class="item-price">₹70</span></div>
-                        <div class="menu-item"><div class="item-details"><span class="item-name">Masala Omelette</span></div><span class="item-price">₹90</span></div>
-                        <div class="menu-item"><div class="item-details"><span class="item-name">Poha (1 Small Bowl)</span></div><span class="item-price">₹60</span></div>
-                        <div class="menu-item"><div class="item-details"><span class="item-name">Tea (1 Cup)</span></div><span class="item-price">₹50</span></div>
-                        <div class="menu-item"><div class="item-details"><span class="item-name">Milk (1 Glass)</span></div><span class="item-price">₹60</span></div>
-                    </div>
-                </section>
-
                 <section>
                     <div class="section-header">
                         <span class="section-title">BREAKFAST</span>
@@ -548,164 +518,20 @@
                     </div>
                     <div class="item-list">
                         <div class="menu-item">
-                            <div class="item-details"><span class="item-name">Aloo Paratha</span></div>
-                            <span class="item-price">₹70</span>
-                        </div>
-                        <div class="menu-item">
-                            <div class="item-details"><span class="item-name">Paneer Paratha</span><span class="tag chef">CHEF'S PICK</span></div>
-                            <span class="item-price">₹90</span>
-                        </div>
-                        <div class="menu-item">
-                            <div class="item-details"><span class="item-name">Plain Omelette</span></div>
-                            <span class="item-price">₹70</span>
-                        </div>
-                        <div class="menu-item">
-                            <div class="item-details"><span class="item-name">Bread Omelette</span></div>
-                            <span class="item-price">₹80</span>
-                        </div>
-                        <div class="menu-item">
-                            <div class="item-details"><span class="item-name">Poha</span></div>
-                            <span class="item-price">₹60</span>
-                        </div>
-                        <div class="menu-item">
-                            <div class="item-details"><span class="item-name">Curd / Bowl</span></div>
-                            <span class="item-price">₹50</span>
-                        </div>
-                        <div class="menu-item">
-                            <div class="item-details"><span class="item-name">Butter 10gm</span></div>
-                            <span class="item-price">₹20</span>
-                        </div>
-                        <div class="menu-item">
-                            <div class="item-details"><span class="item-name">Tea / Coffee</span></div>
-                            <span class="item-price">₹50 / ₹60</span>
-                        </div>
-                    </div>
-                </section>
-
-
-                <section>
-                    <div class="section-header">
-                        <span class="section-title">MAIN COURSE</span>
-                        <span class="section-time">12 PM - 10 PM</span>
-                    </div>
-                    <div style="font-size: 9px; font-weight: 800; color: var(--navy); margin-bottom: 8px; border-left: 3px solid var(--navy); padding-left: 5px;">VEG SPECIALS</div>
-                    <div class="item-list">
-                        <div class="menu-item">
-                            <div class="item-details"><span class="veg-icon"></span><span class="item-name">Dal Makhani</span><span class="tag chef">CHEF'S PICK</span></div>
-                            <span class="item-price">₹220</span>
-                        </div>
-                        <div class="menu-item">
-                            <div class="item-details"><span class="veg-icon"></span><span class="item-name">Kadhai Paneer</span><span class="tag best">BEST SELLER</span></div>
-                            <span class="item-price">₹280</span>
-                        </div>
-                        <div class="menu-item">
-                            <div class="item-details"><span class="veg-icon"></span><span class="item-name">Paneer Butter Masala</span></div>
-                            <span class="item-price">₹300</span>
-                        </div>
-                        <div class="menu-item">
-                            <div class="item-details"><span class="veg-icon"></span><span class="item-name">Mix Vegetable / Chana Masala</span></div>
-                            <span class="item-price">₹200</span>
-                        </div>
-                    </div>
-
-                    <div style="font-size: 9px; font-weight: 800; color: #f44336; margin: 12px 0 8px 0; border-left: 3px solid #f44336; padding-left: 5px;">NON-VEG SPECIALS</div>
-                    <div class="item-list">
-                        <div class="menu-item">
-                            <div class="item-details"><span class="nonveg-icon"></span><span class="item-name">Butter Chicken</span><span class="tag chef">CHEF'S PICK</span></div>
-                            <span class="item-price">₹400</span>
-                        </div>
-                        <div class="menu-item">
-                            <div class="item-details"><span class="nonveg-icon"></span><span class="item-name">Chicken Curry</span></div>
-                            <span class="item-price">₹400</span>
-                        </div>
-                        <div class="menu-item">
-                            <div class="item-details"><span class="nonveg-icon"></span><span class="item-name">Chilly Chicken</span></div>
-                            <span class="item-price">₹400</span>
-                        </div>
-                    </div>
-                </section>
-
-                <div class="illustration-box">
-                    <img src="../04_Digital_Assets/hotel_sky5_thali.png" class="food-photo" alt="Thali Special">
-                </div>
-
-                <div class="thali-container">
-                    <div class="thali-header">THALI - OUR BEST VALUE</div>
-                    <div class="thali-grid">
-                        <div class="thali-item">
-                            <div class="thali-item-title"><span>VEG THALI</span><span>₹210</span></div>
-                            <p class="thali-desc">4 Roti, Rice, Dal, Mix Veg, Raita, Salad, Achar</p>
-                        </div>
-                        <div class="thali-item">
-                            <div class="thali-item-title"><span>NON-VEG THALI</span><span>₹350</span></div>
-                            <p class="thali-desc">4 Roti, Rice, Chicken Curry, Raita, Salad, Achar</p>
-                        </div>
-                        <div class="thali-item">
-                            <div class="thali-item-title"><span>DELUX THALI (VEG)</span><span>₹250</span></div>
-                            <p class="thali-desc">4 Roti, Rice, Dal Makhani, Sahi Paneer, Raita, Salad, Achar</p>
-                        </div>
-                        <div class="thali-item">
-                            <div class="thali-item-title"><span>SPECIAL NV THALI</span><span>₹400</span></div>
-                            <p class="thali-desc">4 Roti, Rice, Butter Chicken, Raita, Salad, Achar</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="column">
-
-                <section>
-                    <div class="section-header">
-                        <span class="section-title">RICE & BASMATI</span>
-                    </div>
-                    <div class="item-list">
-                        <div class="menu-item">
-                            <div class="item-details"><span class="item-name">Plain Rice / Jeera Rice</span></div>
+                            <div class="item-details"><span class="item-name">Aloo Puri</span><span class="tag chef">CHEF'S PICK</span></div>
                             <span class="item-price">₹120</span>
                         </div>
                         <div class="menu-item">
-                            <div class="item-details"><span class="item-name">Veg Biryani</span><span class="tag best">BEST SELLER</span></div>
-                            <span class="item-price">₹220</span>
+                            <div class="item-details"><span class="item-name">Paranthas (Aloo, Paneer, Gobhi, Mix)</span></div>
+                            <span class="item-price">₹90</span>
                         </div>
                         <div class="menu-item">
-                            <div class="item-details"><span class="item-name">Peas Pulao / Fried Rice</span></div>
-                            <span class="item-price">₹180 / ₹150</span>
-                        </div>
-                    </div>
-                </section>
-
-                <section>
-                    <div class="section-header">
-                        <span class="section-title">FRESH SALADS</span>
-                    </div>
-                    <div class="item-list">
-                        <div class="menu-item">
-                            <div class="item-details"><span class="item-name">Russian Salad</span></div>
-                            <span class="item-price">₹150</span>
+                            <div class="item-details"><span class="item-name">Vegetarian sandwich (cold)</span></div>
+                            <span class="item-price">₹100</span>
                         </div>
                         <div class="menu-item">
-                            <div class="item-details"><span class="item-name">Kachumber / Green Salad</span></div>
-                            <span class="item-price">₹90 / ₹70</span>
-                        </div>
-                    </div>
-                </section>
-
-                <section>
-                    <div class="section-header">
-                        <span class="section-title">INDIAN BREADS</span>
-                    </div>
-                    <div class="item-list">
-                        <div class="menu-item">
-                            <div class="item-details"><span class="item-name">Tawa Roti</span></div>
-                            <span class="item-price">₹25</span>
-                        </div>
-                        <div class="menu-item">
-                            <div class="item-details"><span class="item-name">Butter Roti</span></div>
-                            <span class="item-price">₹30</span>
-                        </div>
-                        <div class="menu-item">
-                            <div class="item-details"><span class="item-name">Tawa Paratha</span></div>
-                            <span class="item-price">₹40</span>
+                            <div class="item-details"><span class="item-name">Egg (scrambled eggs, Bhurji, omelete, masala omelete)</span></div>
+                            <span class="item-price">₹80</span>
                         </div>
                     </div>
                 </section>
@@ -716,87 +542,218 @@
                         <span class="section-time">ALL DAY</span>
                     </div>
                     <div class="item-list">
-                        <div class="menu-item"><div class="item-details"><span class="item-name">Mix Pakora (12 Pcs)</span><span class="tag best">BEST SELLER</span></div><span class="item-price">₹150</span></div>
-                        <div class="menu-item"><div class="item-details"><span class="item-name">Paneer Pakora (8 Pcs)</span></div><span class="item-price">₹150</span></div>
-                        <div class="menu-item"><div class="item-details"><span class="item-name">French Fries</span></div><span class="item-price">₹120</span></div>
-                        <div class="menu-item"><div class="item-details"><span class="item-name">Masala / Roast Papad</span></div><span class="item-price">₹80</span></div>
-                        <div class="menu-item"><div class="item-details"><span class="item-name">Veg Sandwich / Toast / Grilled</span></div><span class="item-price">₹100</span></div>
-                        <div class="menu-item"><div class="item-details"><span class="item-name">Veg Maggi / Cheese Maggi</span></div><span class="item-price">₹80</span></div>
-                        <div class="menu-item"><div class="item-details"><span class="item-name">Cheese Chilli (Dry)</span></div><span class="item-price">₹200</span></div>
-                        <div class="menu-item"><div class="item-details"><span class="item-name">Peanut Masala</span></div><span class="item-price">₹120</span></div>
+                        <div class="menu-item"><div class="item-details"><span class="veg-icon"></span><span class="item-name">Mix Pakora</span><span class="tag best">BEST SELLER</span></div><span class="item-price">₹150</span></div>
+                        <div class="menu-item"><div class="item-details"><span class="veg-icon"></span><span class="item-name">French Fries</span></div><span class="item-price">₹120</span></div>
+                        <div class="menu-item"><div class="item-details"><span class="veg-icon"></span><span class="item-name">Peanut Masala</span></div><span class="item-price">₹120</span></div>
+                        <div class="menu-item"><div class="item-details"><span class="veg-icon"></span><span class="item-name">Honey Chilli Potato</span></div><span class="item-price">₹150</span></div>
+                        <div class="menu-item"><div class="item-details"><span class="veg-icon"></span><span class="item-name">Dry Machurian</span></div><span class="item-price">₹160</span></div>
+                        <div class="menu-item"><div class="item-details"><span class="veg-icon"></span><span class="item-name">Papad (Plain and Masala)</span></div><span class="item-price">₹80</span></div>
+                        <div class="menu-item"><div class="item-details"><span class="nonveg-icon"></span><span class="item-name">Chicken Pakora</span></div><span class="item-price">₹200</span></div>
+                        <div class="menu-item"><div class="item-details"><span class="nonveg-icon"></span><span class="item-name">Chicken Tikka</span><span class="tag chef">CHEF'S PICK</span></div><span class="item-price">₹280</span></div>
+                        <div class="menu-item"><div class="item-details"><span class="nonveg-icon"></span><span class="item-name">Fried chicken</span></div><span class="item-price">₹240</span></div>
                     </div>
                 </section>
+            </div>
 
+            <div class="column">
                 <section>
                     <div class="section-header">
-                        <span class="section-title">CHINESE</span>
+                        <span class="section-title">CHINESE ITEMS</span>
                         <span class="section-time">12 PM - 10 PM</span>
                     </div>
                     <div class="item-list">
                         <div class="menu-item">
-                            <div class="item-details"><span class="item-name">Veg Fried Rice</span></div>
+                            <div class="item-details"><span class="item-name">Veg. Hakka Noodles</span></div>
                             <span class="item-price">₹150</span>
                         </div>
                         <div class="menu-item">
-                            <div class="item-details"><span class="item-name">Veg Hakka Noodles</span></div>
-                            <span class="item-price">₹150</span>
-                        </div>
-                        <div class="menu-item">
-                            <div class="item-details"><span class="item-name">Chilly Potato / Paneer</span></div>
-                            <span class="item-price">₹150 / ₹200</span>
+                            <div class="item-details"><span class="item-name">Veg. Manchurian Gravy</span></div>
+                            <span class="item-price">₹160</span>
                         </div>
                     </div>
                 </section>
 
                 <section>
                     <div class="section-header">
-                        <span class="section-title">BEVERAGES & SHAKES</span>
+                        <span class="section-title">RICE ITEMS</span>
                     </div>
                     <div class="item-list">
                         <div class="menu-item">
-                            <div class="item-details"><span class="item-name">Tea / Coffee</span></div>
-                            <span class="item-price">₹50 / ₹60</span>
+                            <div class="item-details"><span class="item-name">Jeera Rice</span></div>
+                            <span class="item-price">₹120</span>
                         </div>
                         <div class="menu-item">
-                            <div class="item-details"><span class="item-name">Sweet Lassi (Steel Glass)</span></div>
-                            <span class="item-price">₹100</span>
+                            <div class="item-details"><span class="item-name">Vegetarian Bryani</span><span class="tag best">BEST SELLER</span></div>
+                            <span class="item-price">₹220</span>
                         </div>
                         <div class="menu-item">
-                            <div class="item-details"><span class="item-name">Fresh Lime Soda / Water / Ice Cubes</span></div>
-                            <span class="item-price">₹100 / ₹60 / ₹20</span>
+                            <div class="item-details"><span class="item-name">Vegetarian fried rice</span></div>
+                            <span class="item-price">₹150</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <div class="section-header">
+                        <span class="section-title">SWEET DISH</span>
+                    </div>
+                    <div class="item-list">
+                        <div class="menu-item">
+                            <div class="item-details"><span class="item-name">Ice cream cups</span></div>
+                            <span class="item-price">₹80</span>
                         </div>
                         <div class="menu-item">
-                            <div class="item-details"><span class="item-name">Cold Drink (500 ml) / Soda (200 ml)</span></div>
-                            <span class="item-price">₹60 / ₹30</span>
+                            <div class="item-details"><span class="item-name">Kulfi</span></div>
+                            <span class="item-price">₹80</span>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <footer>
+            <div class="footer-main">
+                <span>THANK YOU FOR CHOOSING HOTEL SKY-5 • PAGE 1 OF 2</span>
+                <div class="gst-note">+5% GST APPLICABLE</div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- PAGE 2 -->
+    <div class="menu-page">
+        <!-- Watermark -->
+        <svg class="watermark" viewBox="0 0 100 100">
+            <path d="M 25 85 L 25 45 A 25 25 0 0 1 75 45 L 75 85" stroke-linecap="round" stroke-width="2.5"/>
+            <path class="solid" d="M 50 45 C 30 30, 25 20, 20 20 C 35 25, 42 35, 45 42 Q 55 35 60 40 Q 55 45 50 48 Q 45 48 30 35 Q 40 45 45 50"/>
+            <path class="solid" d="M 55 40 Q 60 35 65 30 Q 62 40 55 45"/>
+            <path d="M 45 55 Q 55 60 65 85 M 45 55 Q 45 70 45 85 M 45 55 Q 35 65 30 85" stroke-width="2"/>
+        </svg>
+
+        <div class="outer-border"></div>
+        <div class="inner-border"></div>
+
+        <header>
+            <svg class="logo-svg" viewBox="0 0 100 100">
+                <path d="M 25 85 L 25 45 A 25 25 0 0 1 75 45 L 75 85" stroke-linecap="round" stroke-width="2.5"/>
+                <path class="solid" d="M 50 45 C 30 30, 25 20, 20 20 C 35 25, 42 35, 45 42 Q 55 35 60 40 Q 55 45 50 48 Q 45 48 30 35 Q 40 45 45 50"/>
+                <path class="solid" d="M 55 40 Q 60 35 65 30 Q 62 40 55 45"/>
+                <path d="M 45 55 Q 55 60 65 85 M 45 55 Q 45 70 45 85 M 45 55 Q 35 65 30 85" stroke-width="2"/>
+            </svg>
+            <h1>HOTEL</h1>
+            <h2>SKY-5</h2>
+            <p>RESTAURANT & LOUNGE</p>
+        </header>
+
+        <div class="menu-grid">
+            <div class="column">
+                <section>
+                    <div class="section-header">
+                        <span class="section-title">VEGETARIAN MAIN DISHES</span>
+                        <span class="section-time">12 PM - 10 PM</span>
+                    </div>
+                    <div class="item-list">
+                        <div class="menu-item">
+                            <div class="item-details"><span class="veg-icon"></span><span class="item-name">Dal Makhani</span><span class="tag chef">CHEF'S PICK</span></div>
+                            <span class="item-price">₹220</span>
                         </div>
                         <div class="menu-item">
-                            <div class="item-details"><span class="item-name">Amul / Coke (250 ml)</span></div>
-                            <span class="item-price">₹30</span>
+                            <div class="item-details"><span class="veg-icon"></span><span class="item-name">Yellow Dal Tadka</span></div>
+                            <span class="item-price">₹180</span>
                         </div>
                         <div class="menu-item">
-                            <div class="item-details"><span class="item-name">Mineral Water (1 Ltr)</span></div>
+                            <div class="item-details"><span class="veg-icon"></span><span class="item-name">Karahi Paneer</span><span class="tag best">BEST SELLER</span></div>
+                            <span class="item-price">₹280</span>
+                        </div>
+                        <div class="menu-item">
+                            <div class="item-details"><span class="veg-icon"></span><span class="item-name">Paneer Makhani</span></div>
+                            <span class="item-price">₹300</span>
+                        </div>
+                        <div class="menu-item">
+                            <div class="item-details"><span class="veg-icon"></span><span class="item-name">Chana Masala</span></div>
+                            <span class="item-price">₹200</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <div class="section-header">
+                        <span class="section-title">NON-VEGETARIAN MAIN DISHES</span>
+                        <span class="section-time">12 PM - 10 PM</span>
+                    </div>
+                    <div class="item-list">
+                        <div class="menu-item">
+                            <div class="item-details"><span class="nonveg-icon"></span><span class="item-name">Butter Chicken / Karahi Chicken</span><span class="tag chef">CHEF'S PICK</span></div>
+                            <span class="item-price">₹400</span>
+                        </div>
+                        <div class="menu-item">
+                            <div class="item-details"><span class="nonveg-icon"></span><span class="item-name">Chicken Bryani</span></div>
+                            <span class="item-price">₹350</span>
+                        </div>
+                        <div class="menu-item">
+                            <div class="item-details"><span class="nonveg-icon"></span><span class="item-name">Egg curry</span></div>
+                            <span class="item-price">₹240</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <div class="section-header">
+                        <span class="section-title">BREADS</span>
+                    </div>
+                    <div class="item-list">
+                        <div class="menu-item">
+                            <div class="item-details"><span class="item-name">Roti</span></div>
+                            <span class="item-price">₹20</span>
+                        </div>
+                        <div class="menu-item">
+                            <div class="item-details"><span class="item-name">Malabor Parantha</span></div>
                             <span class="item-price">₹50</span>
                         </div>
                     </div>
                 </section>
+            </div>
 
-
-
-                <section>
-                    <div class="section-header">
-                        <span class="section-title">AMENITIES & SERVICES</span>
-                    </div>
-                    <div class="amenities-box">
-                        <div class="amenities-grid">
-                            <div class="amenity"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12,2a5,5 0 0,0 -5,5v3h10v-3a5,5 0 0,0 -5,-5m10,12v1h-20v-1c0,-2.5 1.5,-4.66 4,-5.5V10h12v-1.5c2.5,0.84 4,3 4,5.5M12,17h-1v-2h2v2h-1z"/></svg>24H FRONT DESK</div>
-                            <div class="amenity"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7,2H17A2,2 0 0,1 19,4V20A2,2 0 0,1 17,22H7A2,2 0 0,1 5,20V4A2,2 0 0,1 7,2M7,4V6H10V8H7V10H10V12H7V14H10V16H7V18H10V20H17V4H7Z"/></svg>LIFT FACILITY</div>
-                            <div class="amenity"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.92,6.01C18.72,5.42 18.16,5 17.5,5H6.5C5.84,5 5.28,5.42 5.08,6.01L3,12V20A1,1 0 0,0 4,21H5A1,1 0 0,0 6,20V18H18V20A1,1 0 0,0 19,21H20A1,1 0 0,0 21,20V12L18.92,6.01M6.5,7H17.5L18.5,10H5.5L6.5,7M5,16A1,1 0 1,1 6,15A1,1 0 0,1 5,16M19,16A1,1 0 1,1 20,15A1,1 0 0,1 19,16Z"/></svg>FREE PARKING</div>
-                            <div class="amenity"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7,14V4L2,14H7M22,14L17,4V14H22M12,2L2,22H22L12,2M12,6.12L18.66,19.5H5.34L12,6.12Z"/></svg>ROOFTOP GARDEN</div>
-                            <div class="amenity"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21,16.5C21,16.88 20.79,17.21 20.47,17.38L12.57,21.82C12.41,21.94 12.21,22 12,22C11.79,22 11.59,21.94 11.43,21.82L3.53,17.38C3.21,17.21 3,16.88 3,16.5V7.5C3,7.12 3.21,6.79 3.53,6.62L11.43,2.18C11.59,2.06 11.79,2 12,2C12.21,2 12.41,2.06 12.57,2.18L20.47,6.62C20.79,6.79 21,7.12 21,7.5V16.5Z"/></svg>AC ROOMS</div>
-                            <div class="amenity"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12,15.39L8.24,17.66L9.23,13.38L5.91,10.5L10.29,10.13L12,6.09L13.71,10.13L18.09,10.5L14.77,13.38L15.76,17.66L12,15.39Z"/></svg>LUXURY STAY</div>
+            <div class="column">
+                <section class="thali-container">
+                    <div class="thali-header">THALIS - OUR BEST VALUE</div>
+                    <div class="thali-grid">
+                        <div class="thali-item">
+                            <div class="thali-item-title"><span><span class="veg-icon"></span>Veg. Delux</span><span>₹250</span></div>
+                            <p class="thali-desc">4 Roti, Rice, Dal Makhani, Paneer Makhani, Raita, Salad, Achar</p>
+                        </div>
+                        <div class="thali-item">
+                            <div class="thali-item-title"><span><span class="nonveg-icon"></span>Non veg Butter Chicken</span><span>₹400</span></div>
+                            <p class="thali-desc">4 Roti, Rice, Butter Chicken gravy, Raita, Salad, Achar</p>
                         </div>
                     </div>
                 </section>
+
+                <section>
+                    <div class="section-header">
+                        <span class="section-title">SALAD</span>
+                    </div>
+                    <div class="item-list">
+                        <div class="menu-item">
+                            <div class="item-details"><span class="item-name">tomato, onion and cucumber</span></div>
+                            <span class="item-price">₹80</span>
+                        </div>
+                        <div class="menu-item">
+                            <div class="item-details"><span class="item-name">Chickpeas salad</span></div>
+                            <span class="item-price">₹100</span>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="amenities-box">
+                    <div class="amenities-grid">
+                        <div class="amenity"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12,2a5,5 0 0,0 -5,5v3h10v-3a5,5 0 0,0 -5,-5m10,12v1h-20v-1c0,-2.5 1.5,-4.66 4,-5.5V10h12v-1.5c2.5,0.84 4,3 4,5.5M12,17h-1v-2h2v2h-1z"/></svg>24H FRONT DESK</div>
+                        <div class="amenity"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7,2H17A2,2 0 0,1 19,4V20A2,2 0 0,1 17,22H7A2,2 0 0,1 5,20V4A2,2 0 0,1 7,2M7,4V6H10V8H7V10H10V12H7V14H10V16H7V18H10V20H17V4H7Z"/></svg>LIFT FACILITY</div>
+                        <div class="amenity"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.92,6.01C18.72,5.42 18.16,5 17.5,5H6.5C5.84,5 5.28,5.42 5.08,6.01L3,12V20A1,1 0 0,0 4,21H5A1,1 0 0,0 6,20V18H18V20A1,1 0 0,0 19,21H20A1,1 0 0,0 21,20V12L18.92,6.01M6.5,7H17.5L18.5,10H5.5L6.5,7M5,16A1,1 0 1,1 6,15A1,1 0 0,1 5,16M19,16A1,1 0 1,1 20,15A1,1 0 0,1 19,16Z"/></svg>FREE PARKING</div>
+                        <div class="amenity"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7,14V4L2,14H7M22,14L17,4V14H22M12,2L2,22H22L12,2M12,6.12L18.66,19.5H5.34L12,6.12Z"/></svg>ROOFTOP GARDEN</div>
+                        <div class="amenity"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21,16.5C21,16.88 20.79,17.21 20.47,17.38L12.57,21.82C12.41,21.94 12.21,22 12,22C11.79,22 11.59,21.94 11.43,21.82L3.53,17.38C3.21,17.21 3,16.88 3,16.5V7.5C3,7.12 3.21,6.79 3.53,6.62L11.43,2.18C11.59,2.06 11.79,2 12,2C12.21,2 12.41,2.06 12.57,2.18L20.47,6.62C20.79,6.79 21,7.12 21,7.5V16.5Z"/></svg>AC ROOMS</div>
+                        <div class="amenity"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12,15.39L8.24,17.66L9.23,13.38L5.91,10.5L10.29,10.13L12,6.09L13.71,10.13L18.09,10.5L14.77,13.38L15.76,17.66L12,15.39Z"/></svg>LUXURY STAY</div>
+                    </div>
+                </div>
 
                 <div class="notes-qr">
                     <ul class="notes-list">
@@ -806,12 +763,10 @@
                         <li>ROOM SERVICE: 8:00 AM TO 10:30 PM.</li>
                     </ul>
                     <div class="qr-section">
-                        <a href="http://localhost:5174/" target="_blank" style="text-decoration: none;">
-                            <div class="qr-placeholder" style="display: flex; align-items: center; justify-content: center; padding: 2px;">
-                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=http://localhost:5174/&color=002147" alt="Digital Menu QR Code" style="width: 100%; height: 100%;">
-                            </div>
-                        </a>
-                        <span class="qr-text">SCAN TO<br>LEAVE A<br>REVIEW</span>
+                        <div class="qr-placeholder" style="display: flex; align-items: center; justify-content: center; padding: 2px;">
+                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://maps.app.goo.gl/vYD2Yq42HKpCsr2J9&color=01152a" alt="Digital Menu QR Code" style="width: 100%; height: 100%;">
+                        </div>
+                        <span class="qr-text">SCAN TO LEAVE A<br>5-STAR REVIEW<br>⭐⭐⭐⭐⭐</span>
                     </div>
                 </div>
             </div>
@@ -819,8 +774,7 @@
 
         <footer>
             <div class="footer-main">
-                <span>THANK YOU FOR CHOOSING HOTEL SKY-5</span>
-                <div class="gst-note">+5% GST APPLICABLE ON ALL ITEMS</div>
+                <span>THANK YOU FOR CHOOSING HOTEL SKY-5 • PAGE 2 OF 2</span>
                 <div class="reception-box">
                     <div>RECEPTION</div>
                     <strong>DIAL NO. 9</strong>
@@ -828,5 +782,6 @@
             </div>
         </footer>
     </div>
+
 </body>
 </html>

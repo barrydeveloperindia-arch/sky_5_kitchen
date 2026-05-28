@@ -46,8 +46,19 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
     const [staffForm, setStaffForm] = useState({ name: '', role: '', shift: '', phone: '', duties: '' });
 
     const cleaningChecklist = [
-        'A/C REMOTE', 'TV REMOTE', 'REMOTE CELL', 'BED SHEET', 'TOWEL', 
-        'CHARGER', 'SLIPPER', 'BUCKET', 'TEA GLASS', 'TOILET'
+        'A/c Remote + Cell',
+        'Set-up Box Remote + Cell',
+        'Cup/Glass',
+        'Towel',
+        'Bed Sheet',
+        'Bucket / Mug / Stool',
+        'Turn on TV/AC Prop. Working / Not',
+        'TV Remote + Cell',
+        'Slippers',
+        'Tea/Coffee/milk/Sugar/Green Tea',
+        'Hand Towel',
+        'Pillow - 2',
+        'Toilet (Soap, Handwash, Shower gel)'
     ];
 
     const [cleaningLogs, setCleaningLogs] = useState([
@@ -55,6 +66,40 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
         { id: 102, roomNumber: 9, roomType: 'Deluxe Room', staffName: 'Bhawna', inTime: '06-May, 09:45 AM', outTime: '06-May, 10:30 AM', missingItems: 'None', remarks: 'Room perfectly ready.' },
     ]);
     const [cleaningForm, setCleaningForm] = useState({ roomNumber: '', staffName: '', inTime: '', outTime: '', missingItems: 'None', remarks: '' });
+
+    // Laundry Service State
+    const laundryItems = [
+        'Double Bed Sheet',
+        'Quilt Cover',
+        'Towel',
+        'Hand Towel',
+        'Pillow Cover',
+        'Cushion Cover',
+        'Runner'
+    ];
+
+    const [laundryLogs, setLaundryLogs] = useState([
+        { id: 201, roomNumber: 3, date: '25-May, 10:15 AM', pickedUpBy: 'Veerwati', supervisor: 'Gaurav Panchal', items: { 'Double Bed Sheet': 2, 'Quilt Cover': 1, 'Towel': 2, 'Pillow Cover': 2 }, remarks: 'Standard room pickup.' },
+        { id: 202, roomNumber: 9, date: '25-May, 11:30 AM', pickedUpBy: 'Bhawna', supervisor: 'Arjun Tiwari', items: { 'Double Bed Sheet': 4, 'Towel': 4, 'Hand Towel': 2, 'Runner': 1 }, remarks: 'Linen sent for laundry.' }
+    ]);
+    const [laundryRoom, setLaundryRoom] = useState(null);
+    const [editingLaundryLog, setEditingLaundryLog] = useState(null);
+    const [laundryForm, setLaundryForm] = useState({
+        roomNumber: '',
+        pickedUpBy: '',
+        supervisor: '',
+        date: '',
+        items: {
+            'Double Bed Sheet': 0,
+            'Quilt Cover': 0,
+            'Towel': 0,
+            'Hand Towel': 0,
+            'Pillow Cover': 0,
+            'Cushion Cover': 0,
+            'Runner': 0
+        },
+        remarks: ''
+    });
 
     // Attendance & Leave State
     const [attendanceLogs, setAttendanceLogs] = useState([
@@ -588,6 +633,18 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
 
     const handlePrintSlip = (log) => {
         const printWindow = window.open('', '_blank');
+        const encodedMessage = encodeURIComponent(
+            `*Hotel Sky 5 - Housekeeping Verification*\n` +
+            `------------------------------------\n` +
+            `*Room:* ${log.roomNumber} (${log.roomType})\n` +
+            `*Housekeeper:* ${log.staffName}\n` +
+            `*In Time:* ${log.inTime}\n` +
+            `*Out Time:* ${log.outTime}\n` +
+            `*Missing Items:* ${log.missingItems}\n` +
+            `*Remarks:* ${log.remarks || 'None'}\n` +
+            `------------------------------------\n` +
+            `_Generated via Sky-Ops Center_`
+        );
         printWindow.document.write(`
             <html>
                 <head>
@@ -607,10 +664,20 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                         .footer { margin-top: 60px; text-align: center; font-size: 9px; color: #999; border-top: 1px solid #eee; padding-top: 20px; }
                         .signature-space { margin-top: 40px; display: flex; justify-content: space-between; }
                         .sig-line { border-top: 1px solid #333; width: 150px; text-align: center; font-size: 10px; padding-top: 5px; margin-top: 30px; }
-                        @media print { .no-print { display: none; } }
+                        @media print { .no-print { display: none !important; } }
                     </style>
                 </head>
                 <body>
+                    <div class="no-print" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; padding: 12px; background: #f4f4f4; border-radius: 8px; align-items: center; border: 1px solid #ddd; font-family: 'Inter', sans-serif;">
+                        <div style="display: flex; gap: 10px;">
+                            <button onclick="window.print()" style="padding: 10px 20px; background: #0a192f; color: #d4af37; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">🖨️ Print / Save PDF</button>
+                            <button onclick="window.open('https://wa.me/?text=${encodedMessage}', '_blank')" style="padding: 10px 20px; background: #25D366; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">💬 Share on WhatsApp</button>
+                            <button onclick="window.close()" style="padding: 10px 20px; background: #666; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">Close</button>
+                        </div>
+                        <div style="font-size: 10px; color: #555; font-weight: 700; text-align: center;">
+                            💡 <b>To Share as PDF:</b> Click "Print / Save PDF" → Select "Save as PDF" as Destination → Upload/attach that PDF file to WhatsApp!
+                        </div>
+                    </div>
                     <div class="header" style="display: flex; align-items: center; justify-content: center; gap: 30px;">
                         <!-- Visual Logo -->
                         <div style="display: inline-flex; align-items: center; background: #0a192f; padding: 10px 20px; border-radius: 12px; border-left: 4px solid #d4af37; min-width: fit-content;">
@@ -657,12 +724,6 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                         OFFICIAL HOUSEKEEPING RECORD • GENERATED BY Sky-Ops Center • ${new Date().toLocaleString()}<br>
                         "Redefining Luxury with Precision"
                     </div>
-                    <script>
-                        window.onload = () => { 
-                            window.print(); 
-                            setTimeout(() => { window.close(); }, 500);
-                        };
-                    </script>
                 </body>
             </html>
         `);
@@ -677,61 +738,501 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
 
     const handlePrintBlankSlips = () => {
         const printWindow = window.open('', '_blank');
-        const checklistItems = [
-            "A/c REMOTE", "Tv REMOTE", "REMOTE CELL", "BED SHEET", 
-            "TOWEL", "CHARGER", "SLIPPER", "BUCKET", "TEA GLASS", "TOILET"
+        const leftItems = [
+            'A/c Remote + Cell',
+            'Set-up Box Remote + Cell',
+            'Cup/Glass',
+            'Towel',
+            'Bed Sheet',
+            'Bucket / Mug / Stool',
+            'Turn on TV/AC Prop. Working / Not'
+        ];
+
+        const rightItems = [
+            'TV Remote + Cell',
+            'Slippers',
+            'Tea/Coffee/milk/Sugar/Green Tea',
+            'Hand Towel',
+            'Pillow - 2',
+            'Toilet (Soap, Handwash, Shower gel)'
         ];
 
         let slipsHtml = '';
         for(let i = 0; i < 10; i++) {
             slipsHtml += `
-                <div class="slip">
-                    <div class="slip-header">
-                        <!-- Visual Logo Mini -->
-                        <div style="display: inline-flex; align-items: center; background: #0a192f; padding: 5px 10px; border-radius: 6px; border-left: 2px solid #d4af37; min-width: fit-content;">
-                            <div style="display: flex; flex-direction: column; line-height: 1.1; text-align: left;">
-                                <div style="font-size: 7px; color: white; letter-spacing: 0.5px; font-weight: 500; text-transform: uppercase;">Hotel</div>
-                                <div style="display: flex; align-items: baseline; gap: 4px;">
-                                    <div style="font-size: 15px; font-weight: 900; color: #d4af37; font-family: 'Cinzel', serif; letter-spacing: 1px;">SKY</div>
-                                    <div style="font-size: 20px; font-weight: 900; color: #d4af37; font-family: 'Cinzel', serif;">5</div>
-                                </div>
+                <div class="slip" style="border: 1.5px solid #000; padding: 6px 10px; display: flex; flex-direction: column; justify-content: space-between; background: white; box-sizing: border-box; page-break-inside: avoid; height: 100%;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 2px; margin-bottom: 2px; border-bottom: 1.5px solid #000;">
+                        <div style="text-align: left; line-height: 1;">
+                            <div style="font-size: 13px; font-weight: 900; color: #0a192f; font-family: 'Inter', sans-serif;">
+                                SKY <span style="color: #d4af37;">5</span>
                             </div>
+                            <div style="font-size: 6px; font-weight: 800; color: #0a192f; letter-spacing: 0.5px; text-transform: uppercase; margin-top: 1px;">BOUTIQUE HOTEL</div>
                         </div>
-                        <span class="slip-type">HOUSEKEEPING CHECKLIST</span>
+                        <span style="font-family: 'Inter', sans-serif; font-size: 8px; font-weight: 900; color: #d4af37; letter-spacing: 0.5px; text-transform: uppercase; padding-bottom: 1px;">HOUSEKEEPING CHECKLIST</span>
                     </div>
-                    <div class="info-row">
-                        <div class="field">ROOM #: ________</div>
-                        <div class="field">STAFF: ______________</div>
-                        <div class="field">DATE: ____________</div>
+                    <div style="display: flex; justify-content: space-between; font-size: 7.5px; font-weight: 800; margin-bottom: 4px; color: #000; border-bottom: 1px dashed #000; padding-bottom: 3px;">
+                        <div>ROOM #: ________</div>
+                        <div>CLEANING STAFF: ______________</div>
+                        <div>Checkout DATE: ____________</div>
                     </div>
-                    <div class="checklist-grid">
-                        ${checklistItems.map(item => `
-                            <div class="check-item">
-                                <div class="box"></div>
-                                <span class="check-label">${item}</span>
-                            </div>
-                        `).join('')}
+                    <div style="display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 0 8px; margin-bottom: 4px; flex: 1;">
+                        <!-- Left Column -->
+                        <div style="display: flex; flex-direction: column; gap: 2.5px;">
+                            ${leftItems.map(item => `
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <div style="width: 8px; height: 8px; border: 1.2px solid #000; border-radius: 1px; flex-shrink: 0; background: white;"></div>
+                                    <span style="font-size: 7px; font-weight: 800; text-transform: uppercase; color: #000; line-height: 1;">${item}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <!-- Right Column -->
+                        <div style="display: flex; flex-direction: column; gap: 2.5px;">
+                            ${rightItems.map(item => `
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <div style="width: 8px; height: 8px; border: 1.2px solid #000; border-radius: 1px; flex-shrink: 0; background: white;"></div>
+                                    <span style="font-size: 7px; font-weight: 800; text-transform: uppercase; color: #000; line-height: 1;">${item}</span>
+                                </div>
+                            `).join('')}
+                        </div>
                     </div>
-                    <div class="time-row">
-                        <span>IN: ________</span>
-                        <span>OUT: ________</span>
-                        <span style="flex: 1; text-align: right;">SUPERVISOR: ________________</span>
+                    <div style="border-top: 1px dotted #000; padding-top: 2px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 7.5px; font-weight: 800; color: #000;">
+                            <span>IN: ________</span>
+                            <span>OUT: ________</span>
+                            <span>SUPERVISOR: ________________</span>
+                        </div>
                     </div>
                 </div>
             `;
         }
 
+        const allItems = [...leftItems, ...rightItems];
+        const shareMessage = `*🏨 HOTEL SKY 5 - HOUSEKEEPING CHECKLIST* 🏨\n` +
+            `------------------------------------\n` +
+            allItems.map((item, idx) => `[ ] ${idx + 1}. ${item.toUpperCase()}`).join('\n') + `\n` +
+            `------------------------------------\n` +
+            `_Date:_ ___________________\n` +
+            `_Room No:_ _______________\n` +
+            `_Staff Name:_ ____________\n` +
+            `_In Time:_ _______________\n` +
+            `_Out Time:_ ______________\n` +
+            `_Supervisor Sig:_ _________\n\n` +
+            `_Generated by Sky-Ops Center_`;
+
         printWindow.document.write(`
             <html>
                 <head>
                     <title>Blank Housekeeping Slips (A4 - 10 per page)</title>
-                    <script>
-                        window.onload = () => { window.print(); };
-                    </script>
+                    <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
+                        html, body {
+                            height: 100vh;
+                            margin: 0;
+                            padding: 0;
+                            box-sizing: border-box;
+                            overflow: hidden;
+                        }
+                        body {
+                            font-family: 'Inter', sans-serif;
+                            padding: 10px;
+                            background: #fff;
+                            color: #000;
+                        }
+                        .top-header {
+                            text-align: center;
+                            margin-bottom: 10px;
+                            font-weight: 800;
+                            font-size: 13px;
+                            text-transform: uppercase;
+                            border-bottom: 2px dashed #000;
+                            padding-bottom: 5px;
+                            font-family: 'Inter', sans-serif;
+                            height: 25px;
+                            box-sizing: border-box;
+                        }
+                        .slips-container {
+                            display: grid;
+                            grid-template-columns: 1fr 1fr;
+                            grid-template-rows: repeat(5, 1fr);
+                            gap: 8px;
+                            height: calc(100vh - 65px);
+                            box-sizing: border-box;
+                        }
+                        @media print {
+                            .no-print { display: none !important; }
+                            body {
+                                padding: 5px;
+                                margin: 0;
+                                height: 100vh;
+                                box-sizing: border-box;
+                                overflow: hidden;
+                            }
+                            .slips-container {
+                                height: calc(100vh - 40px);
+                                gap: 6px;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; padding: 12px; background: #f4f4f4; border-radius: 8px; align-items: center; border: 1px solid #ddd; font-family: 'Inter', sans-serif; box-sizing: border-box;">
+                        <div style="display: flex; gap: 10px;">
+                            <button onclick="window.print()" style="padding: 6px 15px; background: #0a192f; color: #d4af37; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">🖨️ Print / Save PDF</button>
+                            <button onclick="window.open('https://wa.me/?text=${encodeURIComponent(shareMessage)}', '_blank')" style="padding: 6px 15px; background: #25D366; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">💬 Share on WhatsApp</button>
+                            <button onclick="window.close()" style="padding: 6px 15px; background: #666; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">Close</button>
+                        </div>
+                        <div style="font-size: 10px; color: #555; font-weight: 700; text-align: center;">
+                            💡 <b>To Share as PDF:</b> Click "Print / Save PDF" → Select "Save as PDF" as Destination → Upload/attach that PDF file to WhatsApp!
+                        </div>
+                    </div>
+                    <div class="top-header">Checking Date: ____/____/________</div>
+                    <div class="slips-container">
+                        ${slipsHtml}
+                    </div>
                 </body>
             </html>
         `);
         printWindow.document.close();
+    };
+
+    const handlePrintBlankLaundryCoupons = () => {
+        const printWindow = window.open('', '_blank');
+        const items = [
+            'Double Bed Sheet',
+            'Quilt Cover',
+            'Towel',
+            'Hand Towel',
+            'Pillow Cover',
+            'Cushion Cover',
+            'Runner'
+        ];
+
+        let couponsHtml = '';
+        for(let i = 0; i < 6; i++) {
+            couponsHtml += `
+                <div class="coupon" style="border: 2px solid #000; padding: 12px 15px; display: flex; flex-direction: column; justify-content: space-between; background: white; box-sizing: border-box; page-break-inside: avoid; height: 100%;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 4px; margin-bottom: 6px; border-bottom: 2px solid #000;">
+                        <div style="text-align: left; line-height: 1.1;">
+                            <div style="font-size: 16px; font-weight: 900; color: #0a192f; font-family: 'Inter', sans-serif; letter-spacing: 0.5px;">
+                                SKY <span style="color: #d4af37;">5</span>
+                            </div>
+                            <div style="font-size: 7px; font-weight: 800; color: #0a192f; letter-spacing: 0.5px; text-transform: uppercase; margin-top: 2px;">BOUTIQUE HOTEL</div>
+                        </div>
+                        <span style="font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 900; color: #0a192f; letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; border-bottom: 2px solid #d4af37;">LAUNDRY SERVICE</span>
+                        <div style="font-size: 8px; font-weight: 800; color: #000;">DATE: ____/____/____</div>
+                    </div>
+
+
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; flex: 1;">
+                        <thead>
+                            <tr style="border-bottom: 1.5px solid #000; text-align: left; font-size: 8px; font-weight: 900;">
+                                <th style="padding: 3px 0; color: #000; text-transform: uppercase;">Laundry Item</th>
+                                <th style="text-align: right; padding: 3px 0; color: #000; text-transform: uppercase; width: 80px;">Pick Up Qty</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${items.map(item => `
+                                <tr style="border-bottom: 1px dashed #ccc; font-size: 9px; font-weight: 800;">
+                                    <td style="padding: 4px 0; color: #000; text-transform: uppercase;">• ${item}</td>
+                                    <td style="text-align: right; padding: 4px 0; color: #000;">________________</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+
+                    <div style="border-top: 1.5px solid #000; padding-top: 6px; margin-top: auto;">
+                        <div style="display: flex; justify-content: space-between; font-size: 8.5px; font-weight: 800; color: #000;">
+                            <span>Picked up By: ____________________</span>
+                            <span>Supervisor: ____________________</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        const shareMessage = `*🏨 HOTEL SKY 5 - LAUNDRY SERVICE COUPON* 🏨\n` +
+            `------------------------------------\n` +
+            items.map((item, idx) => `${idx + 1}. ${item.toUpperCase()}: [ Qty: ___ ]`).join('\n') + `\n` +
+            `------------------------------------\n` +
+            `_Date:_ ___________________\n` +
+            `_Picked up By:_ ___________\n` +
+            `_Supervisor Sig:_ _________\n\n` +
+            `_Generated by Sky-Ops Center_`;
+
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Blank Laundry Service Coupons (A4 - 6 per page)</title>
+                    <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
+                        html, body {
+                            height: 100vh;
+                            margin: 0;
+                            padding: 0;
+                            box-sizing: border-box;
+                            overflow: hidden;
+                        }
+                        body {
+                            font-family: 'Inter', sans-serif;
+                            padding: 15px;
+                            background: #fff;
+                            color: #000;
+                        }
+                        .coupons-container {
+                            display: grid;
+                            grid-template-columns: 1fr 1fr;
+                            grid-template-rows: repeat(3, 1fr);
+                            gap: 15px;
+                            height: calc(100vh - 55px);
+                            box-sizing: border-box;
+                        }
+                        @media print {
+                            .no-print { display: none !important; }
+                            body {
+                                padding: 10px;
+                                margin: 0;
+                                height: 100vh;
+                                box-sizing: border-box;
+                                overflow: hidden;
+                            }
+                            .coupons-container {
+                                height: 100vh;
+                                gap: 12px;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; padding: 12px; background: #f4f4f4; border-radius: 8px; align-items: center; border: 1px solid #ddd; font-family: 'Inter', sans-serif; box-sizing: border-box;">
+                        <div style="display: flex; gap: 10px;">
+                            <button onclick="window.print()" style="padding: 6px 15px; background: #0a192f; color: #d4af37; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">🖨️ Print / Save PDF</button>
+                            <button onclick="window.open('https://wa.me/?text=${encodeURIComponent(shareMessage)}', '_blank')" style="padding: 6px 15px; background: #25D366; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">💬 Share on WhatsApp</button>
+                            <button onclick="window.close()" style="padding: 6px 15px; background: #666; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">Close</button>
+                        </div>
+                        <div style="font-size: 10px; color: #555; font-weight: 700; text-align: center;">
+                            💡 <b>To Share as PDF:</b> Click "Print / Save PDF" → Select "Save as PDF" as Destination → Upload/attach that PDF file to WhatsApp!
+                        </div>
+                    </div>
+                    <div class="coupons-container">
+                        ${couponsHtml}
+                    </div>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+    };
+
+    const handlePrintLaundrySlip = (log) => {
+        const printWindow = window.open('', '_blank');
+        const itemsHtml = Object.entries(log.items || {})
+            .map(([item, qty]) => `
+                <tr style="border-bottom: 1px solid #eee; font-size: 14px;">
+                    <td style="padding: 10px 0; color: #0a192f; font-weight: 600; text-transform: uppercase;">${item}</td>
+                    <td style="text-align: right; padding: 10px 0; font-weight: 800; color: #0a192f;">${qty}</td>
+                </tr>
+            `).join('');
+
+        const shareText = `*Hotel Sky 5 - Laundry Service Receipt*\n` +
+            `------------------------------------\n` +
+            `*Room:* ROOM ${log.roomNumber}\n` +
+            `*Date:* ${log.date}\n` +
+            `*Picked up By:* ${log.pickedUpBy}\n` +
+            `*Supervisor:* ${log.supervisor}\n` +
+            `------------------------------------\n` +
+            Object.entries(log.items || {}).map(([item, qty]) => `• ${item.toUpperCase()}: ${qty}`).join('\n') + `\n` +
+            `------------------------------------\n` +
+            `*Remarks:* ${log.remarks || 'None'}\n` +
+            `------------------------------------\n` +
+            `_Generated via Sky-Ops Center_`;
+
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Laundry Slip - Room ${log.roomNumber}</title>
+                    <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Inter:wght@400;600;800;900&display=swap');
+                        body { font-family: 'Inter', sans-serif; padding: 40px; color: #0a192f; line-height: 1.6; }
+                        .header { text-align: center; border-bottom: 2px solid #d4af37; padding-bottom: 20px; margin-bottom: 30px; }
+                        .hotel-name { font-family: 'Cinzel', serif; font-size: 28px; font-weight: bold; margin: 0; color: #0a192f; }
+                        .slip-title { font-size: 12px; color: #d4af37; letter-spacing: 3px; text-transform: uppercase; margin-top: 5px; font-weight: 800; }
+                        .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 30px; }
+                        .item { border-bottom: 1px solid #f0f0f0; padding-bottom: 10px; }
+                        .label { font-size: 10px; font-weight: 800; color: #888; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 1px; }
+                        .value { font-size: 15px; font-weight: 600; color: #0a192f; }
+                        .section-title { font-size: 10px; font-weight: 800; color: #0a192f; background: #f8f9fa; padding: 5px 10px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }
+                        .footer { margin-top: 60px; text-align: center; font-size: 9px; color: #999; border-top: 1px solid #eee; padding-top: 20px; }
+                        .signature-space { margin-top: 40px; display: flex; justify-content: space-between; }
+                        .sig-line { border-top: 1px solid #333; width: 150px; text-align: center; font-size: 10px; padding-top: 5px; margin-top: 30px; }
+                        @media print { .no-print { display: none !important; } }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; padding: 12px; background: #f4f4f4; border-radius: 8px; align-items: center; border: 1px solid #ddd;">
+                        <div style="display: flex; gap: 10px;">
+                            <button onclick="window.print()" style="padding: 10px 20px; background: #0a192f; color: #d4af37; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">🖨️ Print / Save PDF</button>
+                            <button onclick="window.open('https://wa.me/?text=${encodeURIComponent(shareText)}', '_blank')" style="padding: 10px 20px; background: #25D366; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">💬 Share on WhatsApp</button>
+                            <button onclick="window.close()" style="padding: 10px 20px; background: #666; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">Close</button>
+                        </div>
+                        <div style="font-size: 10px; color: #555; font-weight: 700; text-align: center;">
+                            💡 <b>To Share as PDF:</b> Click "Print / Save PDF" → Select "Save as PDF" as Destination → Upload/attach that PDF file to WhatsApp!
+                        </div>
+                    </div>
+                    
+                    <div class="header" style="display: flex; align-items: center; justify-content: center; gap: 30px;">
+                        <div style="display: inline-flex; align-items: center; background: #0a192f; padding: 10px 20px; border-radius: 12px; border-left: 4px solid #d4af37; min-width: fit-content;">
+                            <div style="display: flex; flex-direction: column; line-height: 1.1; text-align: left;">
+                                <div style="font-size: 14px; color: white; letter-spacing: 1px; font-weight: 500; text-transform: uppercase;">Hotel</div>
+                                <div style="display: flex; align-items: baseline; gap: 8px;">
+                                    <div style="font-size: 30px; font-weight: 900; color: #d4af37; font-family: 'Cinzel', serif; letter-spacing: 2px;">SKY</div>
+                                    <div style="font-size: 42px; font-weight: 900; color: #d4af37; font-family: 'Cinzel', serif;">5</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="slip-title" style="margin-top: 0; padding-top: 5px;">Laundry service coupon</div>
+                    </div>
+
+                    <div class="section-title">Service Details</div>
+                    <div class="details-grid">
+                        <div class="item"><div class="label">Room Number</div><div class="value">ROOM ${log.roomNumber}</div></div>
+                        <div class="item"><div class="label">Date & Time</div><div class="value">${log.date}</div></div>
+                        <div class="item"><div class="label">Picked Up By</div><div class="value">${log.pickedUpBy}</div></div>
+                        <div class="item"><div class="label">Supervisor</div><div class="value">${log.supervisor}</div></div>
+                    </div>
+
+                    <div class="section-title">Picked Up Linen Quantities</div>
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid #0a192f; text-align: left; font-size: 12px; font-weight: 800;">
+                                <th style="padding: 10px 0; color: #0a192f;">Linen Item</th>
+                                <th style="text-align: right; padding: 10px 0; color: #0a192f; width: 100px;">Quantity</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${itemsHtml}
+                        </tbody>
+                    </table>
+
+                    <div class="section-title">Remarks / Instructions</div>
+                    <div style="padding: 15px; background: #fafafa; border-radius: 8px; border-left: 4px solid #d4af37; font-style: italic; font-size: 14px;">
+                        ${log.remarks || 'No special instructions.'}
+                    </div>
+
+                    <div class="signature-space">
+                        <div class="sig-line">Picked Up By Signature</div>
+                        <div class="sig-line">Supervisor / Manager</div>
+                    </div>
+
+                    <div class="footer">
+                        LAUNDRY SERVICE RECEIPT • GENERATED BY Sky-Ops Center<br>
+                        "Cleanliness & Comfort, Delivered with Care"
+                    </div>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+    };
+
+    const handleShareLaundryWhatsApp = (log) => {
+        const text = `*Hotel Sky 5 - Laundry Pickup*\n` +
+            `------------------------------------\n` +
+            `*Room:* ROOM ${log.roomNumber}\n` +
+            `*Date:* ${log.date}\n` +
+            `*Picked up By:* ${log.pickedUpBy}\n` +
+            `*Supervisor:* ${log.supervisor}\n` +
+            `------------------------------------\n` +
+            Object.entries(log.items || {}).map(([item, qty]) => `• ${item.toUpperCase()}: ${qty}`).join('\n') + `\n` +
+            `------------------------------------\n` +
+            `*Remarks:* ${log.remarks || 'None'}\n` +
+            `------------------------------------\n` +
+            `_Generated via Sky-Ops Center_`;
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    };
+
+    const handleStartLaundry = (room) => {
+        const now = new Date();
+        const timeStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) + ", " + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        setLaundryForm({
+            roomNumber: room.id,
+            pickedUpBy: '',
+            supervisor: '',
+            date: timeStr,
+            items: {
+                'Double Bed Sheet': 0,
+                'Quilt Cover': 0,
+                'Towel': 0,
+                'Hand Towel': 0,
+                'Pillow Cover': 0,
+                'Cushion Cover': 0,
+                'Runner': 0
+            },
+            remarks: ''
+        });
+        setLaundryRoom(room);
+    };
+
+    const handleEditLaundryLog = (log) => {
+        setLaundryForm({
+            roomNumber: log.roomNumber,
+            pickedUpBy: log.pickedUpBy,
+            supervisor: log.supervisor,
+            date: log.date,
+            items: {
+                'Double Bed Sheet': log.items['Double Bed Sheet'] || 0,
+                'Quilt Cover': log.items['Quilt Cover'] || 0,
+                'Towel': log.items['Towel'] || 0,
+                'Hand Towel': log.items['Hand Towel'] || 0,
+                'Pillow Cover': log.items['Pillow Cover'] || 0,
+                'Cushion Cover': log.items['Cushion Cover'] || 0,
+                'Runner': log.items['Runner'] || 0
+            },
+            remarks: log.remarks || ''
+        });
+        setEditingLaundryLog(log);
+        const room = rooms.find(r => r.id === Number(log.roomNumber)) || { id: Number(log.roomNumber), type: 'Deluxe' };
+        setLaundryRoom(room);
+    };
+
+    const handleSaveLaundry = () => {
+        if (!laundryForm.pickedUpBy.trim()) {
+            alert("Staff name (Picked Up By) is required.");
+            return;
+        }
+
+        const now = new Date();
+        const dateStr = laundryForm.date || (now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) + ", " + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+
+        const nonZeroItems = {};
+        Object.entries(laundryForm.items).forEach(([item, qty]) => {
+            if (Number(qty) > 0) {
+                nonZeroItems[item] = Number(qty);
+            }
+        });
+
+        if (editingLaundryLog) {
+            setLaundryLogs(prev => prev.map(log => log.id === editingLaundryLog.id ? {
+                ...log,
+                roomNumber: Number(laundryForm.roomNumber),
+                pickedUpBy: laundryForm.pickedUpBy,
+                supervisor: laundryForm.supervisor || 'Manager',
+                date: dateStr,
+                items: nonZeroItems,
+                remarks: laundryForm.remarks
+            } : log));
+            setEditingLaundryLog(null);
+        } else {
+            const newLog = {
+                id: Date.now(),
+                roomNumber: Number(laundryForm.roomNumber),
+                pickedUpBy: laundryForm.pickedUpBy,
+                supervisor: laundryForm.supervisor || 'Manager',
+                date: dateStr,
+                items: nonZeroItems,
+                remarks: laundryForm.remarks
+            };
+            setLaundryLogs(prev => [newLog, ...prev]);
+        }
+
+        setLaundryRoom(null);
     };
 
     return (
@@ -745,7 +1246,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                 </div>
 
                 <nav style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {['Reception', 'Kitchen', 'Cleaning', 'Workforce', 'Attendance', 'Finance', 'Menu Config'].map(tab => (
+                    {['Reception', 'Kitchen', 'Cleaning', 'Laundry', 'Workforce', 'Attendance', 'Finance', 'Menu Config'].map(tab => (
                         <div 
                             key={tab}
                             onClick={() => setActiveTab(tab)}
@@ -1093,6 +1594,124 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                                         </button>
                                                         <button 
                                                             onClick={() => handleShareWhatsApp(log)}
+                                                            style={{ background: '#25D366', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', color: 'white', fontWeight: 'bold', fontSize: '0.75rem' }}
+                                                        >
+                                                            💬 WHATSAPP
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                    </div>
+                )}
+
+                {activeTab === 'Laundry' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
+                        {/* Summary & Printable Slips Section */}
+                        <section>
+                            <h2 style={{ fontSize: '1.5rem', color: 'var(--primary-navy)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                🧺 Laundry Service Control
+                            </h2>
+                            
+                            {/* Laundry Items Grid Display */}
+                            <div style={{ background: '#0a192f', color: 'white', padding: '25px', borderRadius: '20px', marginBottom: '30px', borderLeft: '8px solid var(--accent)', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}>
+                                <h3 style={{ margin: '0 0 15px 0', color: 'var(--accent)', fontSize: '1rem', letterSpacing: '1px' }}>🧺 REGISTERED LAUNDRY ITEMS (COUPON FORM)</h3>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '10px' }}>
+                                    {laundryItems.map((item, idx) => (
+                                        <div key={idx} style={{ fontSize: '0.75rem', fontWeight: '700', background: 'rgba(255,255,255,0.1)', padding: '8px', borderRadius: '8px', textAlign: 'center' }}>
+                                            {item}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '15px', marginBottom: '25px' }}>
+                                <button 
+                                    onClick={handlePrintBlankLaundryCoupons}
+                                    style={{ padding: '12px 25px', background: 'var(--accent)', color: 'black', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', boxShadow: '0 4px 15px rgba(212,175,55,0.2)' }}
+                                >
+                                    🖨️ PRINT BLANK LAUNDRY COUPONS (A4)
+                                </button>
+                                <button 
+                                    onClick={() => handleStartLaundry({ id: '' })}
+                                    style={{ padding: '12px 25px', background: 'var(--primary-navy)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
+                                >
+                                    ➕ RECORD NEW LAUNDRY PICKUP
+                                </button>
+                            </div>
+
+                            <h3 style={{ fontSize: '1.2rem', color: 'var(--primary-navy)', marginBottom: '15px' }}>Select Room to Record Pickup:</h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '15px', marginBottom: '30px' }}>
+                                {rooms.filter(r => r.status === 'Occupied').map(room => (
+                                    <div key={room.id} style={{ background: 'white', borderRadius: '14px', padding: '15px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderLeft: '5px solid var(--accent)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ fontWeight: '800', color: 'var(--primary-navy)' }}>Room {room.id}</span>
+                                            <span style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#27ae60', background: '#eafaf1', padding: '2px 8px', borderRadius: '8px' }}>OCCUPIED</span>
+                                        </div>
+                                        <button 
+                                            onClick={() => handleStartLaundry(room)}
+                                            style={{ padding: '8px', background: 'var(--primary-navy)', color: 'var(--accent)', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.8rem', cursor: 'pointer' }}
+                                        >
+                                            RECORD PICKUP
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+
+                        {/* History Table Section */}
+                        <section style={{ background: 'white', borderRadius: '25px', padding: '35px', boxShadow: '0 10px 40px rgba(0,0,0,0.04)' }}>
+                            <h2 style={{ fontSize: '1.5rem', color: 'var(--primary-navy)', marginBottom: '25px' }}>Laundry Collection Logs</h2>
+                            <div style={{ overflowX: 'auto' }}>
+                                <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 10px' }}>
+                                    <thead>
+                                        <tr style={{ textAlign: 'left' }}>
+                                            <th style={{ padding: '15px', color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>ROOM #</th>
+                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>DATE & TIME</th>
+                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>PICKED UP BY</th>
+                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>SUPERVISOR</th>
+                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>ITEMS SUMMARY</th>
+                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>REMARKS</th>
+                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>ACTIONS</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {laundryLogs.map(log => (
+                                            <tr key={log.id} style={{ background: '#f8f9fa', borderRadius: '12px' }}>
+                                                <td style={{ padding: '15px', fontWeight: '800', color: 'var(--primary-navy)', borderTopLeftRadius: '12px', borderBottomLeftRadius: '12px' }}>Room {log.roomNumber}</td>
+                                                <td style={{ fontSize: '0.85rem', color: '#666' }}>{log.date}</td>
+                                                <td style={{ fontWeight: '600' }}>{log.pickedUpBy}</td>
+                                                <td style={{ fontWeight: '600' }}>{log.supervisor}</td>
+                                                <td style={{ fontSize: '0.85rem' }}>
+                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                                                        {Object.entries(log.items || {}).map(([item, qty]) => (
+                                                            <span key={item} style={{ background: '#eaf2f8', color: '#2980b9', padding: '3px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                                                {qty}x {item}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </td>
+                                                <td style={{ fontSize: '0.85rem', color: '#555', fontStyle: 'italic' }}>{log.remarks || '-'}</td>
+                                                <td style={{ borderTopRightRadius: '12px', borderBottomRightRadius: '12px' }}>
+                                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                                        <button 
+                                                            onClick={() => handleEditLaundryLog(log)}
+                                                            style={{ background: 'transparent', border: '1px solid #ddd', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', color: 'var(--primary-navy)', fontWeight: 'bold', fontSize: '0.75rem' }}
+                                                        >
+                                                            EDIT
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handlePrintLaundrySlip(log)}
+                                                            style={{ background: '#f8f9fa', border: '1px solid #d4af37', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', color: '#0a192f', fontWeight: 'bold', fontSize: '0.75rem' }}
+                                                        >
+                                                            🖨️ PRINT
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleShareLaundryWhatsApp(log)}
                                                             style={{ background: '#25D366', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', color: 'white', fontWeight: 'bold', fontSize: '0.75rem' }}
                                                         >
                                                             💬 WHATSAPP
@@ -1861,9 +2480,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                     onChange={(e) => setGuestForm({...guestForm, phone: e.target.value})}
                                     style={{ width: '100%', padding: '15px', borderRadius: '12px', border: '1px solid #e0e0e0', background: '#f8f9fa', fontSize: '1rem', color: '#333', outline: 'none', boxSizing: 'border-box' }}
                                     placeholder="Verified Mobile Number"
-                                />
-                            </div>
-   onFocus={(e) => e.target.style.borderColor = 'var(--accent)'}
+                                    onFocus={(e) => e.target.style.borderColor = 'var(--accent)'}
                                     onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
                                 />
                             </div>
@@ -1986,7 +2603,8 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                             </div>
                         </div>
                     </div>
-                )}
+                </div>
+            )}
 
             {/* Cleaning Entry Modal */}
             {cleaningRoom && (
@@ -2084,6 +2702,131 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                         </button>
                                     </div>
                                 )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Laundry Entry Modal */}
+            {laundryRoom && (
+                <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0, 33, 71, 0.8)', display: 'flex', alignItems: 'center', justifycontent: 'center', zIndex: 1000, backdropFilter: 'blur(5px)' }}>
+                    <div style={{ background: 'white', borderRadius: '24px', width: '500px', maxHeight: '90vh', boxShadow: '0 25px 50px rgba(0,0,0,0.3)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ background: 'var(--primary-navy)', padding: '25px 30px', borderBottom: '3px solid var(--accent)' }}>
+                            <h2 style={{ margin: '0', color: 'white', fontFamily: 'Cinzel, serif', fontSize: '1.6rem', letterSpacing: '1px' }}>LAUNDRY PICKUP</h2>
+                            <div style={{ color: 'var(--accent)', fontSize: '0.9rem', marginTop: '5px' }}>ROOM {laundryRoom.id || 'N/A'} • SERVICE DETAILS</div>
+                        </div>
+
+                        <div style={{ padding: '30px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', flex: 1 }}>
+                            <div style={{ display: 'flex', gap: '15px' }}>
+                                <div style={{ flex: 1 }}>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Room Number <span style={{color: '#e74c3c'}}>*</span></label>
+                                    <input 
+                                        type="number" 
+                                        value={laundryForm.roomNumber} 
+                                        onChange={(e) => setLaundryForm({...laundryForm, roomNumber: e.target.value})}
+                                        style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #e0e0e0', background: '#f8f9fa', outline: 'none' }}
+                                        placeholder="Room #"
+                                    />
+                                </div>
+                                <div style={{ flex: 1.5 }}>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Picked Up By <span style={{color: '#e74c3c'}}>*</span></label>
+                                    <select 
+                                        value={laundryForm.pickedUpBy} 
+                                        onChange={(e) => setLaundryForm({...laundryForm, pickedUpBy: e.target.value})}
+                                        style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #e0e0e0', background: '#f8f9fa', outline: 'none', cursor: 'pointer' }}
+                                    >
+                                        <option value="">Select Staff</option>
+                                        {staffRegistry.housekeeping.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '15px' }}>
+                                <div style={{ flex: 1.2 }}>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Date & Time</label>
+                                    <input 
+                                        type="text" 
+                                        value={laundryForm.date} 
+                                        onChange={(e) => setLaundryForm({...laundryForm, date: e.target.value})}
+                                        style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #e0e0e0', background: '#f8f9fa', outline: 'none' }}
+                                    />
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Supervisor</label>
+                                    <input 
+                                        type="text" 
+                                        value={laundryForm.supervisor} 
+                                        onChange={(e) => setLaundryForm({...laundryForm, supervisor: e.target.value})}
+                                        style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #e0e0e0', background: '#f8f9fa', outline: 'none' }}
+                                        placeholder="Supervisor"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Linen Item Quantities */}
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '800', marginBottom: '10px', color: 'var(--primary-navy)', textTransform: 'uppercase', borderBottom: '2px solid #f0f0f0', paddingBottom: '5px' }}>Linen Pickup Quantities</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 20px' }}>
+                                    {laundryItems.map(item => (
+                                        <div key={item} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8f9fa', padding: '10px 15px', borderRadius: '10px', border: '1px solid #eee' }}>
+                                            <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#333' }}>{item}</span>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <button 
+                                                    onClick={() => {
+                                                        const currentVal = laundryForm.items[item] || 0;
+                                                        if (currentVal > 0) {
+                                                            setLaundryForm({
+                                                                ...laundryForm,
+                                                                items: { ...laundryForm.items, [item]: currentVal - 1 }
+                                                            });
+                                                        }
+                                                    }}
+                                                    style={{ width: '25px', height: '25px', borderRadius: '5px', border: '1px solid #ccc', background: 'white', fontWeight: 'bold', cursor: 'pointer' }}
+                                                >-</button>
+                                                <input 
+                                                    type="number" 
+                                                    min="0"
+                                                    value={laundryForm.items[item] || 0}
+                                                    onChange={(e) => {
+                                                        const val = Math.max(0, parseInt(e.target.value) || 0);
+                                                        setLaundryForm({
+                                                            ...laundryForm,
+                                                            items: { ...laundryForm.items, [item]: val }
+                                                        });
+                                                    }}
+                                                    style={{ width: '40px', textAlign: 'center', padding: '3px', border: '1px solid #ccc', borderRadius: '4px', fontSize: '0.85rem', fontWeight: 'bold' }}
+                                                />
+                                                <button 
+                                                    onClick={() => {
+                                                        const currentVal = laundryForm.items[item] || 0;
+                                                        setLaundryForm({
+                                                            ...laundryForm,
+                                                            items: { ...laundryForm.items, [item]: currentVal + 1 }
+                                                        });
+                                                    }}
+                                                    style={{ width: '25px', height: '25px', borderRadius: '5px', border: '1px solid #ccc', background: 'white', fontWeight: 'bold', cursor: 'pointer' }}
+                                                >+</button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Remarks / Observations</label>
+                                <textarea 
+                                    value={laundryForm.remarks} 
+                                    onChange={(e) => setLaundryForm({...laundryForm, remarks: e.target.value})}
+                                    style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #e0e0e0', background: '#f8f9fa', outline: 'none', minHeight: '60px', fontFamily: 'inherit' }}
+                                    placeholder="Any specific linen conditions..."
+                                ></textarea>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '15px', marginTop: '10px' }}>
+                                <button style={{ flex: 1, padding: '15px', background: 'white', border: '2px solid #e0e0e0', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' }} onClick={() => { setLaundryRoom(null); setEditingLaundryLog(null); }}>CANCEL</button>
+                                <button style={{ flex: 1, padding: '15px', background: 'var(--primary-navy)', border: 'none', borderRadius: '12px', color: 'var(--accent)', fontWeight: 'bold', cursor: 'pointer' }} onClick={handleSaveLaundry}>{editingLaundryLog ? 'UPDATE LOG' : 'SAVE RECORD'}</button>
                             </div>
                         </div>
                     </div>
