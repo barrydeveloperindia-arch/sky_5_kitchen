@@ -67,6 +67,41 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
     ]);
     const [cleaningForm, setCleaningForm] = useState({ roomNumber: '', staffName: '', inTime: '', outTime: '', missingItems: 'None', remarks: '' });
 
+    // Room Checkout State
+    const checkoutChecklist = [
+        'Room keys',
+        'Slippers',
+        'Ac Remote',
+        'Tv remote',
+        'Setup box remote',
+        'Cattle set',
+        'Bed sheets',
+        'Any Item Damaged'
+    ];
+
+    const [checkoutLogs, setCheckoutLogs] = useState([
+        { id: 301, roomNumber: 5, roomType: 'Super Deluxe Room', staffName: 'Karan', date: '28-May, 11:00 AM', checkedItems: { 'Room keys': true, 'Slippers': true, 'Ac Remote': true, 'Tv remote': true, 'Setup box remote': true, 'Cattle set': true, 'Bed sheets': true, 'Any Item Damaged': false }, remarks: 'All ok, ready for cleaning.' },
+        { id: 302, roomNumber: 11, roomType: 'Deluxe Room', staffName: 'Veerwati', date: '29-May, 02:30 PM', checkedItems: { 'Room keys': true, 'Slippers': true, 'Ac Remote': true, 'Tv remote': true, 'Setup box remote': true, 'Cattle set': true, 'Bed sheets': true, 'Any Item Damaged': true }, remarks: 'Slippers missing, charged to guest.' }
+    ]);
+    const [checkoutRoom, setCheckoutRoom] = useState(null);
+    const [editingCheckoutLog, setEditingCheckoutLog] = useState(null);
+    const [checkoutForm, setCheckoutForm] = useState({
+        roomNumber: '',
+        staffName: '',
+        date: '',
+        checkedItems: {
+            'Room keys': false,
+            'Slippers': false,
+            'Ac Remote': false,
+            'Tv remote': false,
+            'Setup box remote': false,
+            'Cattle set': false,
+            'Bed sheets': false,
+            'Any Item Damaged': false
+        },
+        remarks: ''
+    });
+
     // Laundry Service State
     const laundryItems = [
         'Double Bed Sheet',
@@ -302,6 +337,346 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
         }
         
         setCleaningRoom(null);
+    };
+
+    const handleStartCheckout = (room) => {
+        const now = new Date();
+        const timeStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) + ", " + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        setCheckoutForm({
+            roomNumber: room.id,
+            staffName: '',
+            date: timeStr,
+            checkedItems: {
+                'Room keys': false,
+                'Slippers': false,
+                'Ac Remote': false,
+                'Tv remote': false,
+                'Setup box remote': false,
+                'Cattle set': false,
+                'Bed sheets': false,
+                'Any Item Damaged': false
+            },
+            remarks: ''
+        });
+        setCheckoutRoom(room);
+    };
+
+    const handleEditCheckoutLog = (log) => {
+        setCheckoutForm({
+            roomNumber: log.roomNumber,
+            staffName: log.staffName,
+            date: log.date,
+            checkedItems: { ...log.checkedItems },
+            remarks: log.remarks || ''
+        });
+        setEditingCheckoutLog(log);
+        const room = rooms.find(r => r.id === Number(log.roomNumber)) || { id: Number(log.roomNumber), type: 'Deluxe Room' };
+        setCheckoutRoom(room);
+    };
+
+    const handleSaveCheckout = () => {
+        if (!checkoutForm.staffName.trim()) {
+            alert("Staff name is required.");
+            return;
+        }
+
+        const now = new Date();
+        const dateStr = checkoutForm.date || (now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) + ", " + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+
+        const selectedRoom = rooms.find(r => r.id === Number(checkoutForm.roomNumber)) || checkoutRoom;
+
+        if (editingCheckoutLog) {
+            setCheckoutLogs(prev => prev.map(log => log.id === editingCheckoutLog.id ? {
+                ...log,
+                roomNumber: Number(checkoutForm.roomNumber),
+                roomType: selectedRoom?.type || log.roomType,
+                staffName: checkoutForm.staffName,
+                date: dateStr,
+                checkedItems: { ...checkoutForm.checkedItems },
+                remarks: checkoutForm.remarks
+            } : log));
+            setEditingCheckoutLog(null);
+        } else {
+            const newLog = {
+                id: Date.now(),
+                roomNumber: Number(checkoutForm.roomNumber),
+                roomType: selectedRoom?.type || checkoutRoom.type,
+                staffName: checkoutForm.staffName,
+                date: dateStr,
+                checkedItems: { ...checkoutForm.checkedItems },
+                remarks: checkoutForm.remarks
+            };
+            setCheckoutLogs(prev => [newLog, ...prev]);
+            // Automatically mark the room as Dirty upon checkout
+            updateRoomStatus(selectedRoom.id, 'Dirty');
+        }
+
+        setCheckoutRoom(null);
+    };
+
+    const handlePrintCheckoutSlip = (log) => {
+        const printWindow = window.open('', '_blank');
+        const itemsHtml = Object.entries(log.checkedItems || {})
+            .map(([item, checked]) => `
+                <tr style="border-bottom: 1px solid #eee; font-size: 14px;">
+                    <td style="padding: 10px 0; color: #0a192f; font-weight: 600; text-transform: uppercase;">• ${item}</td>
+                    <td style="text-align: right; padding: 10px 0; font-weight: 800; color: ${checked ? '#27ae60' : '#e74c3c'}; text-transform: uppercase;">
+                        ${item === 'Any Item Damaged' ? (checked ? '⚠️ DAMAGED' : '✅ OK') : (checked ? '✅ OK / RETURNED' : '❌ MISSING')}
+                    </td>
+                </tr>
+            `).join('');
+
+        const shareText = `*Hotel Sky 5 - Room Checkout Report*\n` +
+            `------------------------------------\n` +
+            `*Room:* ROOM ${log.roomNumber} (${log.roomType})\n` +
+            `*Date:* ${log.date}\n` +
+            `*Inspector/Staff:* ${log.staffName}\n` +
+            `------------------------------------\n` +
+            Object.entries(log.checkedItems || {}).map(([item, checked]) => {
+                if (item === 'Any Item Damaged') {
+                    return `• ${item.toUpperCase()}: ${checked ? '⚠️ DAMAGED' : '✅ NO'}`;
+                }
+                return `• ${item.toUpperCase()}: ${checked ? '✅ RETURNED' : '❌ MISSING'}`;
+            }).join('\n') + `\n` +
+            `------------------------------------\n` +
+            `*Remarks:* ${log.remarks || 'None'}\n` +
+            `------------------------------------\n` +
+            `_Generated via Sky-Ops Center_`;
+
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Checkout Slip - Room ${log.roomNumber}</title>
+                    <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Inter:wght@400;600;800;900&display=swap');
+                        body { font-family: 'Inter', sans-serif; padding: 40px; color: #0a192f; line-height: 1.6; }
+                        .header { text-align: center; border-bottom: 2px solid #d4af37; padding-bottom: 20px; margin-bottom: 30px; }
+                        .hotel-name { font-family: 'Cinzel', serif; font-size: 28px; font-weight: bold; margin: 0; color: #0a192f; }
+                        .slip-title { font-size: 12px; color: #d4af37; letter-spacing: 3px; text-transform: uppercase; margin-top: 5px; font-weight: 800; }
+                        .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 30px; }
+                        .item { border-bottom: 1px solid #f0f0f0; padding-bottom: 10px; }
+                        .label { font-size: 10px; font-weight: 800; color: #888; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 1px; }
+                        .value { font-size: 15px; font-weight: 600; color: #0a192f; }
+                        .section-title { font-size: 10px; font-weight: 800; color: #0a192f; background: #f8f9fa; padding: 5px 10px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }
+                        .footer { margin-top: 60px; text-align: center; font-size: 9px; color: #999; border-top: 1px solid #eee; padding-top: 20px; }
+                        .signature-space { margin-top: 40px; display: flex; justify-content: space-between; }
+                        .sig-line { border-top: 1px solid #333; width: 150px; text-align: center; font-size: 10px; padding-top: 5px; margin-top: 30px; }
+                        @media print { .no-print { display: none !important; } }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; padding: 12px; background: #f4f4f4; border-radius: 8px; align-items: center; border: 1px solid #ddd;">
+                        <div style="display: flex; gap: 10px;">
+                            <button onclick="window.print()" style="padding: 10px 20px; background: #0a192f; color: #d4af37; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">🖨️ Print / Save PDF</button>
+                            <button onclick="window.open('https://wa.me/?text=${encodeURIComponent(shareText)}', '_blank')" style="padding: 10px 20px; background: #25D366; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">💬 Share on WhatsApp</button>
+                            <button onclick="window.close()" style="padding: 10px 20px; background: #666; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">Close</button>
+                        </div>
+                        <div style="font-size: 10px; color: #555; font-weight: 700; text-align: center;">
+                            💡 <b>To Share as PDF:</b> Click "Print / Save PDF" → Select "Save as PDF" as Destination → Upload/attach that PDF file to WhatsApp!
+                        </div>
+                    </div>
+                    
+                    <div class="header" style="display: flex; align-items: center; justify-content: center; gap: 30px;">
+                        <div style="display: inline-flex; align-items: center; background: #0a192f; padding: 10px 20px; border-radius: 12px; border-left: 4px solid #d4af37; min-width: fit-content;">
+                            <div style="display: flex; flex-direction: column; line-height: 1.1; text-align: left;">
+                                <div style="font-size: 14px; color: white; letter-spacing: 1px; font-weight: 500; text-transform: uppercase;">Hotel</div>
+                                <div style="display: flex; align-items: baseline; gap: 8px;">
+                                    <div style="font-size: 30px; font-weight: 900; color: #d4af37; font-family: 'Cinzel', serif; letter-spacing: 2px;">SKY</div>
+                                    <div style="font-size: 42px; font-weight: 900; color: #d4af37; font-family: 'Cinzel', serif;">5</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="slip-title" style="margin-top: 0; padding-top: 5px;">Room Checkout slip</div>
+                    </div>
+
+                    <div class="section-title">Inspection Details</div>
+                    <div class="details-grid">
+                        <div class="item"><div class="label">Room Number</div><div class="value">ROOM ${log.roomNumber} (${log.roomType})</div></div>
+                        <div class="item"><div class="label">Checkout Time</div><div class="value">${log.date}</div></div>
+                        <div class="item"><div class="label">Housekeeper/Inspector</div><div class="value">${log.staffName}</div></div>
+                        <div class="item"><div class="label">Status</div><div class="value">${log.checkedItems['Any Item Damaged'] ? '⚠️ DAMAGED / ATTENTION REQUIRED' : '✅ ALL CLEAR'}</div></div>
+                    </div>
+
+                    <div class="section-title">Checklist Status</div>
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid #0a192f; text-align: left; font-size: 12px; font-weight: 800;">
+                                <th style="padding: 10px 0; color: #0a192f;">Checklist Item</th>
+                                <th style="text-align: right; padding: 10px 0; color: #0a192f; width: 200px;">Verification Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${itemsHtml}
+                        </tbody>
+                    </table>
+
+                    <div class="section-title">Remarks & Exceptions</div>
+                    <div style="padding: 15px; background: #fafafa; border-radius: 8px; border-left: 4px solid #d4af37; font-style: italic; font-size: 14px;">
+                        ${log.remarks || 'All checklist items verified. No damage reported.'}
+                    </div>
+
+                    <div class="signature-space">
+                        <div class="sig-line">Housekeeper Signature</div>
+                        <div class="sig-line">Front Desk Executive</div>
+                    </div>
+
+                    <div class="footer">
+                        ROOM CHECKOUT RECORD • GENERATED BY Sky-Ops Center<br>
+                        "Maintaining Prestige Standards of Comfort and Accountability"
+                    </div>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+    };
+
+    const handlePrintBlankCheckoutCoupons = () => {
+        const printWindow = window.open('', '_blank');
+        const items = [
+            'Room keys',
+            'Slippers',
+            'Ac Remote',
+            'Tv remote',
+            'Setup box remote',
+            'Cattle set',
+            'Bed sheets',
+            'Any Item Damaged'
+        ];
+
+        let couponsHtml = '';
+        for(let i = 0; i < 10; i++) {
+            couponsHtml += `
+                <div class="coupon" style="border: 1.5px solid #000; padding: 6px 10px; display: flex; flex-direction: column; justify-content: space-between; background: white; box-sizing: border-box; page-break-inside: avoid; height: 100%;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 2px; margin-bottom: 3px; border-bottom: 1.5px solid #000;">
+                        <div style="text-align: left; line-height: 1.1;">
+                            <div style="font-size: 13px; font-weight: 900; color: #0a192f; font-family: 'Inter', sans-serif; letter-spacing: 0.5px;">
+                                SKY <span style="color: #d4af37;">5</span>
+                            </div>
+                            <div style="font-size: 6px; font-weight: 800; color: #0a192f; letter-spacing: 0.5px; text-transform: uppercase; margin-top: 1px;">BOUTIQUE HOTEL</div>
+                        </div>
+                        <span style="font-family: 'Inter', sans-serif; font-size: 8.5px; font-weight: 900; color: #d4af37; letter-spacing: 0.5px; text-transform: uppercase; padding-bottom: 1px; border-bottom: 1.5px solid #d4af37;">ROOM CHECKOUT</span>
+                        <div style="font-size: 7px; font-weight: 800; color: #000;">DATE: ____/____/____</div>
+                    </div>
+
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 3px; flex: 1;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid #000; text-align: left; font-size: 7px; font-weight: 900;">
+                                <th style="padding: 1.5px 0; color: #000; text-transform: uppercase;">Checkout Item</th>
+                                <th style="text-align: right; padding: 1.5px 0; color: #000; text-transform: uppercase; width: 75px;">Verification [ OK ]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${items.map(item => `
+                                <tr style="border-bottom: 1px dashed #ccc; font-size: 7.5px; font-weight: 800;">
+                                    <td style="padding: 2px 0; color: #000; text-transform: uppercase;">• ${item}</td>
+                                    <td style="text-align: right; padding: 2px 0; color: #000;">[ &nbsp; ] ${item === 'Any Item Damaged' ? 'YES/NO' : 'OK/RET'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+
+                    <div style="border-top: 1.5px solid #000; padding-top: 3px; margin-top: auto;">
+                        <div style="display: flex; justify-content: space-between; font-size: 7.5px; font-weight: 800; color: #000;">
+                            <span>Room #: ________</span>
+                            <span>Inspector: ______________</span>
+                            <span>Sign: __________</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        const shareMessage = `*🏨 HOTEL SKY 5 - ROOM CHECKOUT COUPON* 🏨\n` +
+            `------------------------------------\n` +
+            items.map((item, idx) => `${idx + 1}. ${item.toUpperCase()}: [ OK: ___ ]`).join('\n') + `\n` +
+            `------------------------------------\n` +
+            `_Date:_ ___________________\n` +
+            `_Room No:_ _______________\n` +
+            `_Inspector Name:_ _________\n` +
+            `_Sign:_ ___________________\n\n` +
+            `_Generated by Sky-Ops Center_`;
+
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Blank Checkout Coupons (A4 - 10 per page)</title>
+                    <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
+                        html, body {
+                            height: 100vh;
+                            margin: 0;
+                            padding: 0;
+                            box-sizing: border-box;
+                            overflow: hidden;
+                        }
+                        body {
+                            font-family: 'Inter', sans-serif;
+                            padding: 15px;
+                            background: #fff;
+                            color: #000;
+                        }
+                        .coupons-container {
+                            display: grid;
+                            grid-template-columns: 1fr 1fr;
+                            grid-template-rows: repeat(5, 1fr);
+                            gap: 8px;
+                            height: calc(100vh - 110px);
+                            box-sizing: border-box;
+                        }
+                        @media print {
+                            .no-print { display: none !important; }
+                            body {
+                                padding: 5px;
+                                margin: 0;
+                                height: 100vh;
+                                box-sizing: border-box;
+                                overflow: hidden;
+                            }
+                            .coupons-container {
+                                height: calc(100vh - 10px);
+                                gap: 6px;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; padding: 12px; background: #f4f4f4; border-radius: 8px; align-items: center; border: 1px solid #ddd; font-family: 'Inter', sans-serif; box-sizing: border-box;">
+                        <div style="display: flex; gap: 10px;">
+                            <button onclick="window.print()" style="padding: 6px 15px; background: #0a192f; color: #d4af37; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">🖨️ Print / Save PDF</button>
+                            <button onclick="window.open('https://wa.me/?text=${encodeURIComponent(shareMessage)}', '_blank')" style="padding: 6px 15px; background: #25D366; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">💬 Share on WhatsApp</button>
+                            <button onclick="window.close()" style="padding: 6px 15px; background: #666; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">Close</button>
+                        </div>
+                        <div style="font-size: 10px; color: #555; font-weight: 700; text-align: center;">
+                            💡 <b>To Share as PDF:</b> Click "Print / Save PDF" → Select "Save as PDF" as Destination → Upload/attach that PDF file to WhatsApp!
+                        </div>
+                    </div>
+                    <div class="coupons-container">
+                        ${couponsHtml}
+                    </div>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+    };
+
+    const handleShareCheckoutWhatsApp = (log) => {
+        const text = `*Hotel Sky 5 - Room Checkout Report*\n` +
+            `------------------------------------\n` +
+            `*Room:* ROOM ${log.roomNumber} (${log.roomType})\n` +
+            `*Date:* ${log.date}\n` +
+            `*Inspector/Staff:* ${log.staffName}\n` +
+            `------------------------------------\n` +
+            Object.entries(log.checkedItems || {}).map(([item, checked]) => {
+                if (item === 'Any Item Damaged') {
+                    return `• ${item.toUpperCase()}: ${checked ? '⚠️ DAMAGED' : '✅ NO'}`;
+                }
+                return `• ${item.toUpperCase()}: ${checked ? '✅ RETURNED' : '❌ MISSING'}`;
+            }).join('\n') + `\n` +
+            `------------------------------------\n` +
+            `*Remarks:* ${log.remarks || 'None'}\n` +
+            `------------------------------------\n` +
+            `_Generated via Sky-Ops Center_`;
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     };
 
     const handleShareWorkforce = () => {
@@ -908,42 +1283,42 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
         ];
 
         let couponsHtml = '';
-        for(let i = 0; i < 6; i++) {
+        for(let i = 0; i < 10; i++) {
             couponsHtml += `
-                <div class="coupon" style="border: 2px solid #000; padding: 12px 15px; display: flex; flex-direction: column; justify-content: space-between; background: white; box-sizing: border-box; page-break-inside: avoid; height: 100%;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 4px; margin-bottom: 6px; border-bottom: 2px solid #000;">
+                <div class="coupon" style="border: 1.5px solid #000; padding: 6px 10px; display: flex; flex-direction: column; justify-content: space-between; background: white; box-sizing: border-box; page-break-inside: avoid; height: 100%;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 2px; margin-bottom: 3px; border-bottom: 1.5px solid #000;">
                         <div style="text-align: left; line-height: 1.1;">
-                            <div style="font-size: 16px; font-weight: 900; color: #0a192f; font-family: 'Inter', sans-serif; letter-spacing: 0.5px;">
+                            <div style="font-size: 13px; font-weight: 900; color: #0a192f; font-family: 'Inter', sans-serif; letter-spacing: 0.5px;">
                                 SKY <span style="color: #d4af37;">5</span>
                             </div>
-                            <div style="font-size: 7px; font-weight: 800; color: #0a192f; letter-spacing: 0.5px; text-transform: uppercase; margin-top: 2px;">BOUTIQUE HOTEL</div>
+                            <div style="font-size: 6px; font-weight: 800; color: #0a192f; letter-spacing: 0.5px; text-transform: uppercase; margin-top: 1px;">BOUTIQUE HOTEL</div>
                         </div>
-                        <span style="font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 900; color: #0a192f; letter-spacing: 1px; text-transform: uppercase; padding-bottom: 2px; border-bottom: 2px solid #d4af37;">LAUNDRY SERVICE</span>
-                        <div style="font-size: 8px; font-weight: 800; color: #000;">DATE: ____/____/____</div>
+                        <span style="font-family: 'Inter', sans-serif; font-size: 8.5px; font-weight: 900; color: #0a192f; letter-spacing: 0.5px; text-transform: uppercase; padding-bottom: 1px; border-bottom: 1.5px solid #d4af37;">LAUNDRY SERVICE</span>
+                        <div style="font-size: 7px; font-weight: 800; color: #000;">DATE: ____/____/____</div>
                     </div>
 
 
-                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; flex: 1;">
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 3px; flex: 1;">
                         <thead>
-                            <tr style="border-bottom: 1.5px solid #000; text-align: left; font-size: 8px; font-weight: 900;">
-                                <th style="padding: 3px 0; color: #000; text-transform: uppercase;">Laundry Item</th>
-                                <th style="text-align: right; padding: 3px 0; color: #000; text-transform: uppercase; width: 80px;">Pick Up Qty</th>
+                            <tr style="border-bottom: 1px solid #000; text-align: left; font-size: 7px; font-weight: 900;">
+                                <th style="padding: 1.5px 0; color: #000; text-transform: uppercase;">Laundry Item</th>
+                                <th style="text-align: right; padding: 1.5px 0; color: #000; text-transform: uppercase; width: 60px;">Pick Up Qty</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${items.map(item => `
-                                <tr style="border-bottom: 1px dashed #ccc; font-size: 9px; font-weight: 800;">
-                                    <td style="padding: 4px 0; color: #000; text-transform: uppercase;">• ${item}</td>
-                                    <td style="text-align: right; padding: 4px 0; color: #000;">________________</td>
+                                <tr style="border-bottom: 1px dashed #ccc; font-size: 7.5px; font-weight: 800;">
+                                    <td style="padding: 2.5px 0; color: #000; text-transform: uppercase;">• ${item}</td>
+                                    <td style="text-align: right; padding: 2.5px 0; color: #000;">____________</td>
                                 </tr>
                             `).join('')}
                         </tbody>
                     </table>
 
-                    <div style="border-top: 1.5px solid #000; padding-top: 6px; margin-top: auto;">
-                        <div style="display: flex; justify-content: space-between; font-size: 8.5px; font-weight: 800; color: #000;">
-                            <span>Picked up By: ____________________</span>
-                            <span>Supervisor: ____________________</span>
+                    <div style="border-top: 1.5px solid #000; padding-top: 3px; margin-top: auto;">
+                        <div style="display: flex; justify-content: space-between; font-size: 7.5px; font-weight: 800; color: #000;">
+                            <span>Picked up By: __________________</span>
+                            <span>Supervisor: __________________</span>
                         </div>
                     </div>
                 </div>
@@ -962,7 +1337,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
         printWindow.document.write(`
             <html>
                 <head>
-                    <title>Blank Laundry Service Coupons (A4 - 6 per page)</title>
+                    <title>Blank Laundry Service Coupons (A4 - 10 per page)</title>
                     <style>
                         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
                         html, body {
@@ -981,23 +1356,23 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                         .coupons-container {
                             display: grid;
                             grid-template-columns: 1fr 1fr;
-                            grid-template-rows: repeat(3, 1fr);
-                            gap: 15px;
-                            height: calc(100vh - 55px);
+                            grid-template-rows: repeat(5, 1fr);
+                            gap: 8px;
+                            height: calc(100vh - 110px);
                             box-sizing: border-box;
                         }
                         @media print {
                             .no-print { display: none !important; }
                             body {
-                                padding: 10px;
+                                padding: 5px;
                                 margin: 0;
                                 height: 100vh;
                                 box-sizing: border-box;
                                 overflow: hidden;
                             }
                             .coupons-container {
-                                height: 100vh;
-                                gap: 12px;
+                                height: calc(100vh - 10px);
+                                gap: 6px;
                             }
                         }
                     </style>
@@ -1246,7 +1621,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                 </div>
 
                 <nav style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {['Reception', 'Kitchen', 'Cleaning', 'Laundry', 'Workforce', 'Attendance', 'Finance', 'Menu Config'].map(tab => (
+                    {['Reception', 'Kitchen', 'Cleaning', 'Laundry', 'Checkouts', 'Workforce', 'Attendance', 'Finance', 'Menu Config'].map(tab => (
                         <div 
                             key={tab}
                             onClick={() => setActiveTab(tab)}
@@ -1263,11 +1638,13 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                             {tab === 'Reception' && '🏨 '}
                             {tab === 'Kitchen' && '🍳 '}
                             {tab === 'Cleaning' && '🧹 '}
+                            {tab === 'Laundry' && '🧺 '}
+                            {tab === 'Checkouts' && '🔑 '}
                             {tab === 'Workforce' && '👥 '}
                             {tab === 'Attendance' && '📅 '}
                             {tab === 'Finance' && '📊 '}
                             {tab === 'Menu Config' && '⚙️ '}
-                            {tab}
+                            {tab === 'Checkouts' ? 'Room Checkouts' : tab}
                         </div>
                     ))}
                 </nav>
@@ -1440,7 +1817,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                                         <>
                                                             <button className="checkout-btn" style={{ padding: '8px', fontSize: '0.8rem', background: '#e67e22' }} onClick={() => handleCheckInClick(room)}>EDIT GUEST</button>
                                                             <button className="checkout-btn" style={{ padding: '8px', fontSize: '0.8rem', background: '#27ae60' }} onClick={() => handlePrintReceipt(room)}>PRINT RECEIPT</button>
-                                                            <button className="checkout-btn" style={{ padding: '8px', fontSize: '0.8rem', background: '#34495e' }} onClick={() => updateRoomStatus(room.id, 'Dirty')}>CHECK-OUT</button>
+                                                            <button className="checkout-btn" style={{ padding: '8px', fontSize: '0.8rem', background: '#34495e' }} onClick={() => handleStartCheckout(room)}>CHECK-OUT</button>
                                                         </>
                                                     )}
                                                     {room.status === 'Dirty' && <button className="checkout-btn" style={{ padding: '8px', fontSize: '0.8rem', background: 'var(--accent)', color: 'black' }} onClick={() => updateRoomStatus(room.id, 'Clean')}>MARK CLEANED</button>}
@@ -1720,6 +2097,148 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                                 </td>
                                             </tr>
                                         ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                    </div>
+                )}
+
+                {activeTab === 'Checkouts' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
+                        {/* Summary & Printable Slips Section */}
+                        <section>
+                            <h2 style={{ fontSize: '1.5rem', color: 'var(--primary-navy)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                🔑 Room Checkout Control
+                            </h2>
+                            
+                            {/* Checklist Items Display Panel */}
+                            <div style={{ background: '#0a192f', color: 'white', padding: '25px', borderRadius: '20px', marginBottom: '30px', borderLeft: '8px solid var(--accent)', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}>
+                                <h3 style={{ margin: '0 0 15px 0', color: 'var(--accent)', fontSize: '1rem', letterSpacing: '1px' }}>📋 REQUIRED ROOM CHECKOUT CHECKS</h3>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+                                    {checkoutChecklist.map((item, idx) => (
+                                        <div key={idx} style={{ fontSize: '0.75rem', fontWeight: '700', background: 'rgba(255,255,255,0.1)', padding: '8px', borderRadius: '8px', textAlign: 'center' }}>
+                                            {idx + 1}. {item}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '15px', marginBottom: '25px' }}>
+                                <button 
+                                    onClick={handlePrintBlankCheckoutCoupons}
+                                    style={{ padding: '12px 25px', background: 'var(--accent)', color: 'black', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', boxShadow: '0 4px 15px rgba(212,175,55,0.2)' }}
+                                >
+                                    🖨️ PRINT BLANK CHECKOUT COUPONS (A4)
+                                </button>
+                                <button 
+                                    onClick={() => handleStartCheckout({ id: '' })}
+                                    style={{ padding: '12px 25px', background: 'var(--primary-navy)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
+                                >
+                                    ➕ RECORD NEW INSPECTION
+                                </button>
+                            </div>
+
+                            <h3 style={{ fontSize: '1.2rem', color: 'var(--primary-navy)', marginBottom: '15px' }}>Select Room to Record Checkout Checklist:</h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '15px', marginBottom: '30px' }}>
+                                {rooms.filter(r => r.status === 'Occupied').map(room => (
+                                    <div key={room.id} style={{ background: 'white', borderRadius: '14px', padding: '15px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderLeft: '5px solid var(--accent)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ fontWeight: '800', color: 'var(--primary-navy)' }}>Room {room.id}</span>
+                                            <span style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#27ae60', background: '#eafaf1', padding: '2px 8px', borderRadius: '8px' }}>OCCUPIED</span>
+                                        </div>
+                                        <div style={{ fontSize: '0.8rem', color: '#666' }}>{room.guest?.name || 'Guest'}</div>
+                                        <button 
+                                            onClick={() => handleStartCheckout(room)}
+                                            style={{ padding: '8px', background: 'var(--primary-navy)', color: 'var(--accent)', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.8rem', cursor: 'pointer' }}
+                                        >
+                                            INSPECT & CHECKOUT
+                                        </button>
+                                    </div>
+                                ))}
+                                {rooms.filter(r => r.status === 'Occupied').length === 0 && (
+                                    <div style={{ gridColumn: '1 / -1', padding: '20px', textAlign: 'center', background: 'rgba(0,0,0,0.02)', border: '1px dashed #ccc', borderRadius: '12px', color: '#888' }}>
+                                        No rooms are currently occupied.
+                                    </div>
+                                )}
+                            </div>
+                        </section>
+
+                        {/* History Table Section */}
+                        <section style={{ background: 'white', borderRadius: '25px', padding: '35px', boxShadow: '0 10px 40px rgba(0,0,0,0.04)' }}>
+                            <h2 style={{ fontSize: '1.5rem', color: 'var(--primary-navy)', marginBottom: '25px' }}>Checkout Audit Inspection Logs</h2>
+                            <div style={{ overflowX: 'auto' }}>
+                                <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 10px' }}>
+                                    <thead>
+                                        <tr style={{ textAlign: 'left' }}>
+                                            <th style={{ padding: '15px', color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>ROOM #</th>
+                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>ROOM TYPE</th>
+                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>CHECKOUT TIME</th>
+                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>STAFF NAME</th>
+                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>CHECKLIST STATUS</th>
+                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>DAMAGES STATUS</th>
+                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>REMARKS</th>
+                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>ACTIONS</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {checkoutLogs.map(log => {
+                                            const itemsArray = Object.entries(log.checkedItems || {});
+                                            const standardItems = itemsArray.filter(([item]) => item !== 'Any Item Damaged');
+                                            const returnedCount = standardItems.filter(([, val]) => val).length;
+                                            const totalStandard = standardItems.length || 7;
+                                            const isDamaged = log.checkedItems['Any Item Damaged'];
+
+                                            return (
+                                                <tr key={log.id} style={{ background: '#f8f9fa', borderRadius: '12px' }}>
+                                                    <td style={{ padding: '15px', fontWeight: '800', color: 'var(--primary-navy)', borderTopLeftRadius: '12px', borderBottomLeftRadius: '12px' }}>Room {log.roomNumber}</td>
+                                                    <td style={{ fontSize: '0.9rem' }}>{log.roomType}</td>
+                                                    <td style={{ fontSize: '0.85rem', color: '#666' }}>{log.date}</td>
+                                                    <td style={{ fontWeight: '600' }}>{log.staffName}</td>
+                                                    <td style={{ fontSize: '0.85rem' }}>
+                                                        <span style={{ 
+                                                            padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold',
+                                                            background: returnedCount === totalStandard ? '#eafaf1' : '#fef9e7',
+                                                            color: returnedCount === totalStandard ? '#27ae60' : '#d35400'
+                                                        }}>
+                                                            {returnedCount}/{totalStandard} Items
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <span style={{ 
+                                                            padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold',
+                                                            background: isDamaged ? '#fdf2f2' : '#eafaf1',
+                                                            color: isDamaged ? '#e74c3c' : '#27ae60'
+                                                        }}>
+                                                            {isDamaged ? '⚠️ DAMAGED' : '✅ ALL CLEAR'}
+                                                        </span>
+                                                    </td>
+                                                    <td style={{ fontSize: '0.85rem', color: '#555', fontStyle: 'italic' }}>{log.remarks || '-'}</td>
+                                                    <td style={{ borderTopRightRadius: '12px', borderBottomRightRadius: '12px' }}>
+                                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                                            <button 
+                                                                onClick={() => handleEditCheckoutLog(log)}
+                                                                style={{ background: 'transparent', border: '1px solid #ddd', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', color: 'var(--primary-navy)', fontWeight: 'bold', fontSize: '0.75rem' }}
+                                                            >
+                                                                EDIT
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => handlePrintCheckoutSlip(log)}
+                                                                style={{ background: '#f8f9fa', border: '1px solid #d4af37', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', color: '#0a192f', fontWeight: 'bold', fontSize: '0.75rem' }}
+                                                            >
+                                                                🖨️ PRINT
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => handleShareCheckoutWhatsApp(log)}
+                                                                style={{ background: '#25D366', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', color: 'white', fontWeight: 'bold', fontSize: '0.75rem' }}
+                                                            >
+                                                                💬 WHATSAPP
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>
@@ -3091,6 +3610,133 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                         </div>
                     </div>
                 )}
+
+            {/* Room Checkout Checklist Modal */}
+            {checkoutRoom && (
+                <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0, 33, 71, 0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, backdropFilter: 'blur(5px)' }}>
+                    <div style={{ background: 'white', borderRadius: '24px', width: '500px', maxHeight: '90vh', boxShadow: '0 25px 50px rgba(0,0,0,0.3)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ background: 'var(--primary-navy)', padding: '25px 30px', borderBottom: '3px solid var(--accent)' }}>
+                            <h2 style={{ margin: '0', color: 'white', fontFamily: 'Cinzel, serif', fontSize: '1.4rem', letterSpacing: '1px' }}>CHECKOUT INSPECTION</h2>
+                            <div style={{ color: 'var(--accent)', fontSize: '0.8rem', marginTop: '5px' }}>ROOM {checkoutRoom.id || 'N/A'} • AUDIT CHECKLIST</div>
+                        </div>
+                        <div style={{ padding: '30px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', flex: 1 }}>
+                            <div style={{ display: 'flex', gap: '15px' }}>
+                                <div style={{ flex: 1 }}>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Room Number <span style={{color: '#e74c3c'}}>*</span></label>
+                                    <input 
+                                        type="number" 
+                                        value={checkoutForm.roomNumber}
+                                        onChange={(e) => setCheckoutForm({...checkoutForm, roomNumber: e.target.value})}
+                                        style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #e0e0e0', background: '#f8f9fa', outline: 'none', boxSizing: 'border-box' }}
+                                    />
+                                </div>
+                                <div style={{ flex: 1.5 }}>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Inspected By <span style={{color: '#e74c3c'}}>*</span></label>
+                                    <select 
+                                        value={checkoutForm.staffName}
+                                        onChange={(e) => setCheckoutForm({...checkoutForm, staffName: e.target.value})}
+                                        style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #e0e0e0', background: '#f8f9fa', outline: 'none', cursor: 'pointer' }}
+                                    >
+                                        <option value="">Select Staff</option>
+                                        {[...staffRegistry.housekeeping, ...staffRegistry.reception].map(s => (
+                                            <option key={s.name} value={s.name}>{s.name} ({s.role})</option>
+                                        ))}
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '15px' }}>
+                                <div style={{ flex: 1 }}>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Inspection Time</label>
+                                    <input 
+                                        type="text" 
+                                        value={checkoutForm.date}
+                                        onChange={(e) => setCheckoutForm({...checkoutForm, date: e.target.value})}
+                                        style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #e0e0e0', background: '#f8f9fa', outline: 'none', boxSizing: 'border-box' }}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Checklist Items */}
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '800', marginBottom: '12px', color: 'var(--primary-navy)', textTransform: 'uppercase', borderBottom: '2px solid #f0f0f0', paddingBottom: '5px' }}>Checklist Verification</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 15px' }}>
+                                    {checkoutChecklist.map(item => {
+                                        const checked = checkoutForm.checkedItems[item];
+                                        return (
+                                            <div 
+                                                key={item} 
+                                                onClick={() => {
+                                                    setCheckoutForm({
+                                                        ...checkoutForm,
+                                                        checkedItems: {
+                                                            ...checkoutForm.checkedItems,
+                                                            [item]: !checked
+                                                        }
+                                                    });
+                                                }}
+                                                style={{ 
+                                                    display: 'flex', 
+                                                    alignItems: 'center', 
+                                                    justifyContent: 'space-between', 
+                                                    background: item === 'Any Item Damaged' ? (checked ? '#fdf2f2' : '#f8f9fa') : (checked ? '#eafaf1' : '#f8f9fa'), 
+                                                    padding: '10px 15px', 
+                                                    borderRadius: '10px', 
+                                                    border: checked ? (item === 'Any Item Damaged' ? '1px solid #e74c3c' : '1px solid #27ae60') : '1px solid #eee',
+                                                    cursor: 'pointer',
+                                                    userSelect: 'none',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                            >
+                                                <span style={{ fontSize: '0.8rem', fontWeight: '700', color: checked ? 'var(--primary-navy)' : '#555' }}>
+                                                    {item === 'Any Item Damaged' ? '⚠️ ' : ''}{item}
+                                                </span>
+                                                <span style={{ fontSize: '1rem' }}>
+                                                    {item === 'Any Item Damaged' ? (checked ? '🔴 YES' : '⚪ NO') : (checked ? '🟢 RET' : '⚪ MIS')}
+                                                </span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Remarks / Damage Details</label>
+                                <textarea 
+                                    value={checkoutForm.remarks}
+                                    onChange={(e) => setCheckoutForm({...checkoutForm, remarks: e.target.value})}
+                                    style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #e0e0e0', background: '#f8f9fa', outline: 'none', minHeight: '60px', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                                    placeholder="Add any damage details or general notes..."
+                                ></textarea>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '15px' }}>
+                                <div style={{ display: 'flex', gap: '15px' }}>
+                                    <button style={{ flex: 1, padding: '15px', background: 'white', border: '2px solid #e0e0e0', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' }} onClick={() => { setCheckoutRoom(null); setEditingCheckoutLog(null); }}>CANCEL</button>
+                                    <button style={{ flex: 1, padding: '15px', background: 'var(--primary-navy)', border: 'none', borderRadius: '12px', color: 'var(--accent)', fontWeight: 'bold', cursor: 'pointer' }} onClick={handleSaveCheckout}>{editingCheckoutLog ? 'UPDATE LOG' : 'SAVE CHECKOUT'}</button>
+                                </div>
+                                {editingCheckoutLog && (
+                                    <div style={{ display: 'flex', gap: '10px' }}>
+                                        <button 
+                                            onClick={() => handlePrintCheckoutSlip(editingCheckoutLog)}
+                                            style={{ flex: 1, padding: '12px', background: '#f8f9fa', border: '2px solid #d4af37', borderRadius: '12px', color: '#0a192f', fontWeight: 'bold', cursor: 'pointer' }}
+                                        >
+                                            🖨️ PRINT SLIP
+                                        </button>
+                                        <button 
+                                            onClick={() => handleShareCheckoutWhatsApp(editingCheckoutLog)}
+                                            style={{ flex: 1, padding: '12px', background: '#25D366', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}
+                                        >
+                                            💬 SHARE WHATSAPP
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
             </div>
         </div>
     );
