@@ -2453,18 +2453,16 @@ header {
 
   .menu-card-design {
     box-shadow: none !important;
-    border-width: 2px !important; /* Thinner border for print clarity */
+    border: none !important;
     width: 210mm !important; /* A4 Width */
-    height: 296mm !important; /* Slight safety margin to guarantee exactly 2 pages */
-    transform: scale(0.92); /* Micro-scale to ensure 1-page fit */
-    transform-origin: top center;
+    height: 297mm !important; /* A4 Height */
     margin: 0 auto !important;
-    page-break-after: always !important;
     page-break-inside: avoid !important;
+    zoom: 0.94; /* Match verified scaling */
   }
 
-  .menu-card-design:last-child {
-    page-break-after: avoid !important;
+  .menu-card-design + .menu-card-design {
+    page-break-before: always !important;
   }
 
   /* Hide the action buttons during print */

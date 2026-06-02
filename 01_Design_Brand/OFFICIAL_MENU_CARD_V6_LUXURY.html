@@ -66,8 +66,34 @@
 
         @media print {
             body { padding: 0; margin: 0; background-color: white; gap: 0; }
-            .menu-page { box-shadow: none; border: none; width: 210mm; height: 297mm; page-break-after: always; page-break-before: avoid; }
-            .menu-page:last-child { page-break-after: avoid; }
+            .menu-page { 
+                box-shadow: none !important; 
+                border: none !important; 
+                width: 210mm !important; 
+                height: 297mm !important; 
+                page-break-inside: avoid !important;
+                padding: 10mm 14mm !important;
+                zoom: 0.94;
+            }
+            .menu-page + .menu-page {
+                page-break-before: always !important;
+            }
+            .outer-border { top: 4mm !important; bottom: 4mm !important; left: 4mm !important; right: 4mm !important; }
+            .inner-border { top: 6mm !important; bottom: 6mm !important; left: 6mm !important; right: 6mm !important; }
+            header { margin-bottom: 12px !important; padding-bottom: 8px !important; }
+            .logo-svg { width: 48px !important; height: 48px !important; }
+            header h2 { font-size: 30px !important; }
+            .menu-grid { gap: 20px !important; }
+            .column { gap: 12px !important; }
+            section { padding: 8px 12px !important; }
+            .item-list { gap: 4px !important; }
+            .thali-container { padding: 8px 12px !important; margin-top: 4px !important; }
+            .thali-grid { gap: 6px !important; }
+            .thali-desc { margin-top: 2px !important; font-size: 7.5px !important; }
+            .amenities-box { padding: 8px 12px !important; }
+            .amenities-grid { gap: 6px !important; }
+            .notes-qr { margin-top: 10px !important; padding-top: 8px !important; }
+            footer { margin-top: 12px !important; padding-top: 8px !important; }
         }
 
         /* Border Decoration */
