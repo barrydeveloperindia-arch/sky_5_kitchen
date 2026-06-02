@@ -250,6 +250,35 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
     }
     
     if (showMenuCard) {
+        // Helper to get price of a menu item by name
+        const getPrice = (name, defaultPrice) => {
+            const item = menuItems.find(i => i.name.toLowerCase() === name.toLowerCase());
+            return item ? item.price : defaultPrice;
+        };
+
+        const beverageGroups = [
+            {
+                name: "Tea / Coffee / Glass of Milk",
+                price: `${getPrice("Tea", 40)} / ${getPrice("Coffee", 60)} / ${getPrice("Glass of Milk", 60)}`,
+                image: menuItems.find(i => i.id === 7001)?.image || "/images/food_tea.png"
+            },
+            {
+                name: "Lemon Water / Fresh Lemonade",
+                price: `${getPrice("Lemon Water", 40)} / ${getPrice("Fresh Lemonade", 79)}`,
+                image: menuItems.find(i => i.id === 7004)?.image || "/images/food_soda.png"
+            },
+            {
+                name: "Sweet Lassi / Salted Lassi",
+                price: `${getPrice("Sweet Lassi", 109)} / ${getPrice("Salted Lassi", 109)}`,
+                image: menuItems.find(i => i.id === 7006)?.image || "/images/food_lassi.png"
+            },
+            {
+                name: "Coke / Limca / Mineral Water (1 Ltr)",
+                price: `${getPrice("Coke", 50)} / ${getPrice("Limca", 50)} / ${getPrice("Mineral Water (1 Ltr)", 40)}`,
+                image: menuItems.find(i => i.id === 7008)?.image || "/images/food_cold_drink.png"
+            }
+        ];
+
         return (
             <div className="menu-print-container" style={{ background: '#f5f5f5', maxWidth: '100%', height: 'auto', minHeight: '100vh', overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
                 
@@ -267,7 +296,7 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                     <div style={{
                         border: '2px solid #d4af37', /* Inner gold border */
                         padding: '16px',
-                        minHeight: '265mm'
+                        minHeight: '260mm'
                     }}>
                         
                         {/* Header Row */}
@@ -426,13 +455,13 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                                         <h3 style={{ fontFamily: 'Georgia, serif', color: '#0a192f', fontSize: '1.1rem', margin: 0, fontWeight: '900' }}>BEVERAGES</h3>
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        {menuItems.filter(i => i.category === 'Beverages').map(item => (
-                                            <div key={item.id} style={{ display: 'flex', alignItems: 'center', margin: '2px 0' }}>
-                                                <img src={item.image} alt={item.name} style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #d4af37', marginRight: '6px', flexShrink: 0 }} />
+                                        {beverageGroups.map((group, idx) => (
+                                            <div key={idx} style={{ display: 'flex', alignItems: 'center', margin: '2px 0' }}>
+                                                <img src={group.image} alt={group.name} style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #d4af37', marginRight: '6px', flexShrink: 0 }} />
                                                 <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end' }}>
-                                                    <span style={{ fontWeight: '800', color: '#0a192f', fontSize: '0.78rem', textTransform: 'uppercase' }}>{item.name}</span>
+                                                    <span style={{ fontWeight: '800', color: '#0a192f', fontSize: '0.78rem', textTransform: 'uppercase' }}>{group.name}</span>
                                                     <div style={{ flex: 1, borderBottom: '2px dotted #ccc', margin: '0 8px', position: 'relative', top: '-4px' }}></div>
-                                                    <span style={{ fontWeight: '900', color: '#0a192f', fontSize: '0.85rem' }}>₹{item.price}</span>
+                                                    <span style={{ fontWeight: '900', color: '#0a192f', fontSize: '0.85rem' }}>₹{group.price}</span>
                                                 </div>
                                             </div>
                                         ))}
@@ -458,7 +487,7 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                     <div style={{
                         border: '2px solid #d4af37', 
                         padding: '16px',
-                        minHeight: '265mm'
+                        minHeight: '260mm'
                     }}>
                         
                         {/* Header Row Page 2 */}

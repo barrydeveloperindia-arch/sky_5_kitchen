@@ -2459,6 +2459,7 @@ header {
     margin: 0 auto !important;
     page-break-inside: avoid !important;
     zoom: 0.94; /* Match verified scaling */
+    box-sizing: border-box !important;
   }
 
   .menu-card-design + .menu-card-design {
