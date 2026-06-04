@@ -12,6 +12,7 @@ const replacements = {
                         <div class="menu-item"><span class="item-name">Paneer Paratha Combo (Curd & Tea/Water)</span><span class="item-dots"></span><span class="item-price">₹209</span></div>
                         <div class="menu-item"><span class="item-name">Omelette Combo (2 Eggs, Toast, Tea)</span><span class="item-dots"></span><span class="item-price">₹159</span></div>
                         <div class="menu-item"><span class="item-name">Boiled Eggs (2 Pcs)</span><span class="item-dots"></span><span class="item-price">₹80</span></div>
+                        <div class="menu-item"><span class="item-name">Egg Bhurji / Scrambled Eggs</span><span class="item-dots"></span><span class="item-price">₹120</span></div>
                         <div class="menu-item"><span class="item-name">Poha Combo (Poha & Tea / Lemon Water)</span><span class="item-dots"></span><span class="item-price">₹129</span></div>
                         <div class="menu-item"><span class="item-name">Veg Sandwich Combo (Sandwich & Tea)</span><span class="item-dots"></span><span class="item-price">₹159</span></div>
                         <div class="menu-item" style="font-size: 7.5px; font-weight: bold; color: var(--gold);"><span class="item-name">* COFFEE UPGRADE</span><span class="item-dots"></span><span class="item-price">+ ₹20</span></div>
@@ -42,7 +43,7 @@ const replacements = {
                         <div class="menu-item"><span class="item-name">Dal Tadka / Chana Masala</span><span class="item-dots"></span><span class="item-price">₹199 / 229</span></div>
                         <div class="menu-item"><span class="item-name">Egg Curry (2 Pcs)</span><span class="item-dots"></span><span class="item-price">₹179</span></div>
                         <div class="menu-item"><span class="item-name">Chicken Curry (Qtr)</span><span class="item-dots"></span><span class="item-price">₹199</span></div>
-                        <div class="menu-item"><span class="item-name">Chilly Chicken (Qtr/Half/Full)</span><span class="item-dots"></span><span class="item-price">₹199 / 399 / 599</span></div>
+                        <div class="menu-item"><span class="item-name">Chilly Chicken (Half/Full)</span><span class="item-dots"></span><span class="item-price">₹399 / 599</span></div>
                     </div>`,
 
     // 06 RICE
@@ -74,11 +75,8 @@ const replacements = {
 
     // 10 COMBOS & THALIS
     'CHEF\'S COMBOS & THALIS': `                    <div class="thali-grid">
-                        <div class="thali-item"><span>VEG COMBO</span><span style="float:right">₹249</span><p class="thali-desc">Dal Makhani, Jeera Rice, 2 Roti</p></div>
-                        <div class="thali-item"><span>PANEER COMBO</span><span style="float:right">₹249</span><p class="thali-desc">Paneer Butter Masala, 2 Butter Roti</p></div>
-                        <div class="thali-item"><span>CHICKEN COMBO</span><span style="float:right">₹449</span><p class="thali-desc">Butter Chicken, Jeera Rice</p></div>
-                        <div class="thali-item"><span>VEG DELUXE THALI</span><span style="float:right">₹349</span><p class="thali-desc">Dal Makhani, Paneer, Rice, Raita, 4 Roti, Sweet</p></div>
-                        <div class="thali-item" style="grid-column: span 2;"><span>NON-VEG DELUXE THALI</span><span style="float:right">₹499</span><p class="thali-desc">Butter Chicken, Egg Curry, Rice, Raita, 4 Roti, Sweet</p></div>
+                        <div class="thali-item"><span>VEG COMBO</span><span style="float:right">₹249</span><p class="thali-desc">Dal Makhani, Jeera Rice, 2 Tawa Rotis</p></div>
+                        <div class="thali-item"><span>NON-VEG DELUXE THALI</span><span style="float:right">₹499</span><p class="thali-desc">1 Chicken, Rice, 2 Roti, Salad, Pickle, 1 Papad</p></div>
                     </div>`
 };
 

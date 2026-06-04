@@ -45,6 +45,7 @@ export const combos = [
     { id: 1002, category: "Breakfast", name: "Paneer Paratha Combo", description: "🟢 Spiced paneer-stuffed flatbread served with fresh curd, pickle, and Tea / Black Tea / Lemon Water / Ginger Tea / Coffee / Amul Butter (10gm).", price: 209, image: getImg("paratha"), isPopular: true },
     { id: 1003, category: "Breakfast", name: "Omelette Combo", description: "🔴 Fluffy 2-Egg Omelette served with golden bread toast and Tea / Black Tea / Lemon Water.", price: 159, image: getImg("omelette") },
     { id: 1006, category: "Breakfast", name: "Boiled Eggs (2 Pcs)", description: "🔴 Freshly boiled eggs served with salt and pepper.", price: 80, image: getImg("egg") },
+    { id: 1007, category: "Breakfast", name: "Egg Bhurji / Scrambled Eggs", description: "🔴 Spiced Indian style scrambled eggs (Bhurji) or classic scrambled eggs as per choice.", price: 120, image: getImg("egg") },
     { id: 1004, category: "Breakfast", name: "Poha Combo", description: "🟢 Light and healthy flattened rice savory mix (with or without peanuts as per choice), served with Tea / Black Tea / Lemon Water / Coffee.", price: 129, image: getImg("poha") },
     { id: 1005, category: "Breakfast", name: "Veg Sandwich Combo", description: "🟢 Double-decker cold sandwich with garden fresh veggies (4 Pcs), served with Tea / Black Tea / Lemon Water.", price: 159, image: getImg("sandwich") },
 
@@ -53,7 +54,7 @@ export const combos = [
     { id: 2006, category: "Snacks", name: "Plain Papad", description: "🟢 (1 Pc) Crispy roasted thin plain lentil disc.", price: 80, image: getImg("snacks") },
     { id: 2002, category: "Snacks", name: "French Fries", description: "🟢 Classic golden potato fries served hot and crispy.", price: 169, image: getImg("fries") },
     { id: 2007, category: "Snacks", name: "Peanuts Masala", description: "🟢 Spiced crunchy peanuts tossed with chopped onions, tomatoes, green chilies, and fresh lemon.", price: 149, image: getImg("snacks") },
-    { id: 2003, category: "Snacks", name: "Mix Pakora", description: "🟢 Golden batter-fried spiced mixed vegetable fritters (10-12 Pcs).", price: 199, image: getImg("snacks"), isPopular: true },
+    { id: 2003, category: "Snacks", name: "Mix Pakora", description: "🟢 Golden batter-fried spiced mixed vegetable fritters (12 Pcs).", price: 199, image: getImg("snacks"), isPopular: true },
     { id: 2004, category: "Snacks", name: "Honey Chilli Potato", description: "🟢 Crispy fried potato strips tossed in sweet and spicy glazed honey-chilli sauce.", price: 209, image: getImg("fries") },
     { id: 2005, category: "Snacks", name: "Chicken Pakora", description: "🔴 Crispy batter-fried chicken bites seasoned with traditional spices (9 Pcs).", price: 249, image: getImg("snacks") },
 
@@ -77,7 +78,6 @@ export const combos = [
     { id: 4103, category: "Main Course", name: "Butter Chicken (Half)", description: "🔴 Juicy tandoor-roasted chicken tikka chunks in a buttery, rich, creamy tomato gravy (Half Portion).", price: 399, image: getImg("butter_chicken") },
     { id: 4104, category: "Main Course", name: "Butter Chicken (Full)", description: "🔴 Juicy tandoor-roasted chicken tikka chunks in a buttery, rich, creamy tomato gravy (Full Portion).", price: 599, image: getImg("butter_chicken"), isPopular: true },
     { id: 4105, category: "Main Course", name: "Chicken Curry (Qtr)", description: "🔴 Spiced chicken curry (Quarter Portion).", price: 199, image: getImg("chicken_curry") },
-    { id: 4106, category: "Main Course", name: "Chilly Chicken (Qtr)", description: "🔴 Wok-tossed spicy chilly chicken (Quarter Portion).", price: 199, image: getImg("chilly_chicken") },
     { id: 4107, category: "Main Course", name: "Chilly Chicken (Half)", description: "🔴 Wok-tossed spicy chilly chicken (Half Portion).", price: 399, image: getImg("chilly_chicken") },
     { id: 4108, category: "Main Course", name: "Chilly Chicken (Full)", description: "🔴 Wok-tossed spicy chilly chicken (Full Portion).", price: 599, image: getImg("chilly_chicken") },
 
@@ -92,11 +92,8 @@ export const combos = [
     { id: 4804, category: "Breads", name: "Missi Roti", description: "🟢 Traditional spiced gram flour flatbread baked on tawa.", price: 40, image: getImg("roti") },
     { id: 4803, category: "Breads", name: "Malabar Paratha", description: "🟢 Flaky, soft, layered flatbread from South India cooked to golden brown.", price: 60, image: getImg("paratha") },
 
-    // --- CHEF'S COMBOS & THALIS (5 items) ---
+    // --- CHEF'S COMBOS & THALIS (2 items) ---
     { id: 3001, category: "Thalis", name: "Veg Combo", description: "🟢 Value single-portion combo featuring creamy Dal Makhani, Jeera Rice, and 2 Tawa Rotis.", price: 249, image: getImg("thali"), isPopular: true },
-    { id: 3002, category: "Thalis", name: "Paneer Combo", description: "🟢 Paneer Butter Masala (or Mutter Paneer / Kadhai Paneer), Curd, Salad, and 2 Butter Rotis.", price: 249, image: getImg("thali") },
-    { id: 3003, category: "Thalis", name: "Butter Chicken Combo", description: "🔴 Butter Chicken gravy, 2 Rotis, Salad, and Pickle.", price: 449, image: getImg("thali_nonveg"), isPopular: true },
-    { id: 3004, category: "Thalis", name: "Veg Deluxe Thali", description: "🟢 1 Dal, Rice, 2 Roti, Salad, Pickle, and 1 Papad.", price: 349, image: getImg("thali_deluxe") },
     { id: 3005, category: "Thalis", name: "Non-Veg Deluxe Thali", description: "🔴 1 Chicken, Rice, 2 Roti, Salad, Pickle, and 1 Papad.", price: 499, image: getImg("thali_nonveg_special") },
 
     // --- DESSERTS (4 items) ---

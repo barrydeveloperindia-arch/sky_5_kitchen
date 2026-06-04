@@ -34,6 +34,14 @@
     "image": "/images/food_egg.png"
   },
   {
+    "id": 1007,
+    "category": "Breakfast",
+    "name": "Egg Bhurji / Scrambled Eggs",
+    "description": "🔴 Spiced Indian style scrambled eggs (Bhurji) or classic scrambled eggs as per choice.",
+    "price": 120,
+    "image": "/images/food_egg.png"
+  },
+  {
     "id": 1004,
     "category": "Breakfast",
     "name": "Poha Combo",
@@ -85,7 +93,7 @@
     "id": 2003,
     "category": "Snacks",
     "name": "Mix Pakora",
-    "description": "🟢 Golden batter-fried spiced mixed vegetable fritters (10-12 Pcs).",
+    "description": "🟢 Golden batter-fried spiced mixed vegetable fritters (12 Pcs).",
     "price": 199,
     "image": "/images/food_snacks.png",
     "isPopular": true
@@ -214,14 +222,6 @@
     "image": "/images/food_chicken_curry.png"
   },
   {
-    "id": 4106,
-    "category": "Main Course",
-    "name": "Chilly Chicken (Qtr)",
-    "description": "🔴 Wok-tossed spicy chilly chicken (Quarter Portion).",
-    "price": 199,
-    "image": "/images/food_chilly_chicken.png"
-  },
-  {
     "id": 4107,
     "category": "Main Course",
     "name": "Chilly Chicken (Half)",
@@ -301,31 +301,6 @@
     "price": 249,
     "image": "/images/food_thali.png",
     "isPopular": true
-  },
-  {
-    "id": 3002,
-    "category": "Thalis",
-    "name": "Paneer Combo",
-    "description": "🟢 Paneer Butter Masala (or Mutter Paneer / Kadhai Paneer), Curd, Salad, and 2 Butter Rotis.",
-    "price": 249,
-    "image": "/images/food_thali.png"
-  },
-  {
-    "id": 3003,
-    "category": "Thalis",
-    "name": "Butter Chicken Combo",
-    "description": "🔴 Butter Chicken gravy, 2 Rotis, Salad, and Pickle.",
-    "price": 449,
-    "image": "/images/food_thali_nonveg.png",
-    "isPopular": true
-  },
-  {
-    "id": 3004,
-    "category": "Thalis",
-    "name": "Veg Deluxe Thali",
-    "description": "🟢 1 Dal, Rice, 2 Roti, Salad, Pickle, and 1 Papad.",
-    "price": 349,
-    "image": "/images/food_thali_deluxe.png"
   },
   {
     "id": 3005,
