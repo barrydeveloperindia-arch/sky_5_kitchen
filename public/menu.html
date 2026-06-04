@@ -138,15 +138,6 @@
             text-transform: uppercase;
         }
 
-        .header-address {
-            font-size: 8.5px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            color: var(--text-muted);
-            margin: -3px 0 8px 0;
-            line-height: 1.3;
-        }
-
         .header-badges {
             display: flex;
             justify-content: center;
@@ -252,9 +243,39 @@
 
         .menu-item {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
             position: relative;
+            margin-bottom: 4px;
+        }
+        .menu-item-main {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            width: 100%;
+        }
+        .menu-item-main {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            width: 100%;
+        }
+        .menu-item-main {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            width: 100%;
+        }
+        .menu-item-main {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            width: 100%;
+        }
+        .menu-item-main {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            width: 100%;
         }
 
         .item-details {
@@ -278,15 +299,6 @@
             color: var(--text-main);
             text-transform: uppercase;
             letter-spacing: 0.5px;
-        }
-
-        .item-thumb {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border: 1px solid var(--gold);
-            object-fit: cover;
-            flex-shrink: 0;
         }
 
         .item-price {
@@ -352,23 +364,6 @@
         }
 
         .thali-item {
-            display: flex;
-            flex-direction: row;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .thali-thumb {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            border: 1px solid var(--gold);
-            object-fit: cover;
-            flex-shrink: 0;
-        }
-
-        .thali-info {
-            flex: 1;
             display: flex;
             flex-direction: column;
         }
@@ -501,6 +496,15 @@
         }
         svg path.solid { fill: var(--gold); stroke: none; }
 
+    
+        .item-thumb {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid var(--gold);
+            object-fit: cover;
+            flex-shrink: 0;
+        }
     </style>
 </head>
 <body>
@@ -528,10 +532,6 @@
             <h1>HOTEL</h1>
             <h2>SKY-5</h2>
             <p>RESTAURANT & LOUNGE</p>
-            <div class="header-address">
-                5th Floor, Disha Arcade Building, IT Park Rd, Mansa Devi Complex, Sector 4, Panchkula<br>
-                📞 +91 81464 07934 &nbsp;|&nbsp; 🌐 hotelsky5.com
-            </div>
             
             <div class="header-badges">
                 <div class="order-badge">ORDER NO. DIAL 9</div>
@@ -552,44 +552,110 @@
             <div class="column">
                 <section>
                     <div class="section-header">
-                        <span class="section-title">BREAKFAST</span>
+                        <span class="section-title">BREAKFAST COMBOS</span>
                         <span class="section-time">8 AM - 10 AM</span>
                     </div>
                     <div class="item-list">
                         <div class="menu-item">
-                            <div class="item-details"><img class="item-thumb" src="/images/food_paratha.png"><span class="item-name">Aloo Puri</span><span class="tag chef">CHEF'S PICK</span></div>
-                            <span class="item-price">₹120</span>
+                            <div class="menu-item-main">
+                                <div class="item-details"><img class="item-thumb" src="/images/food_paratha.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Aloo Paratha Combo</span><span class="tag chef">CHEF'S PICK</span></div>
+                                <span class="item-price">₹169</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Stuffed whole wheat flatbread served with fresh curd, pickle, and Tea / Black Tea / Lemon Water / Ginger Tea / Coffee / Ready-made Coffee / Amul Butter (10gm).)</div>
                         </div>
                         <div class="menu-item">
-                            <div class="item-details"><img class="item-thumb" src="/images/food_paratha.png"><span class="item-name">Paranthas (Aloo, Paneer, Gobhi, Mix)</span></div>
-                            <span class="item-price">₹90</span>
+                            <div class="menu-item-main">
+                                <div class="item-details"><img class="item-thumb" src="/images/food_paratha.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Paneer Paratha Combo</span><span class="tag chef">CHEF'S PICK</span></div>
+                                <span class="item-price">₹209</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Spiced paneer-stuffed flatbread served with fresh curd, pickle, and Tea / Black Tea / Lemon Water / Ginger Tea / Coffee / Amul Butter (10gm).)</div>
                         </div>
                         <div class="menu-item">
-                            <div class="item-details"><img class="item-thumb" src="/images/food_sandwich.png"><span class="item-name">Vegetarian sandwich (cold)</span></div>
-                            <span class="item-price">₹100</span>
+                            <div class="menu-item-main">
+                                <div class="item-details"><img class="item-thumb" src="/images/food_omelette.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Omelette Combo</span></div>
+                                <span class="item-price">₹159</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Fluffy 2-Egg Omelette served with golden bread toast and Tea / Black Tea / Lemon Water.)</div>
                         </div>
                         <div class="menu-item">
-                            <div class="item-details"><img class="item-thumb" src="/images/food_omelette.png"><span class="item-name">Egg (scrambled eggs, Bhurji, omelete, masala omelete)</span></div>
-                            <span class="item-price">₹80</span>
+                            <div class="menu-item-main">
+                                <div class="item-details"><img class="item-thumb" src="/images/food_egg.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Boiled Eggs (2 Pcs)</span></div>
+                                <span class="item-price">₹80</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Freshly boiled eggs served with salt and pepper.)</div>
+                        </div>
+                        <div class="menu-item">
+                            <div class="menu-item-main">
+                                <div class="item-details"><img class="item-thumb" src="/images/food_poha.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Poha Combo</span></div>
+                                <span class="item-price">₹129</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Light and healthy flattened rice savory mix (with or without peanuts as per choice), served with Tea / Black Tea / Lemon Water / Coffee.)</div>
+                        </div>
+                        <div class="menu-item">
+                            <div class="menu-item-main">
+                                <div class="item-details"><img class="item-thumb" src="/images/food_sandwich.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Veg Sandwich Combo</span></div>
+                                <span class="item-price">₹159</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Double-decker cold sandwich with garden fresh veggies (4 Pcs) and wafers/chips inside, served with Tea / Black Tea / Lemon Water.)</div>
                         </div>
                     </div>
                 </section>
 
                 <section>
                     <div class="section-header">
-                        <span class="section-title">SNACKS</span>
+                        <span class="section-title">ALL DAY SNACKS</span>
                         <span class="section-time">ALL DAY</span>
                     </div>
                     <div class="item-list">
-                        <div class="menu-item"><div class="item-details"><img class="item-thumb" src="/images/food_snacks.png"><span class="veg-icon"></span><span class="item-name">Mix Pakora</span><span class="tag best">BEST SELLER</span></div><span class="item-price">₹150</span></div>
-                        <div class="menu-item"><div class="item-details"><img class="item-thumb" src="/images/food_french_fries.png"><span class="veg-icon"></span><span class="item-name">French Fries</span></div><span class="item-price">₹120</span></div>
-                        <div class="menu-item"><div class="item-details"><img class="item-thumb" src="/images/food_snacks.png"><span class="veg-icon"></span><span class="item-name">Peanut Masala</span></div><span class="item-price">₹120</span></div>
-                        <div class="menu-item"><div class="item-details"><img class="item-thumb" src="/images/food_french_fries.png"><span class="veg-icon"></span><span class="item-name">Honey Chilli Potato</span></div><span class="item-price">₹150</span></div>
-                        <div class="menu-item"><div class="item-details"><img class="item-thumb" src="/images/food_snacks.png"><span class="veg-icon"></span><span class="item-name">Dry Machurian</span></div><span class="item-price">₹160</span></div>
-                        <div class="menu-item"><div class="item-details"><img class="item-thumb" src="/images/food_snacks.png"><span class="veg-icon"></span><span class="item-name">Papad (Plain and Masala)</span></div><span class="item-price">₹80</span></div>
-                        <div class="menu-item"><div class="item-details"><img class="item-thumb" src="/images/food_snacks.png"><span class="nonveg-icon"></span><span class="item-name">Chicken Pakora</span></div><span class="item-price">₹200</span></div>
-                        <div class="menu-item"><div class="item-details"><img class="item-thumb" src="/images/food_snacks.png"><span class="nonveg-icon"></span><span class="item-name">Chicken Tikka</span><span class="tag chef">CHEF'S PICK</span></div><span class="item-price">₹280</span></div>
-                        <div class="menu-item"><div class="item-details"><img class="item-thumb" src="/images/food_chilly_chicken.png"><span class="nonveg-icon"></span><span class="item-name">Fried chicken</span></div><span class="item-price">₹240</span></div>
+                        <div class="menu-item">
+                            <div class="menu-item-main">
+                                <div class="item-details"><span class="veg-icon"></span><img class="item-thumb" src="/images/food_snacks.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Masala Papad</span></div>
+                                <span class="item-price">₹100</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">((1 Pc) Crispy roasted thin lentil disc topped with spiced onion, tomato, and lemon mix.)</div>
+                        </div>
+                        <div class="menu-item">
+                            <div class="menu-item-main">
+                                <div class="item-details"><span class="veg-icon"></span><img class="item-thumb" src="/images/food_snacks.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Plain Papad</span></div>
+                                <span class="item-price">₹80</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">((1 Pc) Crispy roasted thin plain lentil disc.)</div>
+                        </div>
+                        <div class="menu-item">
+                            <div class="menu-item-main">
+                                <div class="item-details"><span class="veg-icon"></span><img class="item-thumb" src="/images/food_french_fries.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">French Fries</span></div>
+                                <span class="item-price">₹169</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Classic golden potato fries served hot and crispy.)</div>
+                        </div>
+                        <div class="menu-item">
+                            <div class="menu-item-main">
+                                <div class="item-details"><span class="veg-icon"></span><img class="item-thumb" src="/images/food_snacks.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Peanuts Masala</span></div>
+                                <span class="item-price">₹149</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Spiced crunchy peanuts tossed with chopped onions, tomatoes, green chilies, and fresh lemon.)</div>
+                        </div>
+                        <div class="menu-item">
+                            <div class="menu-item-main">
+                                <div class="item-details"><span class="veg-icon"></span><img class="item-thumb" src="/images/food_snacks.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Mix Pakora</span><span class="tag best">BEST SELLER</span></div>
+                                <span class="item-price">₹199</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Golden batter-fried spiced mixed vegetable fritters (10-12 Pcs).)</div>
+                        </div>
+                        <div class="menu-item">
+                            <div class="menu-item-main">
+                                <div class="item-details"><span class="veg-icon"></span><img class="item-thumb" src="/images/food_french_fries.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Honey Chilli Potato</span></div>
+                                <span class="item-price">₹209</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Crispy fried potato strips tossed in sweet and spicy glazed honey-chilli sauce.)</div>
+                        </div>
+                        <div class="menu-item">
+                            <div class="menu-item-main">
+                                <div class="item-details"><span class="nonveg-icon"></span><img class="item-thumb" src="/images/food_snacks.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Chicken Pakora</span></div>
+                                <span class="item-price">₹249</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Crispy batter-fried chicken bites seasoned with traditional spices (9 Pcs).)</div>
+                        </div>
                     </div>
                 </section>
             </div>
@@ -597,53 +663,120 @@
             <div class="column">
                 <section>
                     <div class="section-header">
-                        <span class="section-title">CHINESE ITEMS</span>
+                        <span class="section-title">CHINESE WOK</span>
                         <span class="section-time">12 PM - 10 PM</span>
                     </div>
                     <div class="item-list">
                         <div class="menu-item">
-                            <div class="item-details"><img class="item-thumb" src="/images/food_noodles.png"><span class="item-name">Veg. Hakka Noodles</span></div>
-                            <span class="item-price">₹150</span>
+                            <div class="menu-item-main">
+                                <div class="item-details"><img class="item-thumb" src="/images/food_french_fries.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Chilli Potato</span></div>
+                                <span class="item-price">₹199</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Crispy fried potatoes wok-tossed in a hot, sweet, and tangy Indo-Chinese chili sauce.)</div>
                         </div>
                         <div class="menu-item">
-                            <div class="item-details"><img class="item-thumb" src="/images/food_paneer.png"><span class="item-name">Veg. Manchurian Gravy</span></div>
-                            <span class="item-price">₹160</span>
-                        </div>
-                    </div>
-                </section>
-
-                <section>
-                    <div class="section-header">
-                        <span class="section-title">RICE ITEMS</span>
-                    </div>
-                    <div class="item-list">
-                        <div class="menu-item">
-                            <div class="item-details"><img class="item-thumb" src="/images/food_rice.png"><span class="item-name">Jeera Rice</span></div>
-                            <span class="item-price">₹120</span>
-                        </div>
-                        <div class="menu-item">
-                            <div class="item-details"><img class="item-thumb" src="/images/food_rice.png"><span class="item-name">Vegetarian Bryani</span><span class="tag best">BEST SELLER</span></div>
-                            <span class="item-price">₹220</span>
-                        </div>
-                        <div class="menu-item">
-                            <div class="item-details"><img class="item-thumb" src="/images/food_rice.png"><span class="item-name">Vegetarian fried rice</span></div>
-                            <span class="item-price">₹150</span>
+                            <div class="menu-item-main">
+                                <div class="item-details"><img class="item-thumb" src="/images/food_paneer.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Veg Manchurian Gravy</span></div>
+                                <span class="item-price">₹249</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Crispy vegetable balls simmered in a dark, savory, ginger-garlic soy glaze.)</div>
                         </div>
                     </div>
                 </section>
 
                 <section>
                     <div class="section-header">
-                        <span class="section-title">SWEET DISH</span>
+                        <span class="section-title">RICE DELIGHTS</span>
                     </div>
                     <div class="item-list">
                         <div class="menu-item">
-                            <div class="item-details"><img class="item-thumb" src="/images/food_lassi.png"><span class="item-name">Ice cream cups</span></div>
-                            <span class="item-price">₹80</span>
+                            <div class="menu-item-main">
+                                <div class="item-details"><img class="item-thumb" src="/images/food_rice.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Plain Rice</span></div>
+                                <span class="item-price">₹119</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Fluffy, steaming long-grain premium basmati rice.)</div>
                         </div>
                         <div class="menu-item">
-                            <div class="item-details"><img class="item-thumb" src="/images/food_lassi.png"><span class="item-name">Kulfi</span></div>
-                            <span class="item-price">₹80</span>
+                            <div class="menu-item-main">
+                                <div class="item-details"><img class="item-thumb" src="/images/food_rice.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Jeera Rice</span></div>
+                                <span class="item-price">₹169</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Aromatic long-grain basmati rice tempered with roasted cumin seeds and ghee.)</div>
+                        </div>
+                        <div class="menu-item">
+                            <div class="menu-item-main">
+                                <div class="item-details"><img class="item-thumb" src="/images/food_rice.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Veg Fried Rice</span></div>
+                                <span class="item-price">₹219</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Chinese-style wok-tossed basmati rice with finely chopped garden-fresh vegetables.)</div>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <div class="section-header">
+                        <span class="section-title">DESSERTS</span>
+                    </div>
+                    <div class="item-list">
+                        <div class="menu-item">
+                            <div class="menu-item-main">
+                                <div class="item-details"><img class="item-thumb" src="/images/food_lassi.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Gulab Jamun (2 pcs)</span></div>
+                                <span class="item-price">₹109</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Hot golden-fried milk balls soaked in cardamom-rose scented sugar syrup.)</div>
+                        </div>
+                        <div class="menu-item">
+                            <div class="menu-item-main">
+                                <div class="item-details"><img class="item-thumb" src="/images/food_lassi.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Kulfi</span></div>
+                                <span class="item-price">₹99</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">((Stick) Kulfi (Per piece) traditional saffron-cardamom frozen dessert.)</div>
+                        </div>
+                        <div class="menu-item">
+                            <div class="menu-item-main">
+                                <div class="item-details"><img class="item-thumb" src="/images/food_lassi.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Ice Cream (Single Scoop)</span></div>
+                                <span class="item-price">₹99</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Vanilla ice cream scoop.)</div>
+                        </div>
+                        <div class="menu-item">
+                            <div class="menu-item-main">
+                                <div class="item-details"><img class="item-thumb" src="/images/food_lassi.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Ice Cream (Double Scoop)</span></div>
+                                <span class="item-price">₹169</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Indulgent double scoop of premium flavored ice cream.)</div>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <div class="section-header">
+                        <span class="section-title">BEVERAGES</span>
+                    </div>
+                    <div class="item-list">
+                        <div class="menu-item">
+                            <div class="menu-item-main">
+                                <div class="item-details"><span class="veg-icon"></span><img class="item-thumb" src="/images/food_tea.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Tea / Coffee / Glass of Milk</span></div>
+                                <span class="item-price">₹50 / 70 / 70</span>
+                            </div>
+                        </div>
+                        <div class="menu-item">
+                            <div class="menu-item-main">
+                                <div class="item-details"><span class="veg-icon"></span><img class="item-thumb" src="/images/food_soda.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Lemon Water / Fresh Lemonade / Plain Soda</span></div>
+                                <span class="item-price">₹50 / 99 / 50</span>
+                            </div>
+                        </div>
+                        <div class="menu-item">
+                            <div class="menu-item-main">
+                                <div class="item-details"><span class="veg-icon"></span><img class="item-thumb" src="/images/food_lassi.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Sweet Lassi / Salted Lassi</span></div>
+                                <span class="item-price">₹109 / 109</span>
+                            </div>
+                        </div>
+                        <div class="menu-item">
+                            <div class="menu-item-main">
+                                <div class="item-details"><span class="veg-icon"></span><img class="item-thumb" src="/images/food_cold_drink.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Coke / Limca / Mineral Water (1 Ltr)</span></div>
+                                <span class="item-price">₹50 / 50 / 50</span>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -681,10 +814,6 @@
             <h1>HOTEL</h1>
             <h2>SKY-5</h2>
             <p>RESTAURANT & LOUNGE</p>
-            <div class="header-address">
-                5th Floor, Disha Arcade Building, IT Park Rd, Mansa Devi Complex, Sector 4, Panchkula<br>
-                📞 +91 81464 07934 &nbsp;|&nbsp; 🌐 hotelsky5.com
-            </div>
         </header>
 
         <div class="menu-grid">
@@ -696,24 +825,39 @@
                     </div>
                     <div class="item-list">
                         <div class="menu-item">
-                            <div class="item-details"><img class="item-thumb" src="/images/food_dal.png"><span class="veg-icon"></span><span class="item-name">Dal Makhani</span><span class="tag chef">CHEF'S PICK</span></div>
-                            <span class="item-price">₹220</span>
+                            <div class="menu-item-main">
+                                <div class="item-details"><span class="veg-icon"></span><img class="item-thumb" src="/images/food_dal.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Dal Tadka</span></div>
+                                <span class="item-price">₹199</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Whole yellow lentils tempered with ghee, cumin seeds, garlic, and dry red chilies.)</div>
                         </div>
                         <div class="menu-item">
-                            <div class="item-details"><img class="item-thumb" src="/images/food_dal.png"><span class="veg-icon"></span><span class="item-name">Yellow Dal Tadka</span></div>
-                            <span class="item-price">₹180</span>
+                            <div class="menu-item-main">
+                                <div class="item-details"><span class="veg-icon"></span><img class="item-thumb" src="/images/food_dal.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Dal Makhani</span><span class="tag chef">CHEF'S PICK</span></div>
+                                <span class="item-price">₹229</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Slow-cooked creamy black lentils simmered overnight with butter, ghee, and cream.)</div>
                         </div>
                         <div class="menu-item">
-                            <div class="item-details"><img class="item-thumb" src="/images/food_paneer.png"><span class="veg-icon"></span><span class="item-name">Karahi Paneer</span><span class="tag best">BEST SELLER</span></div>
-                            <span class="item-price">₹280</span>
+                            <div class="menu-item-main">
+                                <div class="item-details"><span class="veg-icon"></span><img class="item-thumb" src="/images/food_mix_veg.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Chana Masala</span></div>
+                                <span class="item-price">₹229</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Spicy chickpeas cooked in a tangy Punjabi-style tomato-onion curry sauce.)</div>
                         </div>
                         <div class="menu-item">
-                            <div class="item-details"><img class="item-thumb" src="/images/food_paneer_butter_masala.png"><span class="veg-icon"></span><span class="item-name">Paneer Makhani</span></div>
-                            <span class="item-price">₹300</span>
+                            <div class="menu-item-main">
+                                <div class="item-details"><span class="veg-icon"></span><img class="item-thumb" src="/images/food_paneer.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Kadhai Paneer</span></div>
+                                <span class="item-price">₹249</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Fresh cottage cheese cubes tossed with bell peppers and roasted fresh kadhai spices.)</div>
                         </div>
                         <div class="menu-item">
-                            <div class="item-details"><img class="item-thumb" src="/images/food_mix_veg.png"><span class="veg-icon"></span><span class="item-name">Chana Masala</span></div>
-                            <span class="item-price">₹200</span>
+                            <div class="menu-item-main">
+                                <div class="item-details"><span class="veg-icon"></span><img class="item-thumb" src="/images/food_paneer_butter_masala.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Paneer Butter Masala</span><span class="tag chef">CHEF'S PICK</span></div>
+                                <span class="item-price">₹289</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Soft paneer cubes cooked in a rich, creamy, sweet-and-spicy tomato gravy.)</div>
                         </div>
                     </div>
                 </section>
@@ -725,16 +869,53 @@
                     </div>
                     <div class="item-list">
                         <div class="menu-item">
-                            <div class="item-details"><img class="item-thumb" src="/images/food_butter_chicken.png"><span class="nonveg-icon"></span><span class="item-name">Butter Chicken / Karahi Chicken</span><span class="tag chef">CHEF'S PICK</span></div>
-                            <span class="item-price">₹400</span>
+                            <div class="menu-item-main">
+                                <div class="item-details"><span class="nonveg-icon"></span><img class="item-thumb" src="/images/food_egg.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Egg Curry</span></div>
+                                <span class="item-price">₹179</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Hard-boiled eggs (2 Pcs) simmered in a rich, spiced onion-tomato gravy curry.)</div>
                         </div>
                         <div class="menu-item">
-                            <div class="item-details"><img class="item-thumb" src="/images/food_rice.png"><span class="nonveg-icon"></span><span class="item-name">Chicken Bryani</span></div>
-                            <span class="item-price">₹350</span>
+                            <div class="menu-item-main">
+                                <div class="item-details"><span class="nonveg-icon"></span><img class="item-thumb" src="/images/food_butter_chicken.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Butter Chicken (Half)</span></div>
+                                <span class="item-price">₹399</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Juicy tandoor-roasted chicken tikka chunks in a buttery, rich, creamy tomato gravy (Half Portion).)</div>
                         </div>
                         <div class="menu-item">
-                            <div class="item-details"><img class="item-thumb" src="/images/food_egg.png"><span class="nonveg-icon"></span><span class="item-name">Egg curry</span></div>
-                            <span class="item-price">₹240</span>
+                            <div class="menu-item-main">
+                                <div class="item-details"><span class="nonveg-icon"></span><img class="item-thumb" src="/images/food_butter_chicken.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Butter Chicken (Full)</span><span class="tag chef">CHEF'S PICK</span></div>
+                                <span class="item-price">₹599</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Juicy tandoor-roasted chicken tikka chunks in a buttery, rich, creamy tomato gravy (Full Portion).)</div>
+                        </div>
+                        <div class="menu-item">
+                            <div class="menu-item-main">
+                                <div class="item-details"><span class="nonveg-icon"></span><img class="item-thumb" src="/images/food_chicken_curry.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Chicken Curry (Qtr)</span></div>
+                                <span class="item-price">₹199</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Spiced chicken curry (Quarter Portion).)</div>
+                        </div>
+                        <div class="menu-item">
+                            <div class="menu-item-main">
+                                <div class="item-details"><span class="nonveg-icon"></span><img class="item-thumb" src="/images/food_chilly_chicken.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Chilly Chicken (Qtr)</span></div>
+                                <span class="item-price">₹199</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Wok-tossed spicy chilly chicken (Quarter Portion).)</div>
+                        </div>
+                        <div class="menu-item">
+                            <div class="menu-item-main">
+                                <div class="item-details"><span class="nonveg-icon"></span><img class="item-thumb" src="/images/food_chilly_chicken.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Chilly Chicken (Half)</span></div>
+                                <span class="item-price">₹399</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Wok-tossed spicy chilly chicken (Half Portion).)</div>
+                        </div>
+                        <div class="menu-item">
+                            <div class="menu-item-main">
+                                <div class="item-details"><span class="nonveg-icon"></span><img class="item-thumb" src="/images/food_chilly_chicken.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Chilly Chicken (Full)</span></div>
+                                <span class="item-price">₹599</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Wok-tossed spicy chilly chicken (Full Portion).)</div>
                         </div>
                     </div>
                 </section>
@@ -745,12 +926,32 @@
                     </div>
                     <div class="item-list">
                         <div class="menu-item">
-                            <div class="item-details"><img class="item-thumb" src="/images/food_roti.png"><span class="item-name">Roti</span></div>
-                            <span class="item-price">₹20</span>
+                            <div class="menu-item-main">
+                                <div class="item-details"><img class="item-thumb" src="/images/food_roti.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Tawa Roti</span></div>
+                                <span class="item-price">₹25</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Traditional soft whole-wheat flatbread cooked on griddle.)</div>
                         </div>
                         <div class="menu-item">
-                            <div class="item-details"><img class="item-thumb" src="/images/food_paratha.png"><span class="item-name">Malabor Parantha</span></div>
-                            <span class="item-price">₹50</span>
+                            <div class="menu-item-main">
+                                <div class="item-details"><img class="item-thumb" src="/images/food_roti.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Tawa Butter Roti</span></div>
+                                <span class="item-price">₹30</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Freshly baked whole-wheat tawa roti brushed generously with butter.)</div>
+                        </div>
+                        <div class="menu-item">
+                            <div class="menu-item-main">
+                                <div class="item-details"><img class="item-thumb" src="/images/food_roti.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Missi Roti</span></div>
+                                <span class="item-price">₹40</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Traditional spiced gram flour flatbread baked on tawa.)</div>
+                        </div>
+                        <div class="menu-item">
+                            <div class="menu-item-main">
+                                <div class="item-details"><img class="item-thumb" src="/images/food_paratha.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Malabar Paratha</span></div>
+                                <span class="item-price">₹60</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Flaky, soft, layered flatbread from South India cooked to golden brown.)</div>
                         </div>
                     </div>
                 </section>
@@ -758,20 +959,60 @@
 
             <div class="column">
                 <section class="thali-container">
-                    <div class="thali-header">THALIS - OUR BEST VALUE</div>
+                    <div class="thali-header">COMBOS & THALIS - BEST VALUE</div>
                     <div class="thali-grid">
-                        <div class="thali-item">
-                            <img class="thali-thumb" src="/images/food_thali_deluxe.png">
-                            <div class="thali-info">
-                                <div class="thali-item-title"><span><span class="veg-icon"></span>Veg. Delux</span><span>₹250</span></div>
-                                <p class="thali-desc">4 Roti, Rice, Dal Makhani, Paneer Makhani, Raita, Salad, Achar</p>
+                        <div class="thali-item" style="display: flex; flex-direction: row; gap: 10px; align-items: center; margin-bottom: 6px;">
+                            <img class="thali-thumb" src="/images/food_thali.png" style="width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0;">
+                            <div class="thali-info" style="flex: 1; display: flex; flex-direction: column;">
+                                <div class="thali-item-title" style="display: flex; justify-content: space-between; font-size: 10px; font-weight: 700; color: var(--gold);">
+                                    <span><span class="veg-icon"></span>Veg Combo</span>
+                                    <span>₹249</span>
+                                </div>
+                                <p class="thali-desc" style="font-size: 7.5px; color: var(--text-muted); margin-top: 3px; line-height: 1.3;">Value single-portion combo featuring creamy Dal Makhani, Jeera Rice, and 2 Tawa Rotis.</p>
                             </div>
                         </div>
-                        <div class="thali-item">
-                            <img class="thali-thumb" src="/images/food_thali_nonveg_special.png">
-                            <div class="thali-info">
-                                <div class="thali-item-title"><span><span class="nonveg-icon"></span>Non veg Butter Chicken</span><span>₹400</span></div>
-                                <p class="thali-desc">4 Roti, Rice, Butter Chicken gravy, Raita, Salad, Achar</p>
+
+                        <div class="thali-item" style="display: flex; flex-direction: row; gap: 10px; align-items: center; margin-bottom: 6px;">
+                            <img class="thali-thumb" src="/images/food_thali.png" style="width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0;">
+                            <div class="thali-info" style="flex: 1; display: flex; flex-direction: column;">
+                                <div class="thali-item-title" style="display: flex; justify-content: space-between; font-size: 10px; font-weight: 700; color: var(--gold);">
+                                    <span><span class="veg-icon"></span>Paneer Combo</span>
+                                    <span>₹249</span>
+                                </div>
+                                <p class="thali-desc" style="font-size: 7.5px; color: var(--text-muted); margin-top: 3px; line-height: 1.3;">Paneer Butter Masala (or Mutter Paneer / Kadhai Paneer), Curd, Salad, and 2 Butter Rotis.</p>
+                            </div>
+                        </div>
+
+                        <div class="thali-item" style="display: flex; flex-direction: row; gap: 10px; align-items: center; margin-bottom: 6px;">
+                            <img class="thali-thumb" src="/images/food_thali_nonveg.png" style="width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0;">
+                            <div class="thali-info" style="flex: 1; display: flex; flex-direction: column;">
+                                <div class="thali-item-title" style="display: flex; justify-content: space-between; font-size: 10px; font-weight: 700; color: var(--gold);">
+                                    <span><span class="nonveg-icon"></span>Butter Chicken Combo</span>
+                                    <span>₹449</span>
+                                </div>
+                                <p class="thali-desc" style="font-size: 7.5px; color: var(--text-muted); margin-top: 3px; line-height: 1.3;">Butter Chicken gravy, 2 Rotis, Salad, and Pickle.</p>
+                            </div>
+                        </div>
+
+                        <div class="thali-item" style="display: flex; flex-direction: row; gap: 10px; align-items: center; margin-bottom: 6px;">
+                            <img class="thali-thumb" src="/images/food_thali_deluxe.png" style="width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0;">
+                            <div class="thali-info" style="flex: 1; display: flex; flex-direction: column;">
+                                <div class="thali-item-title" style="display: flex; justify-content: space-between; font-size: 10px; font-weight: 700; color: var(--gold);">
+                                    <span><span class="veg-icon"></span>Veg Deluxe Thali</span>
+                                    <span>₹349</span>
+                                </div>
+                                <p class="thali-desc" style="font-size: 7.5px; color: var(--text-muted); margin-top: 3px; line-height: 1.3;">1 Dal, Rice, 2 Roti, Salad, Pickle, and 1 Papad.</p>
+                            </div>
+                        </div>
+
+                        <div class="thali-item" style="display: flex; flex-direction: row; gap: 10px; align-items: center; margin-bottom: 6px;">
+                            <img class="thali-thumb" src="/images/food_thali_nonveg_special.png" style="width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0;">
+                            <div class="thali-info" style="flex: 1; display: flex; flex-direction: column;">
+                                <div class="thali-item-title" style="display: flex; justify-content: space-between; font-size: 10px; font-weight: 700; color: var(--gold);">
+                                    <span><span class="nonveg-icon"></span>Non-Veg Deluxe Thali</span>
+                                    <span>₹499</span>
+                                </div>
+                                <p class="thali-desc" style="font-size: 7.5px; color: var(--text-muted); margin-top: 3px; line-height: 1.3;">1 Chicken, Rice, 2 Roti, Salad, Pickle, and 1 Papad.</p>
                             </div>
                         </div>
                     </div>
@@ -783,12 +1024,18 @@
                     </div>
                     <div class="item-list">
                         <div class="menu-item">
-                            <div class="item-details"><img class="item-thumb" src="/images/food_salad.png"><span class="item-name">tomato, onion and cucumber</span></div>
-                            <span class="item-price">₹80</span>
+                            <div class="menu-item-main">
+                                <div class="item-details"><img class="item-thumb" src="/images/food_salad.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Fresh Salad</span></div>
+                                <span class="item-price">₹119</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Crisp slices of tomato, cucumber, onion, and lemon.)</div>
                         </div>
                         <div class="menu-item">
-                            <div class="item-details"><img class="item-thumb" src="/images/food_salad.png"><span class="item-name">Chickpeas salad</span></div>
-                            <span class="item-price">₹100</span>
+                            <div class="menu-item-main">
+                                <div class="item-details"><img class="item-thumb" src="/images/food_salad.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;"><span class="item-name">Chickpea Salad</span></div>
+                                <span class="item-price">₹169</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 42px; text-transform: none;">(Wholesome protein-rich boiled chickpeas tossed with tomatoes, onions, and chaat spices.)</div>
                         </div>
                     </div>
                 </section>

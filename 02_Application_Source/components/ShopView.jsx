@@ -250,6 +250,40 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
     }
     
     if (showMenuCard) {
+        // Helper to render standard menu items with description underneath in parentheses (Goan Menu style)
+        const renderMenuItem = (item, showVegTag = false) => {
+            const hasDesc = !!item.description;
+            const cleanDesc = hasDesc ? item.description.replace('🟢 ', '').replace('🔴 ', '') : '';
+            const isNonVeg = item.description && item.description.includes('🔴');
+            const isVeg = item.description && item.description.includes('🟢');
+
+            return (
+                <div key={item.id} style={{ display: 'flex', flexDirection: 'column', margin: '4px 0', width: '100%' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                        <img src={item.image} alt={item.name} style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #d4af37', marginRight: '6px', flexShrink: 0 }} />
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end' }}>
+                            <span style={{ fontWeight: '800', color: '#0a192f', fontSize: '0.78rem', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                {showVegTag && (isNonVeg ? <span style={{ color: '#d32f2f', fontSize: '0.75rem', marginRight: '3px' }}>🔴</span> : isVeg ? <span style={{ color: '#24963f', fontSize: '0.75rem', marginRight: '3px' }}>🟢</span> : null)}
+                                {item.name}
+                                {item.isPopular && (
+                                    <span style={{ border: '1px solid #f39c12', color: '#f39c12', fontSize: '0.55rem', padding: '0px 3px', borderRadius: '2px', marginLeft: '4px' }}>
+                                        {item.category === 'Snacks' ? 'BEST SELLER' : "CHEF'S PICK"}
+                                    </span>
+                                )}
+                            </span>
+                            <div style={{ flex: 1, borderBottom: '1px dotted #ccc', margin: '0 8px', position: 'relative', top: '-4px' }}></div>
+                            <span style={{ fontWeight: '900', color: '#0a192f', fontSize: '0.85rem' }}>₹{item.price}</span>
+                        </div>
+                    </div>
+                    {hasDesc && (
+                        <div style={{ fontSize: '0.68rem', color: '#555', paddingLeft: '38px', marginTop: '2px', fontStyle: 'italic', textTransform: 'none' }}>
+                            ({cleanDesc})
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
         // Helper to get price of a menu item by name
         const getPrice = (name, defaultPrice) => {
             const item = menuItems.find(i => i.name.toLowerCase() === name.toLowerCase());
@@ -348,19 +382,7 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                                         <span style={{ background: '#fff3cd', color: '#856404', padding: '1px 8px', borderRadius: '10px', fontSize: '0.65rem', fontWeight: '800' }}>8 AM - 10 AM</span>
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        {menuItems.filter(i => i.category === 'Breakfast').map(item => (
-                                            <div key={item.id} style={{ display: 'flex', alignItems: 'center', margin: '2px 0' }}>
-                                                <img src={item.image} alt={item.name} style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #d4af37', marginRight: '6px', flexShrink: 0 }} />
-                                                <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end' }}>
-                                                    <span style={{ fontWeight: '800', color: '#0a192f', fontSize: '0.78rem', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                        {item.name}
-                                                        {item.isPopular && <span style={{ border: '1px solid #f39c12', color: '#f39c12', fontSize: '0.55rem', padding: '0px 3px', borderRadius: '2px' }}>CHEF'S PICK</span>}
-                                                    </span>
-                                                    <div style={{ flex: 1, borderBottom: '2px dotted #ccc', margin: '0 8px', position: 'relative', top: '-4px' }}></div>
-                                                    <span style={{ fontWeight: '900', color: '#0a192f', fontSize: '0.85rem' }}>₹{item.price}</span>
-                                                </div>
-                                            </div>
-                                        ))}
+                                        {menuItems.filter(i => i.category === 'Breakfast').map(item => renderMenuItem(item, false))}
                                     </div>
                                 </div>
 
@@ -371,20 +393,7 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                                         <span style={{ background: '#fff3cd', color: '#856404', padding: '1px 8px', borderRadius: '10px', fontSize: '0.65rem', fontWeight: '800' }}>ALL DAY</span>
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        {menuItems.filter(i => i.category === 'Snacks').map(item => (
-                                            <div key={item.id} style={{ display: 'flex', alignItems: 'center', margin: '2px 0' }}>
-                                                <img src={item.image} alt={item.name} style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #d4af37', marginRight: '6px', flexShrink: 0 }} />
-                                                <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end' }}>
-                                                    <span style={{ fontWeight: '800', color: '#0a192f', fontSize: '0.78rem', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                        {item.description.includes('🔴') ? <span style={{ color: '#d32f2f', fontSize: '0.75rem', marginRight: '3px' }}>🔴</span> : <span style={{ color: '#24963f', fontSize: '0.75rem', marginRight: '3px' }}>🟢</span>}
-                                                        {item.name}
-                                                        {item.isPopular && <span style={{ border: '1px solid #28a745', color: '#28a745', fontSize: '0.55rem', padding: '0px 3px', borderRadius: '2px' }}>BEST SELLER</span>}
-                                                    </span>
-                                                    <div style={{ flex: 1, borderBottom: '2px dotted #ccc', margin: '0 8px', position: 'relative', top: '-4px' }}></div>
-                                                    <span style={{ fontWeight: '900', color: '#0a192f', fontSize: '0.85rem' }}>₹{item.price}</span>
-                                                </div>
-                                            </div>
-                                        ))}
+                                        {menuItems.filter(i => i.category === 'Snacks').map(item => renderMenuItem(item, true))}
                                     </div>
                                 </div>
                             </div>
@@ -398,16 +407,7 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                                         <span style={{ background: '#fff3cd', color: '#856404', padding: '1px 8px', borderRadius: '10px', fontSize: '0.65rem', fontWeight: '800' }}>12 PM - 10 PM</span>
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        {menuItems.filter(i => i.category === 'Chinese').map(item => (
-                                            <div key={item.id} style={{ display: 'flex', alignItems: 'center', margin: '2px 0' }}>
-                                                <img src={item.image} alt={item.name} style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #d4af37', marginRight: '6px', flexShrink: 0 }} />
-                                                <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end' }}>
-                                                    <span style={{ fontWeight: '800', color: '#0a192f', fontSize: '0.78rem', textTransform: 'uppercase' }}>{item.name}</span>
-                                                    <div style={{ flex: 1, borderBottom: '2px dotted #ccc', margin: '0 10px', position: 'relative', top: '-4px' }}></div>
-                                                    <span style={{ fontWeight: '900', color: '#0a192f', fontSize: '0.85rem' }}>₹{item.price}</span>
-                                                </div>
-                                            </div>
-                                        ))}
+                                        {menuItems.filter(i => i.category === 'Chinese').map(item => renderMenuItem(item, false))}
                                     </div>
                                 </div>
 
@@ -417,16 +417,7 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                                         <h3 style={{ fontFamily: 'Georgia, serif', color: '#0a192f', fontSize: '1.1rem', margin: 0, fontWeight: '900' }}>RICE ITEMS</h3>
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        {menuItems.filter(i => i.category === 'Rice').map(item => (
-                                            <div key={item.id} style={{ display: 'flex', alignItems: 'center', margin: '2px 0' }}>
-                                                <img src={item.image} alt={item.name} style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #d4af37', marginRight: '6px', flexShrink: 0 }} />
-                                                <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end' }}>
-                                                    <span style={{ fontWeight: '800', color: '#0a192f', fontSize: '0.78rem', textTransform: 'uppercase' }}>{item.name}</span>
-                                                    <div style={{ flex: 1, borderBottom: '2px dotted #ccc', margin: '0 8px', position: 'relative', top: '-4px' }}></div>
-                                                    <span style={{ fontWeight: '900', color: '#0a192f', fontSize: '0.85rem' }}>₹{item.price}</span>
-                                                </div>
-                                            </div>
-                                        ))}
+                                        {menuItems.filter(i => i.category === 'Rice').map(item => renderMenuItem(item, false))}
                                     </div>
                                 </div>
 
@@ -436,16 +427,7 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                                         <h3 style={{ fontFamily: 'Georgia, serif', color: '#0a192f', fontSize: '1.1rem', margin: 0, fontWeight: '900' }}>SWEET DISH</h3>
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        {menuItems.filter(i => i.category === 'Sweet Dish').map(item => (
-                                            <div key={item.id} style={{ display: 'flex', alignItems: 'center', margin: '2px 0' }}>
-                                                <img src={item.image} alt={item.name} style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #d4af37', marginRight: '6px', flexShrink: 0 }} />
-                                                <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end' }}>
-                                                    <span style={{ fontWeight: '800', color: '#0a192f', fontSize: '0.78rem', textTransform: 'uppercase' }}>{item.name}</span>
-                                                    <div style={{ flex: 1, borderBottom: '2px dotted #ccc', margin: '0 8px', position: 'relative', top: '-4px' }}></div>
-                                                    <span style={{ fontWeight: '900', color: '#0a192f', fontSize: '0.85rem' }}>₹{item.price}</span>
-                                                </div>
-                                            </div>
-                                        ))}
+                                        {menuItems.filter(i => i.category === 'Sweet Dish').map(item => renderMenuItem(item, false))}
                                     </div>
                                 </div>
 
@@ -519,17 +501,7 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                                         <h3 style={{ fontFamily: 'Georgia, serif', color: '#0a192f', fontSize: '1.1rem', margin: 0, fontWeight: '900' }}>VEGETARIAN MAIN DISHES</h3>
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        {menuItems.filter(i => i.category === 'Main Course' && i.description.includes('🟢')).map(item => (
-                                            <div key={item.id} style={{ display: 'flex', alignItems: 'center', margin: '2px 0' }}>
-                                                <img src={item.image} alt={item.name} style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #d4af37', marginRight: '6px', flexShrink: 0 }} />
-                                                <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end' }}>
-                                                    <span style={{ color: '#24963f', fontSize: '0.75rem', marginRight: '3px' }}>🟢</span>
-                                                    <span style={{ fontWeight: '800', color: '#0a192f', fontSize: '0.78rem', textTransform: 'uppercase' }}>{item.name}</span>
-                                                    <div style={{ flex: 1, borderBottom: '2px dotted #ccc', margin: '0 8px', position: 'relative', top: '-4px' }}></div>
-                                                    <span style={{ fontWeight: '900', color: '#0a192f', fontSize: '0.85rem' }}>₹{item.price}</span>
-                                                </div>
-                                            </div>
-                                        ))}
+                                        {menuItems.filter(i => i.category === 'Main Course' && i.description.includes('🟢')).map(item => renderMenuItem(item, true))}
                                     </div>
                                 </div>
 
@@ -539,17 +511,7 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                                         <h3 style={{ fontFamily: 'Georgia, serif', color: '#0a192f', fontSize: '1.1rem', margin: 0, fontWeight: '900' }}>NON-VEGETARIAN MAIN DISHES</h3>
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        {menuItems.filter(i => i.category === 'Main Course' && i.description.includes('🔴')).map(item => (
-                                            <div key={item.id} style={{ display: 'flex', alignItems: 'center', margin: '2px 0' }}>
-                                                <img src={item.image} alt={item.name} style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #d4af37', marginRight: '6px', flexShrink: 0 }} />
-                                                <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end' }}>
-                                                    <span style={{ color: '#d32f2f', fontSize: '0.75rem', marginRight: '3px' }}>🔴</span>
-                                                    <span style={{ fontWeight: '800', color: '#0a192f', fontSize: '0.78rem', textTransform: 'uppercase' }}>{item.name}</span>
-                                                    <div style={{ flex: 1, borderBottom: '2px dotted #ccc', margin: '0 8px', position: 'relative', top: '-4px' }}></div>
-                                                    <span style={{ fontWeight: '900', color: '#0a192f', fontSize: '0.85rem' }}>₹{item.price}</span>
-                                                </div>
-                                            </div>
-                                        ))}
+                                        {menuItems.filter(i => i.category === 'Main Course' && i.description.includes('🔴')).map(item => renderMenuItem(item, true))}
                                     </div>
                                 </div>
 
@@ -559,16 +521,7 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                                         <h3 style={{ fontFamily: 'Georgia, serif', color: '#0a192f', fontSize: '1.1rem', margin: 0, fontWeight: '900' }}>BREADS</h3>
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        {menuItems.filter(i => i.category === 'Breads').map(item => (
-                                            <div key={item.id} style={{ display: 'flex', alignItems: 'center', margin: '2px 0' }}>
-                                                <img src={item.image} alt={item.name} style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #d4af37', marginRight: '6px', flexShrink: 0 }} />
-                                                <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end' }}>
-                                                    <span style={{ fontWeight: '800', color: '#0a192f', fontSize: '0.78rem', textTransform: 'uppercase' }}>{item.name}</span>
-                                                    <div style={{ flex: 1, borderBottom: '2px dotted #ccc', margin: '0 8px', position: 'relative', top: '-4px' }}></div>
-                                                    <span style={{ fontWeight: '900', color: '#0a192f', fontSize: '0.85rem' }}>₹{item.price}</span>
-                                                </div>
-                                            </div>
-                                        ))}
+                                        {menuItems.filter(i => i.category === 'Breads').map(item => renderMenuItem(item, false))}
                                     </div>
                                 </div>
                             </div>
@@ -604,16 +557,7 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                                         <h3 style={{ fontFamily: 'Georgia, serif', color: '#0a192f', fontSize: '1.1rem', margin: 0, fontWeight: '900' }}>SALAD</h3>
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        {menuItems.filter(i => i.category === 'Salad').map(item => (
-                                            <div key={item.id} style={{ display: 'flex', alignItems: 'center', margin: '2px 0' }}>
-                                                <img src={item.image} alt={item.name} style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #d4af37', marginRight: '6px', flexShrink: 0 }} />
-                                                <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end' }}>
-                                                    <span style={{ fontWeight: '800', color: '#0a192f', fontSize: '0.78rem', textTransform: 'uppercase' }}>{item.name}</span>
-                                                    <div style={{ flex: 1, borderBottom: '2px dotted #ccc', margin: '0 8px', position: 'relative', top: '-4px' }}></div>
-                                                    <span style={{ fontWeight: '900', color: '#0a192f', fontSize: '0.85rem' }}>₹{item.price}</span>
-                                                </div>
-                                            </div>
-                                        ))}
+                                        {menuItems.filter(i => i.category === 'Salad').map(item => renderMenuItem(item, false))}
                                     </div>
                                 </div>
 

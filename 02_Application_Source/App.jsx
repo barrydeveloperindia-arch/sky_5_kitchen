@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ShopView from './components/ShopView';
 import AdminDashboard from './components/AdminDashboard';
 import { combos } from './data/combos';
@@ -11,6 +11,19 @@ function App() {
   const [menuItems, setMenuItems] = useState(() => {
       return combos.map(c => ({ ...c, isActive: true }));
   });
+
+  // Synchronize combos changes with state to ensure HMR updates new items/prices
+  useEffect(() => {
+      setMenuItems(prev => {
+          return combos.map(c => {
+              const prevItem = prev.find(p => p.id === c.id);
+              return {
+                  ...c,
+                  isActive: prevItem ? prevItem.isActive : true
+              };
+          });
+      });
+  }, [combos]);
 
   const [roomList, setRoomList] = useState(initialRooms);
 
