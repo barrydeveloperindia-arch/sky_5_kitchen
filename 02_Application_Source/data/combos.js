@@ -46,7 +46,7 @@ export const combos = [
     { id: 1003, category: "Breakfast", name: "Omelette Combo", description: "🔴 Fluffy 2-Egg Omelette served with golden bread toast and Tea / Black Tea / Lemon Water.", price: 159, image: getImg("omelette") },
     { id: 1006, category: "Breakfast", name: "Boiled Eggs (2 Pcs)", description: "🔴 Freshly boiled eggs served with salt and pepper.", price: 80, image: getImg("egg") },
     { id: 1004, category: "Breakfast", name: "Poha Combo", description: "🟢 Light and healthy flattened rice savory mix (with or without peanuts as per choice), served with Tea / Black Tea / Lemon Water / Coffee.", price: 129, image: getImg("poha") },
-    { id: 1005, category: "Breakfast", name: "Veg Sandwich Combo", description: "🟢 Double-decker cold sandwich with garden fresh veggies (4 Pcs) and wafers/chips inside, served with Tea / Black Tea / Lemon Water.", price: 159, image: getImg("sandwich") },
+    { id: 1005, category: "Breakfast", name: "Veg Sandwich Combo", description: "🟢 Double-decker cold sandwich with garden fresh veggies (4 Pcs), served with Tea / Black Tea / Lemon Water.", price: 159, image: getImg("sandwich") },
 
     // --- SNACKS (7 items) ---
     { id: 2001, category: "Snacks", name: "Masala Papad", description: "🟢 (1 Pc) Crispy roasted thin lentil disc topped with spiced onion, tomato, and lemon mix.", price: 100, image: getImg("snacks") },
