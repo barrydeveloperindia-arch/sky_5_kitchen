@@ -92,8 +92,10 @@ export const combos = [
     { id: 4804, category: "Breads", name: "Missi Roti", description: "🟢 Traditional spiced gram flour flatbread baked on tawa.", price: 40, image: getImg("roti") },
     { id: 4803, category: "Breads", name: "Malabar Paratha", description: "🟢 Flaky, soft, layered flatbread from South India cooked to golden brown.", price: 60, image: getImg("paratha") },
 
-    // --- CHEF'S COMBOS & THALIS (2 items) ---
-    { id: 3001, category: "Thalis", name: "Veg Combo", description: "🟢 Value single-portion combo featuring creamy Dal Makhani, Jeera Rice, and 2 Tawa Rotis.", price: 249, image: getImg("thali"), isPopular: true },
+    // --- CHEF'S COMBOS & THALIS (4 items) ---
+    { id: 3001, category: "Thalis", name: "Veg Combo", description: "🟢 Value single-portion combo featuring creamy Dal Makhani, Jeera Rice, 2 Tawa Rotis, and Pickle.", price: 249, image: getImg("thali"), isPopular: true },
+    { id: 3002, category: "Thalis", name: "Paneer Combo", description: "🟢 Paneer Butter Masala (or Matar Paneer / Kadhai Paneer), 2 Butter Rotis, Pickle, and Jeera Rice.", price: 349, image: getImg("thali") },
+    { id: 3003, category: "Thalis", name: "Butter Chicken Combo", description: "🔴 Butter Chicken (or Chicken Masala) gravy, Jeera Rice, 2 Rotis, and Pickle.", price: 449, image: getImg("thali_nonveg"), isPopular: true },
     { id: 3005, category: "Thalis", name: "Non-Veg Deluxe Thali", description: "🔴 1 Chicken, Rice, 2 Roti, Salad, Pickle, and 1 Papad.", price: 499, image: getImg("thali_nonveg_special") },
 
     // --- DESSERTS (4 items) ---

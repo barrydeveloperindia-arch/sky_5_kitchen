@@ -75,7 +75,9 @@ const replacements = {
 
     // 10 COMBOS & THALIS
     'CHEF\'S COMBOS & THALIS': `                    <div class="thali-grid">
-                        <div class="thali-item"><span>VEG COMBO</span><span style="float:right">₹249</span><p class="thali-desc">Dal Makhani, Jeera Rice, 2 Tawa Rotis</p></div>
+                        <div class="thali-item"><span>VEG COMBO</span><span style="float:right">₹249</span><p class="thali-desc">Dal Makhani, Jeera Rice, 2 Tawa Rotis, Pickle</p></div>
+                        <div class="thali-item"><span>PANEER COMBO</span><span style="float:right">₹349</span><p class="thali-desc">Paneer Butter Masala (or Matar/Kadai), 2 Butter Roti, Pickle, Jeera Rice</p></div>
+                        <div class="thali-item"><span>BUTTER CHICKEN COMBO</span><span style="float:right">₹449</span><p class="thali-desc">Butter Chicken (or Chicken Masala), Jeera Rice, 2 Roti, Pickle</p></div>
                         <div class="thali-item"><span>NON-VEG DELUXE THALI</span><span style="float:right">₹499</span><p class="thali-desc">1 Chicken, Rice, 2 Roti, Salad, Pickle, 1 Papad</p></div>
                     </div>`
 };
