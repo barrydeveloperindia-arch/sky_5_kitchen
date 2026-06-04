@@ -2453,6 +2453,7 @@ header {
 
   .menu-card-design {
     box-shadow: none !important;
+    border: none !important;
     width: 210mm !important; /* A4 Width */
     height: 297mm !important; /* A4 Height */
     margin: 0 auto !important;

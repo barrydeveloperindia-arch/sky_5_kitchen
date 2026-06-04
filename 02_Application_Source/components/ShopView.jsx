@@ -322,11 +322,21 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                     width: '100%',
                     maxWidth: '1000px', 
                     position: 'relative',
-                    padding: '6px', /* Outer blue border gap */
-                    border: '3px solid #0a192f', /* Thick dark blue outer border */
+                    padding: '12px', 
+                    border: 'none', 
                     boxShadow: '0 20px 50px rgba(0,0,0,0.15)',
                     height: 'max-content'
                 }}>
+                    <div style={{
+                        position: 'absolute',
+                        top: '6px',
+                        bottom: '6px',
+                        left: '6px',
+                        right: '6px',
+                        border: '3px solid #0a192f',
+                        pointerEvents: 'none',
+                        zIndex: 10
+                    }}></div>
                     <div style={{
                         border: '2px solid #d4af37', /* Inner gold border */
                         padding: '16px',
@@ -461,11 +471,21 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                     width: '100%',
                     maxWidth: '1000px', 
                     position: 'relative',
-                    padding: '6px', 
-                    border: '3px solid #0a192f', 
+                    padding: '12px', 
+                    border: 'none', 
                     boxShadow: '0 20px 50px rgba(0,0,0,0.15)',
                     height: 'max-content'
                 }}>
+                    <div style={{
+                        position: 'absolute',
+                        top: '6px',
+                        bottom: '6px',
+                        left: '6px',
+                        right: '6px',
+                        border: '3px solid #0a192f',
+                        pointerEvents: 'none',
+                        zIndex: 10
+                    }}></div>
                     <div style={{
                         border: '2px solid #d4af37', 
                         padding: '16px',
