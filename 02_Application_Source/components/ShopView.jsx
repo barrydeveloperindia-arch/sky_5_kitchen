@@ -515,15 +515,6 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                                     </div>
                                 </div>
 
-                                {/* Breads */}
-                                <div style={{ marginBottom: '12px' }}>
-                                    <div style={{ borderBottom: '2px solid #0a192f', paddingBottom: '3px', marginBottom: '8px' }}>
-                                        <h3 style={{ fontFamily: 'Georgia, serif', color: '#0a192f', fontSize: '1.1rem', margin: 0, fontWeight: '900' }}>BREADS</h3>
-                                    </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        {menuItems.filter(i => i.category === 'Breads').map(item => renderMenuItem(item, false))}
-                                    </div>
-                                </div>
                             </div>
 
                             {/* Right Column */}
@@ -558,6 +549,16 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                         {menuItems.filter(i => i.category === 'Salad').map(item => renderMenuItem(item, false))}
+                                    </div>
+                                </div>
+
+                                {/* Breads */}
+                                <div style={{ marginBottom: '10px' }}>
+                                    <div style={{ borderBottom: '2px solid #0a192f', paddingBottom: '3px', marginBottom: '8px' }}>
+                                        <h3 style={{ fontFamily: 'Georgia, serif', color: '#0a192f', fontSize: '1.1rem', margin: 0, fontWeight: '900' }}>BREADS</h3>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                        {menuItems.filter(i => i.category === 'Breads').map(item => renderMenuItem(item, false))}
                                     </div>
                                 </div>
 

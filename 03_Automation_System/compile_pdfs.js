@@ -24,7 +24,7 @@ jobs.forEach(job => {
 
     console.log(`Compiling: ${job.html} -> ${job.pdf}`);
     try {
-        execSync(`"${chromePath}" --headless=new --disable-gpu --print-to-pdf="${outputPath}" "file:///${inputPath.replace(/\\/g, '/')}"`);
+        execSync(`"${chromePath}" --headless=new --disable-gpu --no-pdf-header-footer --print-to-pdf="${outputPath}" "file:///${inputPath.replace(/\\/g, '/')}"`);
         console.log(`Successfully compiled: ${job.pdf}`);
     } catch (err) {
         console.error(`Error compiling ${job.html}:`, err);

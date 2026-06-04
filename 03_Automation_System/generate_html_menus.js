@@ -137,6 +137,8 @@ const processFile = ({ path: filePath, useThumbnails }) => {
             flex-shrink: 0;
         }`;
         content = content.replace('</style>', `${thumbStyle}\n    </style>`);
+        // Scale down print zoom to prevent height overflow with thumbnails
+        content = content.replace('zoom: 0.94;', 'zoom: 0.84;');
     } else {
         content = fs.readFileSync(filePath, 'utf8');
     }

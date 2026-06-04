@@ -66,8 +66,34 @@
 
         @media print {
             body { padding: 0; margin: 0; background-color: white; gap: 0; }
-            .menu-page { box-shadow: none; border: none; width: 210mm; height: 297mm; page-break-after: always; page-break-before: avoid; }
-            .menu-page:last-child { page-break-after: avoid; }
+            .menu-page { 
+                box-shadow: none !important; 
+                border: none !important; 
+                width: 210mm !important; 
+                height: 297mm !important; 
+                page-break-inside: avoid !important;
+                padding: 10mm 14mm !important;
+                zoom: 0.94;
+            }
+            .menu-page + .menu-page {
+                page-break-before: always !important;
+            }
+            .outer-border { top: 4mm !important; bottom: 4mm !important; left: 4mm !important; right: 4mm !important; }
+            .inner-border { top: 6mm !important; bottom: 6mm !important; left: 6mm !important; right: 6mm !important; }
+            header { margin-bottom: 12px !important; padding-bottom: 8px !important; }
+            .logo-svg { width: 48px !important; height: 48px !important; }
+            header h2 { font-size: 30px !important; }
+            .menu-grid { gap: 20px !important; }
+            .column { gap: 12px !important; }
+            section { padding: 8px 12px !important; }
+            .item-list { gap: 4px !important; }
+            .thali-container { padding: 8px 12px !important; margin-top: 4px !important; }
+            .thali-grid { gap: 6px !important; }
+            .thali-desc { margin-top: 2px !important; font-size: 7.5px !important; }
+            .amenities-box { padding: 8px 12px !important; }
+            .amenities-grid { gap: 6px !important; }
+            .notes-qr { margin-top: 10px !important; padding-top: 8px !important; }
+            footer { margin-top: 12px !important; padding-top: 8px !important; }
         }
 
         /* Border Decoration */
@@ -246,6 +272,18 @@
             flex-direction: column;
             position: relative;
             margin-bottom: 4px;
+        }
+        .menu-item-main {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            width: 100%;
+        }
+        .menu-item-main {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            width: 100%;
         }
         .menu-item-main {
             display: flex;
@@ -959,41 +997,7 @@
                     </div>
                 </section>
 
-                <section>
-                    <div class="section-header">
-                        <span class="section-title">BREADS</span>
-                    </div>
-                    <div class="item-list">
-                        <div class="menu-item">
-                            <div class="menu-item-main">
-                                <div class="item-details"><span class="item-name">Tawa Roti</span></div>
-                                <span class="item-price">₹25</span>
-                            </div>
-                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 12px; text-transform: none;">(Traditional soft whole-wheat flatbread cooked on griddle.)</div>
-                        </div>
-                        <div class="menu-item">
-                            <div class="menu-item-main">
-                                <div class="item-details"><span class="item-name">Tawa Butter Roti</span></div>
-                                <span class="item-price">₹30</span>
-                            </div>
-                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 12px; text-transform: none;">(Freshly baked whole-wheat tawa roti brushed generously with butter.)</div>
-                        </div>
-                        <div class="menu-item">
-                            <div class="menu-item-main">
-                                <div class="item-details"><span class="item-name">Missi Roti</span></div>
-                                <span class="item-price">₹40</span>
-                            </div>
-                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 12px; text-transform: none;">(Traditional spiced gram flour flatbread baked on tawa.)</div>
-                        </div>
-                        <div class="menu-item">
-                            <div class="menu-item-main">
-                                <div class="item-details"><span class="item-name">Malabar Paratha</span></div>
-                                <span class="item-price">₹60</span>
-                            </div>
-                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 12px; text-transform: none;">(Flaky, soft, layered flatbread from South India cooked to golden brown.)</div>
-                        </div>
-                    </div>
-                </section>
+                
             </div>
 
             <div class="column">
@@ -1040,6 +1044,42 @@
                                 <span class="item-price">₹169</span>
                             </div>
                             <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 12px; text-transform: none;">(Wholesome protein-rich boiled chickpeas tossed with tomatoes, onions, and chaat spices.)</div>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <div class="section-header">
+                        <span class="section-title">BREADS</span>
+                    </div>
+                    <div class="item-list">
+                        <div class="menu-item">
+                            <div class="menu-item-main">
+                                <div class="item-details"><span class="item-name">Tawa Roti</span></div>
+                                <span class="item-price">₹25</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 12px; text-transform: none;">(Traditional soft whole-wheat flatbread cooked on griddle.)</div>
+                        </div>
+                        <div class="menu-item">
+                            <div class="menu-item-main">
+                                <div class="item-details"><span class="item-name">Tawa Butter Roti</span></div>
+                                <span class="item-price">₹30</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 12px; text-transform: none;">(Freshly baked whole-wheat tawa roti brushed generously with butter.)</div>
+                        </div>
+                        <div class="menu-item">
+                            <div class="menu-item-main">
+                                <div class="item-details"><span class="item-name">Missi Roti</span></div>
+                                <span class="item-price">₹40</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 12px; text-transform: none;">(Traditional spiced gram flour flatbread baked on tawa.)</div>
+                        </div>
+                        <div class="menu-item">
+                            <div class="menu-item-main">
+                                <div class="item-details"><span class="item-name">Malabar Paratha</span></div>
+                                <span class="item-price">₹60</span>
+                            </div>
+                            <div class="menu-item-desc" style="font-size: 7.2px; color: var(--text-muted); font-style: italic; margin-top: 1px; padding-left: 12px; text-transform: none;">(Flaky, soft, layered flatbread from South India cooked to golden brown.)</div>
                         </div>
                     </div>
                 </section>
