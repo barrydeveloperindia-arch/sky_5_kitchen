@@ -1,9 +1,77 @@
 import { useState, useMemo } from 'react';
-import { rooms as initialRooms } from '../data/rooms';
+import { keyActivate } from '../lib/utils';
 import Logo from './Logo';
+import InventoryView from './InventoryView';
+import { OpsSidebar, OpsHeader } from './ops/OpsShell';
+import RoomBoard from './ops/RoomBoard';
+import TodayView from './ops/TodayView';
+import { roomFolio, checkoutFolio, toLocalDateTime, computeRoomBill, parseStayDate, toDateTimeInput, ROOM_GST_RATE, GST_RATE } from '../lib/billing';
+import { IS_TEST_ENV } from '../lib/firebase';
+import { useSyncedCollection, useSyncedDoc, useSyncStatus } from '../lib/syncedState';
+import { normalizeRegistry } from '../lib/staff';
+import { toCSV, CSV_BOM } from '../lib/csv';
 
-function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems, rooms, setRooms }) {
-    const [activeTab, setActiveTab] = useState('Reception'); // Reception, Kitchen, Cleaning, Workforce, Finance
+const pct = (rate) => `${Math.round(rate * 100)}%`;
+const MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+// Attendance/holiday date key in the same "06-May" format the register uses
+const dayKey = (d = new Date()) => `${String(d.getDate()).padStart(2, '0')}-${MONTH_ABBR[d.getMonth()]}`;
+// Text typed by staff/guests goes into printed HTML: escape it so "<" or quotes can never break (or script) the slip
+const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// "29 Sep 2026, 10:00 am" for any supported stay date (falls back to the text as typed)
+const stayWhen = (value) => {
+    const d = parseStayDate(value);
+    return d ? `${d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}, ${d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}` : (value || '--');
+};
+const formatStayDate = (value) => {
+    const d = parseStayDate(value);
+    return d ? d.toLocaleDateString('en-GB') : (value || '--');
+};
+const toMinutes = (t) => {
+    const m = /(\d{1,2}):(\d{2})\s*(AM|PM)/i.exec(t || '');
+    if (!m) return null;
+    return ((+m[1] % 12) + (/pm/i.test(m[3]) ? 12 : 0)) * 60 + +m[2];
+};
+
+// Sample logs exist only in the test environment; the live hotel starts with empty logs.
+const sample = (rows) => (IS_TEST_ENV ? rows : []);
+
+// Unique across devices (two phones saving in the same second never collide)
+const newRecordId = (prefix) => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+
+// Menu price: typed locally, saved on blur / Enter; an empty or invalid entry keeps the old price
+function PriceInput({ item, onCommit }) {
+    const [draft, setDraft] = useState(String(item.price));
+    const [editing, setEditing] = useState(false);
+    const commit = () => {
+        setEditing(false);
+        if (draft.trim() === '' || !Number.isFinite(Number(draft))) { setDraft(String(item.price)); return; }
+        const price = Math.max(0, Math.round(Number(draft)));
+        setDraft(String(price));
+        if (price !== item.price) onCommit(price);
+    };
+    return (
+        <input type="number" min="0" aria-label={`Price of ${item.name}`}
+            value={editing ? draft : String(item.price)}
+            onFocus={() => { setDraft(String(item.price)); setEditing(true); }}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+            style={{ padding: '8px', width: '80px', borderRadius: '8px', border: '1px solid #ccc', outline: 'none' }} />
+    );
+}
+
+function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems, rooms, setRooms, liveReady = true }) {
+    // Everything below is live: saved in the database and shared by every device
+    const savingCount = useSyncStatus();
+    // Bills settled at checkout (shown in Finance)
+    const [settlements, setSettlements] = useSyncedCollection('hotel_settlements', [], { newestFirst: true });
+    const [activeTab, setActiveTab] = useState('Today'); // Today, Reception, Kitchen, Cleaning, ...
+    const [receptionFilter, setReceptionFilter] = useState('All');
+    const goTo = (tab, roomFilter) => { if (roomFilter) setReceptionFilter(roomFilter); else if (tab === 'Reception') setReceptionFilter('All'); setActiveTab(tab); };
+    const [camUrls, setCamUrls] = useState(() => {
+        try { return (localStorage.getItem('sky5_cams') || '').split(','); } catch { return []; }
+    });
+    const [offlineCams, setOfflineCams] = useState({});
     const [editingRoom, setEditingRoom] = useState(null);
     const [cleaningRoom, setCleaningRoom] = useState(null);
     const [editingLog, setEditingLog] = useState(null);
@@ -11,7 +79,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
     const [showBill, setShowBill] = useState(false);
     
     // Official Staff Registry State
-    const [staffRegistry, setStaffRegistry] = useState({
+    const [staffRegistryRaw, setStaffRegistryRaw] = useSyncedDoc('staffRegistry', {
         reception: [
             { id: 'R1', name: 'Gaurav Panchal', role: 'Front Desk', shift: '08:30 AM – 06:30 PM', phone: '9779395934', duties: 'Front desk management and guest check-ins.' },
             { id: 'R2', name: 'Arjun Tiwari', role: 'Front Desk', shift: '09:00 AM – 07:00 PM', phone: '9876484439', duties: 'Reception operations and billing.' },
@@ -41,6 +109,10 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
             { event: 'DINNER TIME', time: '10:00 PM TO 11:00 PM' }
         ]
     });
+    // Every list always exists, even if the saved registry is old or was edited by hand
+    // (a missing list used to crash the whole Workforce tab)
+    const staffRegistry = useMemo(() => normalizeRegistry(staffRegistryRaw), [staffRegistryRaw]);
+    const setStaffRegistry = (u) => setStaffRegistryRaw(prev => (typeof u === 'function' ? u(normalizeRegistry(prev)) : u));
 
     const [editingStaff, setEditingStaff] = useState(null);
     const [staffForm, setStaffForm] = useState({ name: '', role: '', shift: '', phone: '', duties: '' });
@@ -61,10 +133,10 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
         'Toilet (Soap, Handwash, Shower gel)'
     ];
 
-    const [cleaningLogs, setCleaningLogs] = useState([
+    const [cleaningLogs, setCleaningLogs] = useSyncedCollection('hotel_cleaning_logs', sample([
         { id: 101, roomNumber: 3, roomType: 'Deluxe Room', staffName: 'Veerwati', inTime: '06-May, 08:30 AM', outTime: '06-May, 09:15 AM', missingItems: 'Slipper', remarks: 'Missing item noted during turnover.' },
         { id: 102, roomNumber: 9, roomType: 'Deluxe Room', staffName: 'Bhawna', inTime: '06-May, 09:45 AM', outTime: '06-May, 10:30 AM', missingItems: 'None', remarks: 'Room perfectly ready.' },
-    ]);
+    ]), { newestFirst: true });
     const [cleaningForm, setCleaningForm] = useState({ roomNumber: '', staffName: '', inTime: '', outTime: '', missingItems: 'None', remarks: '' });
 
     // Room Checkout State
@@ -79,10 +151,10 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
         'Any Item Damaged'
     ];
 
-    const [checkoutLogs, setCheckoutLogs] = useState([
+    const [checkoutLogs, setCheckoutLogs] = useSyncedCollection('hotel_checkout_logs', sample([
         { id: 301, roomNumber: 5, roomType: 'Super Deluxe Room', staffName: 'Karan', date: '28-May, 11:00 AM', checkedItems: { 'Room keys': true, 'Slippers': true, 'Ac Remote': true, 'Tv remote': true, 'Setup box remote': true, 'Cattle set': true, 'Bed sheets': true, 'Any Item Damaged': false }, remarks: 'All ok, ready for cleaning.' },
         { id: 302, roomNumber: 11, roomType: 'Deluxe Room', staffName: 'Veerwati', date: '29-May, 02:30 PM', checkedItems: { 'Room keys': true, 'Slippers': true, 'Ac Remote': true, 'Tv remote': true, 'Setup box remote': true, 'Cattle set': true, 'Bed sheets': true, 'Any Item Damaged': true }, remarks: 'Slippers missing, charged to guest.' }
-    ]);
+    ]), { newestFirst: true });
     const [checkoutRoom, setCheckoutRoom] = useState(null);
     const [editingCheckoutLog, setEditingCheckoutLog] = useState(null);
     const [checkoutForm, setCheckoutForm] = useState({
@@ -113,10 +185,10 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
         'Runner'
     ];
 
-    const [laundryLogs, setLaundryLogs] = useState([
+    const [laundryLogs, setLaundryLogs] = useSyncedCollection('hotel_laundry_logs', sample([
         { id: 201, roomNumber: 3, date: '25-May, 10:15 AM', pickedUpBy: 'Veerwati', supervisor: 'Gaurav Panchal', items: { 'Double Bed Sheet': 2, 'Quilt Cover': 1, 'Towel': 2, 'Pillow Cover': 2 }, remarks: 'Standard room pickup.' },
         { id: 202, roomNumber: 9, date: '25-May, 11:30 AM', pickedUpBy: 'Bhawna', supervisor: 'Arjun Tiwari', items: { 'Double Bed Sheet': 4, 'Towel': 4, 'Hand Towel': 2, 'Runner': 1 }, remarks: 'Linen sent for laundry.' }
-    ]);
+    ]), { newestFirst: true });
     const [laundryRoom, setLaundryRoom] = useState(null);
     const [editingLaundryLog, setEditingLaundryLog] = useState(null);
     const [laundryForm, setLaundryForm] = useState({
@@ -137,7 +209,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
     });
 
     // Attendance & Leave State
-    const [attendanceLogs, setAttendanceLogs] = useState([
+    const [attendanceLogs, setAttendanceLogs] = useSyncedCollection('hotel_attendance', sample([
         { id: 1, staffName: 'Gaurav Panchal', date: '06-May', checkIn: '08:25 AM', checkOut: '06:35 PM', status: 'Present' },
         { id: 2, staffName: 'Arjun Tiwari', date: '06-May', checkIn: '08:55 AM', checkOut: '--', status: 'Present' },
         { id: 3, staffName: 'Ratnesh', date: '06-May', checkIn: '06:55 PM', checkOut: '--', status: 'Present' },
@@ -147,13 +219,24 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
         { id: 7, staffName: 'Veerwati', date: '06-May', checkIn: '09:50 AM', checkOut: '--', status: 'Half-Day Leave' },
         { id: 8, staffName: 'Bhawna', date: '06-May', checkIn: '08:40 AM', checkOut: '05:10 PM', status: 'Present' },
         { id: 9, staffName: 'Amresh Kumar', date: '06-May', checkIn: '--', checkOut: '--', status: 'Present' },
-    ]);
+    ]));
 
-    const [holidays, setHolidays] = useState([
+    const holidays = [
         { date: '15-Aug', event: 'Independence Day', type: 'National' },
         { date: '02-Oct', event: 'Gandhi Jayanti', type: 'National' },
         { date: '25-Dec', event: 'Christmas', type: 'Hotel Holiday' },
-    ]);
+    ];
+    const upcomingHoliday = (() => {
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const withDates = holidays.map(h => {
+            const [dd, mon] = h.date.split('-');
+            let d = new Date(today.getFullYear(), MONTH_ABBR.indexOf(mon), +dd);
+            if (d < today) d = new Date(today.getFullYear() + 1, MONTH_ABBR.indexOf(mon), +dd);
+            return { ...h, when: d };
+        });
+        return withDates.sort((a, b) => a.when - b.when)[0];
+    })();
 
     const [showAttendanceModal, setShowAttendanceModal] = useState(false);
     const [attendanceForm, setAttendanceForm] = useState({ staffName: '', date: '', checkIn: '', checkOut: '', status: 'Present' });
@@ -161,14 +244,16 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
     const [showStaffModal, setShowStaffModal] = useState(false);
     const [enrollmentForm, setEnrollmentForm] = useState({ name: '', role: '', department: 'reception', shift: '', phone: '', duties: '', photo: '' });
 
-    const [activeAttendanceDate, setActiveAttendanceDate] = useState(new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }));
+    const [activeAttendanceDate, setActiveAttendanceDate] = useState(dayKey());
     const [calendarView, setCalendarView] = useState('list'); // 'list' or 'grid'
+    const [calMonth, setCalMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
+    const [ledgerScope, setLedgerScope] = useState('all'); // 'all' records or only the selected 'day'
 
     const roomRateData = [
-        { rooms: '1, 5, 14', category: 'PREMIUM SUITE', min: 2500, max: 3500, color: '#d4af37' },
-        { rooms: '2, 3, 4, 6, 7, 8, 9', category: 'EXECUTIVE DELUXE', min: 1500, max: 2500, color: '#3498db' },
-        { rooms: '10, 11, 12', category: 'EXECUTIVE STANDARD', min: 1500, max: 2500, color: '#27ae60' },
-        { rooms: '16, 17, 19, 20', category: 'BUDGET COMFORT', min: 1200, max: 1800, color: '#7f8c8d' }
+        { rooms: '1, 5, 14', category: 'PREMIUM SUITE', min: 2500, max: 3500, color: '#8a6d1a' },
+        { rooms: '2, 3, 4, 6, 7, 8, 9', category: 'EXECUTIVE DELUXE', min: 1500, max: 2500, color: '#1f618d' },
+        { rooms: '10, 11, 12', category: 'EXECUTIVE STANDARD', min: 1500, max: 2500, color: '#1e7b34' },
+        { rooms: '16, 17, 19, 20', category: 'BUDGET COMFORT', min: 1200, max: 1800, color: '#5f6b6d' }
     ];
 
     const handleShareRateCard = () => {
@@ -186,9 +271,14 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
     };
 
     const handleShareAlert = (leave) => {
-        const message = `*HOTEL SKY 5 - OFFICIAL ALERT*%0A------------------------------------%0A*Name:* ${leave.name}%0A*Schedule:* ${leave.shift}%0A*Context:* ${leave.location}%0A*Directive:* ${leave.remarks}%0A------------------------------------%0A_Authorized by Sky-Ops Center_`;
-        window.open(`https://wa.me/?text=${message}`, '_blank');
+        const message = `*HOTEL SKY 5 - OFFICIAL ALERT*\n------------------------------------\n*Name:* ${leave.name}\n*Schedule:* ${leave.shift}\n*Context:* ${leave.location}\n*Directive:* ${leave.remarks}\n------------------------------------\n_Authorized by Sky-Ops Center_`;
+        window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
     };
+
+    const ledgerLogs = ledgerScope === 'day' ? attendanceLogs.filter(l => l.date === activeAttendanceDate) : attendanceLogs;
+
+    const liveFoodBill = editingRoom ? (rooms.find(r => r.id === editingRoom.id)?.foodBill || 0) : 0;
+    const occupiedFolios = rooms.filter(r => r.status === 'Occupied' && r.guest).map(r => ({ r, f: roomFolio(r) }));
 
     const stats = useMemo(() => {
         const occupied = rooms.filter(r => r.status === 'Occupied').length;
@@ -203,7 +293,9 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                 // If checking out, we optionally could clear the guest data, but keeping it for history is fine.
                 // However, for clean state, we should probably clear it when marking clean.
                 if (newStatus === 'Clean') {
-                    const { guest, ...rest } = r;
+                    // Room is turned over: drop the previous guest and their food bill
+                    // eslint-disable-next-line no-unused-vars
+                    const { guest, foodBill, ...rest } = r;
                     return { ...rest, status: newStatus };
                 }
                 return { ...r, status: newStatus };
@@ -214,6 +306,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
 
     const handleCheckInClick = (room) => {
         const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
         const defaultCheckIn = now.toISOString().slice(0, 16);
         setGuestForm(room.guest ? { 
             name: room.guest.name, 
@@ -222,8 +315,8 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
             advance: room.guest.advance || '', 
             advanceType: room.guest.advanceType || 'Cash', 
             foodBill: room.foodBill || '',
-            checkInTime: room.guest.checkIn || defaultCheckIn,
-            checkOutTime: room.guest.checkOut || '',
+            checkInTime: toDateTimeInput(room.guest.checkIn) || defaultCheckIn,
+            checkOutTime: toDateTimeInput(room.guest.checkOut),
             extraGuests: room.guest.extraGuests || '',
             gstEnabled: room.guest.gstEnabled !== undefined ? room.guest.gstEnabled : true,
             adults: room.guest.adults || 1,
@@ -254,11 +347,16 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
         const now = new Date();
         const checkInTime = editingRoom.guest?.checkIn || now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + ", " + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
-        setRooms(prev => prev.map(r => r.id === editingRoom.id ? { 
-            ...r, 
+                const live = rooms.find(r => r.id === editingRoom.id);
+        if (live && (live.guest?.name || '') !== (editingRoom.guest?.name || '')) {
+            alert(`Room ${editingRoom.id} was just changed on another device (${live.guest?.name || 'guest removed'}). Close this form and open the room again.`);
+            return;
+        }
+        // foodBill is NOT taken from the form: room-charge orders placed while the form was open must stay
+        setRooms(prev => prev.map(r => r.id === editingRoom.id ? {
+            ...r,
             status: 'Occupied',
-            foodBill: Number(guestForm.foodBill) || 0,
-            guest: { 
+            guest: {  
                 name: guestForm.name, 
                 phone: guestForm.phone, 
                 address: guestForm.address, 
@@ -295,7 +393,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
         setEditingLog(log);
         // Find the room to set context for the modal
         const room = rooms.find(r => r.id === Number(log.roomNumber));
-        setCleaningRoom(room);
+        setCleaningRoom(room || { id: Number(log.roomNumber), type: log.roomType });
     };
 
     const handleSaveCleaning = () => {
@@ -303,11 +401,24 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
             alert("Staff name is required.");
             return;
         }
+        if (!Number(cleaningForm.roomNumber)) {
+            alert("Room number is required.");
+            return;
+        }
 
         const now = new Date();
         const outTime = cleaningForm.outTime || (now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) + ", " + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
 
-        const selectedRoom = rooms.find(r => r.id === Number(cleaningForm.roomNumber)) || cleaningRoom;
+        const selectedRoom = rooms.find(r => r.id === Number(cleaningForm.roomNumber));
+        if (!selectedRoom) {
+            alert(`Room ${cleaningForm.roomNumber} does not exist.`);
+            return;
+        }
+        // Never wipe a checked-in guest: the room must be checked out (Dirty) before it is cleaned
+        if (!editingLog && selectedRoom.status === 'Occupied') {
+            alert(`Room ${selectedRoom.id} has a guest checked in. Check the guest out first.`);
+            return;
+        }
 
         if (editingLog) {
             setCleaningLogs(prev => prev.map(log => log.id === editingLog.id ? {
@@ -325,7 +436,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
             const newLog = {
                 id: Date.now(),
                 roomNumber: Number(cleaningForm.roomNumber),
-                roomType: selectedRoom?.type || cleaningRoom.type,
+                roomType: selectedRoom.type,
                 staffName: cleaningForm.staffName,
                 inTime: cleaningForm.inTime,
                 outTime: outTime,
@@ -333,7 +444,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                 remarks: cleaningForm.remarks
             };
             setCleaningLogs(prev => [newLog, ...prev]);
-            updateRoomStatus(cleaningRoom.id, 'Clean');
+            updateRoomStatus(Number(cleaningForm.roomNumber), 'Clean');
         }
         
         setCleaningRoom(null);
@@ -379,11 +490,23 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
             alert("Staff name is required.");
             return;
         }
+        if (!Number(checkoutForm.roomNumber)) {
+            alert("Room number is required.");
+            return;
+        }
 
         const now = new Date();
         const dateStr = checkoutForm.date || (now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) + ", " + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
 
-        const selectedRoom = rooms.find(r => r.id === Number(checkoutForm.roomNumber)) || checkoutRoom;
+        const selectedRoom = rooms.find(r => r.id === Number(checkoutForm.roomNumber));
+        if (!selectedRoom) {
+            alert(`Room ${checkoutForm.roomNumber} does not exist.`);
+            return;
+        }
+        if (!editingCheckoutLog && (selectedRoom.status !== 'Occupied' || !selectedRoom.guest)) {
+            alert(`Room ${selectedRoom.id} has no checked-in guest.`);
+            return;
+        }
 
         if (editingCheckoutLog) {
             setCheckoutLogs(prev => prev.map(log => log.id === editingCheckoutLog.id ? {
@@ -397,10 +520,36 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
             } : log));
             setEditingCheckoutLog(null);
         } else {
+            // Settle the folio before the guest leaves, so no balance silently disappears.
+            // The stay ends now (actual departure), not on the planned check-out date.
+            const leftAt = new Date();
+            const folio = checkoutFolio(selectedRoom, leftAt);
+            const head = `Room ${selectedRoom.id} (${selectedRoom.guest.name}): ${folio.nights} night${folio.nights > 1 ? 's' : ''}, total ₹${folio.grandTotal.toLocaleString('en-IN')}, advance ₹${folio.advance.toLocaleString('en-IN')}.`;
+            if (folio.due > 0 && !window.confirm(`${head}\n\n₹${folio.due.toLocaleString('en-IN')} is still due.\nPress OK only after the payment is received.`)) {
+                return;
+            }
+            if (folio.refund > 0 && !window.confirm(`${head}\n\nREFUND ₹${folio.refund.toLocaleString('en-IN')} to the guest (advance was more than the bill).\nPress OK after the refund is given.`)) {
+                return;
+            }
+            setSettlements(prev => [{
+                id: `${leftAt.getTime()}-${selectedRoom.id}`,
+                roomId: selectedRoom.id,
+                guest: selectedRoom.guest.name,
+                nights: folio.nights,
+                total: folio.grandTotal,
+                advance: folio.advance,
+                collected: folio.due,
+                refund: folio.refund,
+                date: dateStr,
+                settledAt: leftAt.getTime(),
+            }, ...prev]);
+            // keep the guest on the room for the record, with the real departure time
+            setRooms(prev => prev.map(r => r.id === selectedRoom.id && r.guest
+                ? { ...r, guest: { ...r.guest, checkOut: toLocalDateTime(leftAt), checkedOutAt: leftAt.getTime() } } : r));
             const newLog = {
                 id: Date.now(),
                 roomNumber: Number(checkoutForm.roomNumber),
-                roomType: selectedRoom?.type || checkoutRoom.type,
+                roomType: selectedRoom.type,
                 staffName: checkoutForm.staffName,
                 date: dateStr,
                 checkedItems: { ...checkoutForm.checkedItems },
@@ -416,11 +565,12 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
 
     const handlePrintCheckoutSlip = (log) => {
         const printWindow = window.open('', '_blank');
+        if (!printWindow) { alert('Please allow pop-ups to print.'); return; }
         const itemsHtml = Object.entries(log.checkedItems || {})
             .map(([item, checked]) => `
                 <tr style="border-bottom: 1px solid #eee; font-size: 14px;">
                     <td style="padding: 10px 0; color: #0a192f; font-weight: 600; text-transform: uppercase;">• ${item}</td>
-                    <td style="text-align: right; padding: 10px 0; font-weight: 800; color: ${checked ? '#27ae60' : '#e74c3c'}; text-transform: uppercase;">
+                    <td style="text-align: right; padding: 10px 0; font-weight: 800; color: ${checked ? '#1e7b34' : '#c0392b'}; text-transform: uppercase;">
                         ${item === 'Any Item Damaged' ? (checked ? '⚠️ DAMAGED' : '✅ OK') : (checked ? '✅ OK / RETURNED' : '❌ MISSING')}
                     </td>
                 </tr>
@@ -455,10 +605,10 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                         .slip-title { font-size: 12px; color: #d4af37; letter-spacing: 3px; text-transform: uppercase; margin-top: 5px; font-weight: 800; }
                         .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 30px; }
                         .item { border-bottom: 1px solid #f0f0f0; padding-bottom: 10px; }
-                        .label { font-size: 10px; font-weight: 800; color: #888; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 1px; }
+                        .label { font-size: 10px; font-weight: 800; color: #6b6b6b; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 1px; }
                         .value { font-size: 15px; font-weight: 600; color: #0a192f; }
                         .section-title { font-size: 10px; font-weight: 800; color: #0a192f; background: #f8f9fa; padding: 5px 10px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }
-                        .footer { margin-top: 60px; text-align: center; font-size: 9px; color: #999; border-top: 1px solid #eee; padding-top: 20px; }
+                        .footer { margin-top: 60px; text-align: center; font-size: 9px; color: #6b6b6b; border-top: 1px solid #eee; padding-top: 20px; }
                         .signature-space { margin-top: 40px; display: flex; justify-content: space-between; }
                         .sig-line { border-top: 1px solid #333; width: 150px; text-align: center; font-size: 10px; padding-top: 5px; margin-top: 30px; }
                         @media print { .no-print { display: none !important; } }
@@ -468,7 +618,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                     <div class="no-print" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; padding: 12px; background: #f4f4f4; border-radius: 8px; align-items: center; border: 1px solid #ddd;">
                         <div style="display: flex; gap: 10px;">
                             <button onclick="window.print()" style="padding: 10px 20px; background: #0a192f; color: #d4af37; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">🖨️ Print / Save PDF</button>
-                            <button onclick="window.open('https://wa.me/?text=${encodeURIComponent(shareText)}', '_blank')" style="padding: 10px 20px; background: #25D366; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">💬 Share on WhatsApp</button>
+                            <button onclick="window.open('https://wa.me/?text=${encodeURIComponent(shareText).replace(/'/g, '%27')}', '_blank')" style="padding: 10px 20px; background: #0F7A40; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">💬 Share on WhatsApp</button>
                             <button onclick="window.close()" style="padding: 10px 20px; background: #666; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">Close</button>
                         </div>
                         <div style="font-size: 10px; color: #555; font-weight: 700; text-align: center;">
@@ -491,9 +641,9 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
 
                     <div class="section-title">Inspection Details</div>
                     <div class="details-grid">
-                        <div class="item"><div class="label">Room Number</div><div class="value">ROOM ${log.roomNumber} (${log.roomType})</div></div>
-                        <div class="item"><div class="label">Checkout Time</div><div class="value">${log.date}</div></div>
-                        <div class="item"><div class="label">Housekeeper/Inspector</div><div class="value">${log.staffName}</div></div>
+                        <div class="item"><div class="label">Room Number</div><div class="value">ROOM ${log.roomNumber} (${esc(log.roomType)})</div></div>
+                        <div class="item"><div class="label">Checkout Time</div><div class="value">${esc(log.date)}</div></div>
+                        <div class="item"><div class="label">Housekeeper/Inspector</div><div class="value">${esc(log.staffName)}</div></div>
                         <div class="item"><div class="label">Status</div><div class="value">${log.checkedItems['Any Item Damaged'] ? '⚠️ DAMAGED / ATTENTION REQUIRED' : '✅ ALL CLEAR'}</div></div>
                     </div>
 
@@ -512,7 +662,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
 
                     <div class="section-title">Remarks & Exceptions</div>
                     <div style="padding: 15px; background: #fafafa; border-radius: 8px; border-left: 4px solid #d4af37; font-style: italic; font-size: 14px;">
-                        ${log.remarks || 'All checklist items verified. No damage reported.'}
+                        ${esc(log.remarks || 'All checklist items verified. No damage reported.')}
                     </div>
 
                     <div class="signature-space">
@@ -532,6 +682,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
 
     const handlePrintBlankCheckoutCoupons = () => {
         const printWindow = window.open('', '_blank');
+        if (!printWindow) { alert('Please allow pop-ups to print.'); return; }
         const items = [
             'Room keys',
             'Slippers',
@@ -643,7 +794,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                     <div class="no-print" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; padding: 12px; background: #f4f4f4; border-radius: 8px; align-items: center; border: 1px solid #ddd; font-family: 'Inter', sans-serif; box-sizing: border-box;">
                         <div style="display: flex; gap: 10px;">
                             <button onclick="window.print()" style="padding: 6px 15px; background: #0a192f; color: #d4af37; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">🖨️ Print / Save PDF</button>
-                            <button onclick="window.open('https://wa.me/?text=${encodeURIComponent(shareMessage)}', '_blank')" style="padding: 6px 15px; background: #25D366; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">💬 Share on WhatsApp</button>
+                            <button onclick="window.open('https://wa.me/?text=${encodeURIComponent(shareMessage).replace(/'/g, '%27')}', '_blank')" style="padding: 6px 15px; background: #0F7A40; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">💬 Share on WhatsApp</button>
                             <button onclick="window.close()" style="padding: 6px 15px; background: #666; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">Close</button>
                         </div>
                         <div style="font-size: 10px; color: #555; font-weight: 700; text-align: center;">
@@ -722,22 +873,42 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
     };
 
     const handleSaveAttendance = () => {
-        if (!attendanceForm.staffName || !attendanceForm.date) {
+        if (!attendanceForm.staffName || !attendanceForm.date.trim()) {
             alert("Staff Name and Date are required.");
             return;
         }
+        // Accept "6-may", "06 May", "06-May" -> "06-May" (same format as the register)
+        const m = /^(\d{1,2})[\s-]*([A-Za-z]{3})/.exec(attendanceForm.date.trim());
+        const mon = m && MONTH_ABBR.find(x => x.toLowerCase() === m[2].toLowerCase());
+        if (!m || !mon || Number(m[1]) < 1 || Number(m[1]) > 31) {
+            alert('Enter the date like 06-May.');
+            return;
+        }
+        const date = `${m[1].padStart(2, '0')}-${mon}`;
+        if (attendanceLogs.some(l => l.staffName === attendanceForm.staffName && l.date === date)) {
+            alert(`${attendanceForm.staffName} already has attendance for ${date}. Use CHECK-IN / CHECK-OUT on that row.`);
+            return;
+        }
         const newLog = {
-            id: attendanceLogs.length + 1,
-            ...attendanceForm
+            ...attendanceForm,
+            id: newRecordId('att'),
+            date,
+            checkIn: attendanceForm.checkIn.trim() || '--',
+            checkOut: attendanceForm.checkOut.trim() || '--',
         };
-        setAttendanceLogs([...attendanceLogs, newLog]);
+        setAttendanceLogs(prev => [...prev, newLog]);
         setShowAttendanceModal(false);
         setAttendanceForm({ staffName: '', date: '', checkIn: '', checkOut: '', status: 'Present' });
     };
 
     const handleEnrollStaff = () => {
-        if (!enrollmentForm.name || !enrollmentForm.role) {
+        if (!enrollmentForm.name.trim() || !enrollmentForm.role.trim()) {
             alert("Name and Role are required.");
+            return;
+        }
+        const allStaff = [...staffRegistry.reception, ...staffRegistry.kitchen, ...staffRegistry.housekeeping];
+        if (allStaff.some(st => st.name.trim().toLowerCase() === enrollmentForm.name.trim().toLowerCase())) {
+            alert(`${enrollmentForm.name.trim()} is already enrolled.`);
             return;
         }
         
@@ -754,10 +925,10 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
         }));
 
         // Also add to attendance logs as 'Pending' for today
-        const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+        const today = dayKey();
         setAttendanceLogs(prev => [...prev, { 
-            id: prev.length + 1, 
-            staffName: enrollmentForm.name, 
+                        id: newRecordId('att'),
+            staffName: enrollmentForm.name.trim(),    
             date: today, 
             checkIn: '--', 
             checkOut: '--', 
@@ -765,7 +936,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
         }]);
 
         setShowStaffModal(false);
-        setEnrollmentForm({ name: '', role: '', department: 'reception', shift: '', phone: '', duties: '' });
+        setEnrollmentForm({ name: '', role: '', department: 'reception', shift: '', phone: '', duties: '', photo: '' });
     };
 
     const handleExportAttendance = (type) => {
@@ -773,71 +944,54 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
         let filteredLogs = [...attendanceLogs];
         
         const now = new Date();
-        if (type === 'monthly') {
-            const currentMonth = now.toLocaleDateString('en-GB', { month: 'short' });
-            filteredLogs = attendanceLogs.filter(log => log.date.includes(currentMonth));
-        } else if (type === 'yearly') {
-            // Simplified for local state
-            filteredLogs = [...attendanceLogs];
+        let label = type.toUpperCase();
+        if (type === 'daily') {
+            filteredLogs = attendanceLogs.filter(log => log.date === activeAttendanceDate);
+            label = `DAILY_${activeAttendanceDate}`;
+        } else if (type === 'monthly') {
+            const mon = MONTH_ABBR[calMonth.getMonth()];
+            filteredLogs = attendanceLogs.filter(log => String(log.date).split('-')[1] === mon);
+            label = `MONTHLY_${mon}-${calMonth.getFullYear()}`;
         }
 
         const rows = filteredLogs.map(log => [log.id, log.staffName, log.date, log.checkIn, log.checkOut, log.status]);
-        const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const csvContent = toCSV([headers, ...rows]);
+        const blob = new Blob([CSV_BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
         link.setAttribute("href", url);
-        link.setAttribute("download", `HotelSky5_Attendance_${type.toUpperCase()}_${now.toISOString().slice(0,10)}.csv`);
+        link.setAttribute("download", `HotelSky5_Attendance_${label}_${now.toISOString().slice(0,10)}.csv`);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     };
 
-    const handleQuickCheckIn = (staffName) => {
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-        const today = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
-        
-        setAttendanceLogs(prev => {
-            const index = prev.findIndex(l => l.staffName === staffName && l.date === today);
-            if (index !== -1) {
-                const newLogs = [...prev];
-                newLogs[index] = { ...newLogs[index], checkIn: timeStr, status: 'Present' };
-                return newLogs;
-            }
-            return [...prev, { id: prev.length + 1, staffName, date: today, checkIn: timeStr, checkOut: '--', status: 'Present' }];
-        });
+    const handleQuickCheckIn = (logId) => {
+        const timeStr = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        setAttendanceLogs(prev => prev.map(l => l.id === logId ? { ...l, checkIn: timeStr, status: 'Present' } : l));
     };
 
-    const handleQuickCheckOut = (staffName) => {
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-        const today = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
-        
-        setAttendanceLogs(prev => {
-            const index = prev.findIndex(l => l.staffName === staffName && l.date === today);
-            if (index !== -1) {
-                const newLogs = [...prev];
-                newLogs[index] = { ...newLogs[index], checkOut: timeStr };
-                return newLogs;
-            }
-            return prev;
-        });
+    const handleQuickCheckOut = (logId) => {
+        const timeStr = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        setAttendanceLogs(prev => prev.map(l => l.id === logId ? { ...l, checkOut: timeStr } : l));
     };
 
     const handleShareAttendanceWhatsApp = () => {
-        const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
-        const presentCount = attendanceLogs.filter(l => l.status === 'Present').length;
-        const leaveCount = attendanceLogs.filter(l => l.status.includes('Leave')).length;
-        
+                const today = dayKey();
+        const todays = attendanceLogs.filter(l => l.date === today);
+        const presentCount = todays.filter(l => l.status === 'Present').length;
+        const leaveCount = todays.filter(l => /leave/i.test(l.status || '')).length;
+        const staffTotal = staffRegistry.reception.length + staffRegistry.kitchen.length + staffRegistry.housekeeping.length;
+
         let message = `*🏨 HOTEL SKY 5 - ATTENDANCE REPORT (${today})*\n\n`;
         message += `✅ *Present:* ${presentCount}\n`;
         message += `⚠️ *On Leave:* ${leaveCount}\n`;
-        message += `📊 *Total Staff:* ${attendanceLogs.length}\n\n`;
+        message += `📊 *Total Staff:* ${staffTotal}\n\n`;
         message += `*--- DAILY LEDGER ---*\n`;
-        
-        attendanceLogs.forEach(log => {
+        if (!todays.length) message += `No attendance marked yet today.\n`;
+
+        todays.forEach(log => {
             message += `• ${log.staffName}: ${log.status} (${log.checkIn} - ${log.checkOut})\n`;
         });
         
@@ -880,13 +1034,8 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
         if (!room.guest) return;
         
         const printWindow = window.open('', '_blank');
-        const roomTotal = Number(room.price) || 0;
-        const foodTotal = Number(room.foodBill) || 0;
-        const subtotal = roomTotal + foodTotal;
-        const gst = Math.round(subtotal * 0.12); // Standard 12% GST for Luxury Stays
-        const grandTotal = subtotal + gst;
-        const advance = Number(room.guest.advance) || 0;
-        const balance = grandTotal - advance;
+        if (!printWindow) { alert('Please allow pop-ups to print.'); return; }
+        const { nights, rate, roomTotal, foodTotal, subtotal, roomGst, foodGst, grandTotal, advance, balance } = roomFolio(room);
 
         printWindow.document.write(`
             <html>
@@ -897,7 +1046,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                         body { font-family: 'Inter', sans-serif; padding: 40px; color: #0a192f; line-height: 1.6; }
                         .receipt-container { max-width: 800px; margin: 0 auto; border: 2px solid #0a192f; padding: 50px; border-radius: 15px; position: relative; }
                         .header { text-align: center; border-bottom: 3px solid #d4af37; padding-bottom: 30px; margin-bottom: 40px; }
-                        .brand { font-family: 'Cinzel', serif; fontSize: 2.5rem; margin: 0; color: #0a192f; letter-spacing: 2px; }
+                        .brand { font-family: 'Cinzel', serif; font-size: 2.5rem; margin: 0; color: #0a192f; letter-spacing: 2px; }
                         .address { font-size: 0.8rem; color: #666; margin-top: 10px; max-width: 400px; margin-left: auto; margin-right: auto; }
                         .receipt-info { display: flex; justify-content: space-between; margin-bottom: 40px; font-size: 0.9rem; }
                         .billing-table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
@@ -934,15 +1083,16 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                         <div class="receipt-info">
                             <div>
                                 <div style="font-weight: 800; text-transform: uppercase; color: #d4af37; margin-bottom: 5px;">Guest Details</div>
-                                <div style="font-size: 1.1rem; font-weight: 700;">${room.guest.name}</div>
-                                <div>${room.guest.phone}</div>
-                                <div style="max-width: 250px;">${room.guest.address || 'N/A'}</div>
+                                <div style="font-size: 1.1rem; font-weight: 700;">${esc(room.guest.name)}</div>
+                                <div>${esc(room.guest.phone)}</div>
+                                <div style="max-width: 250px;">${esc(room.guest.address || 'N/A')}</div>
                             </div>
                             <div style="text-align: right;">
                                 <div style="font-weight: 800; text-transform: uppercase; color: #d4af37; margin-bottom: 5px;">Folio Information</div>
                                 <div><b>Room Number:</b> ${room.id}</div>
                                 <div><b>Room Type:</b> ${room.type}</div>
-                                <div><b>Check-In:</b> ${room.guest.checkIn}</div>
+                                <div><b>Check-In:</b> ${esc(stayWhen(room.guest.checkIn))}</div>
+                                ${room.guest.checkOut ? `<div><b>Check-Out:</b> ${esc(stayWhen(room.guest.checkOut))}</div>` : ''}
                                 <div><b>Invoice Date:</b> ${new Date().toLocaleDateString('en-GB')}</div>
                             </div>
                         </div>
@@ -956,12 +1106,12 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td>Room Rent & Services (Room ${room.id})</td>
-                                    <td style="text-align: right;">₹${roomTotal.toLocaleString()}</td>
+                                    <td>Room Rent & Services (Room ${room.id}) — ${nights} night${nights > 1 ? 's' : ''} × ₹${rate.toLocaleString('en-IN')}</td>
+                                    <td style="text-align: right;">₹${roomTotal.toLocaleString('en-IN')}</td>
                                 </tr>
                                 <tr>
                                     <td>Food & Beverage Bill (Restaurant Sync)</td>
-                                    <td style="text-align: right;">₹${foodTotal.toLocaleString()}</td>
+                                    <td style="text-align: right;">₹${foodTotal.toLocaleString('en-IN')}</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -969,31 +1119,36 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                         <div class="total-section">
                             <div class="total-row">
                                 <span>Subtotal:</span>
-                                <span>₹${subtotal.toLocaleString()}</span>
+                                <span>₹${subtotal.toLocaleString('en-IN')}</span>
+                            </div>
+                            ${room.guest.gstEnabled === false ? `<div class="total-row"><span>GST:</span><span>Not applied</span></div>` : `
+                            <div class="total-row">
+                                <span>GST on Room (${pct(ROOM_GST_RATE)}):</span>
+                                <span>₹${roomGst.toLocaleString('en-IN')}</span>
                             </div>
                             <div class="total-row">
-                                <span>GST (12%):</span>
-                                <span>₹${gst.toLocaleString()}</span>
-                            </div>
+                                <span>GST on Food (${pct(GST_RATE)}):</span>
+                                <span>₹${foodGst.toLocaleString('en-IN')}</span>
+                            </div>`}
                             <div class="grand-total total-row">
                                 <span>GRAND TOTAL:</span>
-                                <span>₹${grandTotal.toLocaleString()}</span>
+                                <span>₹${grandTotal.toLocaleString('en-IN')}</span>
                             </div>
-                            <div class="total-row" style="color: #27ae60; font-weight: 700; margin-top: 10px;">
-                                <span>Advance Paid (${room.guest.advanceType}):</span>
-                                <span>- ₹${advance.toLocaleString()}</span>
+                            <div class="total-row" style="color: #1e7b34; font-weight: 700; margin-top: 10px;">
+                                <span>Advance Paid${room.guest.advanceType ? ` (${esc(room.guest.advanceType)})` : ''}:</span>
+                                <span>- ₹${advance.toLocaleString('en-IN')}</span>
                             </div>
                             <div class="total-row" style="font-weight: 800; border-top: 1px dashed #ccc; margin-top: 5px; padding-top: 5px;">
-                                <span>NET PAYABLE:</span>
-                                <span>₹${balance.toLocaleString()}</span>
+                                <span>${balance < 0 ? 'REFUND DUE TO GUEST:' : 'NET PAYABLE:'}</span>
+                                <span>₹${Math.abs(balance).toLocaleString('en-IN')}</span>
                             </div>
                         </div>
 
                         <div class="footer">
-                            <div class="stamp">PAID & VERIFIED</div>
+                            ${balance === 0 ? '<div class="stamp">PAID & VERIFIED</div>' : '<div></div>'}
                             <div>
                                 <div class="signature-box">FRONT OFFICE MANAGER</div>
-                                <div style="font-size: 0.6rem; color: #888; margin-top: 5px;">Hotel Sky 5 Management OS - Verified Artifact</div>
+                                <div style="font-size: 0.6rem; color: #6b6b6b; margin-top: 5px;">Hotel Sky 5 Management OS - Verified Artifact</div>
                             </div>
                         </div>
                     </div>
@@ -1008,6 +1163,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
 
     const handlePrintSlip = (log) => {
         const printWindow = window.open('', '_blank');
+        if (!printWindow) { alert('Please allow pop-ups to print.'); return; }
         const encodedMessage = encodeURIComponent(
             `*Hotel Sky 5 - Housekeeping Verification*\n` +
             `------------------------------------\n` +
@@ -1032,11 +1188,11 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                         .slip-title { font-size: 12px; color: #d4af37; letter-spacing: 3px; text-transform: uppercase; margin-top: 5px; font-weight: 800; }
                         .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 30px; }
                         .item { border-bottom: 1px solid #f0f0f0; padding-bottom: 10px; }
-                        .label { font-size: 10px; font-weight: 800; color: #888; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 1px; }
+                        .label { font-size: 10px; font-weight: 800; color: #6b6b6b; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 1px; }
                         .value { font-size: 15px; font-weight: 600; color: #0a192f; }
                         .section-title { font-size: 10px; font-weight: 800; color: #0a192f; background: #f8f9fa; padding: 5px 10px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }
                         .remarks-area { margin-top: 20px; padding: 20px; background: #fafafa; border-radius: 8px; border-left: 4px solid #d4af37; }
-                        .footer { margin-top: 60px; text-align: center; font-size: 9px; color: #999; border-top: 1px solid #eee; padding-top: 20px; }
+                        .footer { margin-top: 60px; text-align: center; font-size: 9px; color: #6b6b6b; border-top: 1px solid #eee; padding-top: 20px; }
                         .signature-space { margin-top: 40px; display: flex; justify-content: space-between; }
                         .sig-line { border-top: 1px solid #333; width: 150px; text-align: center; font-size: 10px; padding-top: 5px; margin-top: 30px; }
                         @media print { .no-print { display: none !important; } }
@@ -1046,7 +1202,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                     <div class="no-print" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; padding: 12px; background: #f4f4f4; border-radius: 8px; align-items: center; border: 1px solid #ddd; font-family: 'Inter', sans-serif;">
                         <div style="display: flex; gap: 10px;">
                             <button onclick="window.print()" style="padding: 10px 20px; background: #0a192f; color: #d4af37; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">🖨️ Print / Save PDF</button>
-                            <button onclick="window.open('https://wa.me/?text=${encodedMessage}', '_blank')" style="padding: 10px 20px; background: #25D366; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">💬 Share on WhatsApp</button>
+                            <button onclick="window.open('https://wa.me/?text=${encodedMessage}', '_blank')" style="padding: 10px 20px; background: #0F7A40; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">💬 Share on WhatsApp</button>
                             <button onclick="window.close()" style="padding: 10px 20px; background: #666; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">Close</button>
                         </div>
                         <div style="font-size: 10px; color: #555; font-weight: 700; text-align: center;">
@@ -1070,24 +1226,24 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                     <div class="section-title">Room Assignment</div>
                     <div class="details-grid">
                         <div class="item"><div class="label">Room Number</div><div class="value">ROOM ${log.roomNumber}</div></div>
-                        <div class="item"><div class="label">Room Category</div><div class="value">${log.roomType}</div></div>
-                        <div class="item"><div class="label">Housekeeper</div><div class="value">${log.staffName}</div></div>
+                        <div class="item"><div class="label">Room Category</div><div class="value">${esc(log.roomType)}</div></div>
+                        <div class="item"><div class="label">Housekeeper</div><div class="value">${esc(log.staffName)}</div></div>
                         <div class="item"><div class="label">Audit Date</div><div class="value">${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div></div>
                     </div>
 
                     <div class="section-title">Timeline & Inventory</div>
                     <div class="details-grid">
-                        <div class="item"><div class="label">Check-In Time</div><div class="value">${log.inTime}</div></div>
-                        <div class="item"><div class="label">Completion Time</div><div class="value">${log.outTime}</div></div>
+                        <div class="item"><div class="label">Check-In Time</div><div class="value">${esc(log.inTime)}</div></div>
+                        <div class="item"><div class="label">Completion Time</div><div class="value">${esc(log.outTime)}</div></div>
                         <div class="item" style="grid-column: span 2;">
                             <div class="label">Missing Items / Discrepancies</div>
-                            <div class="value" style="color: ${log.missingItems === 'None' ? '#27ae60' : '#e74c3c'}">${log.missingItems}</div>
+                            <div class="value" style="color: ${log.missingItems === 'None' ? '#1e7b34' : '#c0392b'}">${esc(log.missingItems)}</div>
                         </div>
                     </div>
 
                     <div class="section-title">Supervisor Observations</div>
                     <div class="remarks-area">
-                        <div class="value" style="font-style: italic;">${log.remarks || 'Room verified as per 5-star hospitality standards. No specific discrepancies noted.'}</div>
+                        <div class="value" style="font-style: italic;">${esc(log.remarks || 'Room verified as per 5-star hospitality standards. No specific discrepancies noted.')}</div>
                     </div>
 
                     <div class="signature-space">
@@ -1096,7 +1252,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                     </div>
 
                     <div class="footer">
-                        OFFICIAL HOUSEKEEPING RECORD • GENERATED BY Sky-Ops Center • ${new Date().toLocaleString()}<br>
+                        OFFICIAL HOUSEKEEPING RECORD • GENERATED BY Sky-Ops Center • ${new Date().toLocaleString('en-IN')}<br>
                         "Redefining Luxury with Precision"
                     </div>
                 </body>
@@ -1106,13 +1262,23 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
     };
 
     const handleShareWhatsApp = (log) => {
-        const message = `*Hotel Sky 5*%0A------------------------------------%0A*Room:* ${log.roomNumber} (${log.roomType})%0A*Staff:* ${log.staffName}%0A*In Time:* ${log.inTime}%0A*Out Time:* ${log.outTime}%0A*Missing Items:* ${log.missingItems}%0A*Remarks:* ${log.remarks || 'None'}%0A------------------------------------%0A_Generated via Sky-Ops Center_`;
+        const message = `*Hotel Sky 5*
+------------------------------------
+*Room:* ${log.roomNumber} (${log.roomType})
+*Staff:* ${log.staffName}
+*In Time:* ${log.inTime}
+*Out Time:* ${log.outTime}
+*Missing Items:* ${log.missingItems}
+*Remarks:* ${log.remarks || 'None'}
+------------------------------------
+_Generated via Sky-Ops Center_`;
         
-        window.open(`https://wa.me/?text=${message}`, '_blank');
+        window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
     };
 
     const handlePrintBlankSlips = () => {
         const printWindow = window.open('', '_blank');
+        if (!printWindow) { alert('Please allow pop-ups to print.'); return; }
         const leftItems = [
             'A/c Remote + Cell',
             'Set-up Box Remote + Cell',
@@ -1253,7 +1419,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                     <div class="no-print" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; padding: 12px; background: #f4f4f4; border-radius: 8px; align-items: center; border: 1px solid #ddd; font-family: 'Inter', sans-serif; box-sizing: border-box;">
                         <div style="display: flex; gap: 10px;">
                             <button onclick="window.print()" style="padding: 6px 15px; background: #0a192f; color: #d4af37; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">🖨️ Print / Save PDF</button>
-                            <button onclick="window.open('https://wa.me/?text=${encodeURIComponent(shareMessage)}', '_blank')" style="padding: 6px 15px; background: #25D366; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">💬 Share on WhatsApp</button>
+                            <button onclick="window.open('https://wa.me/?text=${encodeURIComponent(shareMessage).replace(/'/g, '%27')}', '_blank')" style="padding: 6px 15px; background: #0F7A40; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">💬 Share on WhatsApp</button>
                             <button onclick="window.close()" style="padding: 6px 15px; background: #666; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">Close</button>
                         </div>
                         <div style="font-size: 10px; color: #555; font-weight: 700; text-align: center;">
@@ -1272,6 +1438,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
 
     const handlePrintBlankLaundryCoupons = () => {
         const printWindow = window.open('', '_blank');
+        if (!printWindow) { alert('Please allow pop-ups to print.'); return; }
         const items = [
             'Double Bed Sheet',
             'Quilt Cover',
@@ -1381,7 +1548,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                     <div class="no-print" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; padding: 12px; background: #f4f4f4; border-radius: 8px; align-items: center; border: 1px solid #ddd; font-family: 'Inter', sans-serif; box-sizing: border-box;">
                         <div style="display: flex; gap: 10px;">
                             <button onclick="window.print()" style="padding: 6px 15px; background: #0a192f; color: #d4af37; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">🖨️ Print / Save PDF</button>
-                            <button onclick="window.open('https://wa.me/?text=${encodeURIComponent(shareMessage)}', '_blank')" style="padding: 6px 15px; background: #25D366; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">💬 Share on WhatsApp</button>
+                            <button onclick="window.open('https://wa.me/?text=${encodeURIComponent(shareMessage).replace(/'/g, '%27')}', '_blank')" style="padding: 6px 15px; background: #0F7A40; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">💬 Share on WhatsApp</button>
                             <button onclick="window.close()" style="padding: 6px 15px; background: #666; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">Close</button>
                         </div>
                         <div style="font-size: 10px; color: #555; font-weight: 700; text-align: center;">
@@ -1399,6 +1566,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
 
     const handlePrintLaundrySlip = (log) => {
         const printWindow = window.open('', '_blank');
+        if (!printWindow) { alert('Please allow pop-ups to print.'); return; }
         const itemsHtml = Object.entries(log.items || {})
             .map(([item, qty]) => `
                 <tr style="border-bottom: 1px solid #eee; font-size: 14px;">
@@ -1432,10 +1600,10 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                         .slip-title { font-size: 12px; color: #d4af37; letter-spacing: 3px; text-transform: uppercase; margin-top: 5px; font-weight: 800; }
                         .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 30px; }
                         .item { border-bottom: 1px solid #f0f0f0; padding-bottom: 10px; }
-                        .label { font-size: 10px; font-weight: 800; color: #888; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 1px; }
+                        .label { font-size: 10px; font-weight: 800; color: #6b6b6b; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 1px; }
                         .value { font-size: 15px; font-weight: 600; color: #0a192f; }
                         .section-title { font-size: 10px; font-weight: 800; color: #0a192f; background: #f8f9fa; padding: 5px 10px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }
-                        .footer { margin-top: 60px; text-align: center; font-size: 9px; color: #999; border-top: 1px solid #eee; padding-top: 20px; }
+                        .footer { margin-top: 60px; text-align: center; font-size: 9px; color: #6b6b6b; border-top: 1px solid #eee; padding-top: 20px; }
                         .signature-space { margin-top: 40px; display: flex; justify-content: space-between; }
                         .sig-line { border-top: 1px solid #333; width: 150px; text-align: center; font-size: 10px; padding-top: 5px; margin-top: 30px; }
                         @media print { .no-print { display: none !important; } }
@@ -1445,7 +1613,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                     <div class="no-print" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; padding: 12px; background: #f4f4f4; border-radius: 8px; align-items: center; border: 1px solid #ddd;">
                         <div style="display: flex; gap: 10px;">
                             <button onclick="window.print()" style="padding: 10px 20px; background: #0a192f; color: #d4af37; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">🖨️ Print / Save PDF</button>
-                            <button onclick="window.open('https://wa.me/?text=${encodeURIComponent(shareText)}', '_blank')" style="padding: 10px 20px; background: #25D366; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">💬 Share on WhatsApp</button>
+                            <button onclick="window.open('https://wa.me/?text=${encodeURIComponent(shareText).replace(/'/g, '%27')}', '_blank')" style="padding: 10px 20px; background: #0F7A40; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">💬 Share on WhatsApp</button>
                             <button onclick="window.close()" style="padding: 10px 20px; background: #666; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px;">Close</button>
                         </div>
                         <div style="font-size: 10px; color: #555; font-weight: 700; text-align: center;">
@@ -1469,9 +1637,9 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                     <div class="section-title">Service Details</div>
                     <div class="details-grid">
                         <div class="item"><div class="label">Room Number</div><div class="value">ROOM ${log.roomNumber}</div></div>
-                        <div class="item"><div class="label">Date & Time</div><div class="value">${log.date}</div></div>
-                        <div class="item"><div class="label">Picked Up By</div><div class="value">${log.pickedUpBy}</div></div>
-                        <div class="item"><div class="label">Supervisor</div><div class="value">${log.supervisor}</div></div>
+                        <div class="item"><div class="label">Date & Time</div><div class="value">${esc(log.date)}</div></div>
+                        <div class="item"><div class="label">Picked Up By</div><div class="value">${esc(log.pickedUpBy)}</div></div>
+                        <div class="item"><div class="label">Supervisor</div><div class="value">${esc(log.supervisor)}</div></div>
                     </div>
 
                     <div class="section-title">Picked Up Linen Quantities</div>
@@ -1489,7 +1657,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
 
                     <div class="section-title">Remarks / Instructions</div>
                     <div style="padding: 15px; background: #fafafa; border-radius: 8px; border-left: 4px solid #d4af37; font-style: italic; font-size: 14px;">
-                        ${log.remarks || 'No special instructions.'}
+                        ${esc(log.remarks || 'No special instructions.')}
                     </div>
 
                     <div class="signature-space">
@@ -1572,9 +1740,18 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
             alert("Staff name (Picked Up By) is required.");
             return;
         }
+        if (!Number(laundryForm.roomNumber)) {
+            alert("Room number is required.");
+            return;
+        }
 
         const now = new Date();
         const dateStr = laundryForm.date || (now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) + ", " + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+
+        if (!rooms.find(r => r.id === Number(laundryForm.roomNumber))) {
+            alert(`Room ${laundryForm.roomNumber} does not exist.`);
+            return;
+        }
 
         const nonZeroItems = {};
         Object.entries(laundryForm.items).forEach(([item, qty]) => {
@@ -1582,6 +1759,10 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                 nonZeroItems[item] = Number(qty);
             }
         });
+        if (Object.keys(nonZeroItems).length === 0) {
+            alert("Add at least one laundry item.");
+            return;
+        }
 
         if (editingLaundryLog) {
             setLaundryLogs(prev => prev.map(log => log.id === editingLaundryLog.id ? {
@@ -1611,92 +1792,48 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
     };
 
     return (
-        <div className="mobile-app-container" style={{ maxWidth: '100%', background: '#f0f2f5', minHeight: '100vh', display: 'flex' }}>
-            
-            {/* Sidebar Navigation */}
-            <aside style={{ width: '280px', background: 'var(--primary-navy)', color: 'white', padding: '40px 20px', display: 'flex', flexDirection: 'column', gap: '40px' }}>
-                <div onClick={() => onNavigate('shop')} style={{ cursor: 'pointer' }}>
-                    <Logo size={80} />
-                    <h2 style={{ fontFamily: 'Cinzel', color: 'var(--accent)', marginTop: '15px', textAlign: 'center' }}>OPS CENTER</h2>
-                </div>
-
-                <nav style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {['Reception', 'Kitchen', 'Cleaning', 'Laundry', 'Checkouts', 'Workforce', 'Attendance', 'Finance', 'Menu Config'].map(tab => (
-                        <div 
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
-                            style={{
-                                padding: '15px 25px',
-                                borderRadius: '12px',
-                                background: activeTab === tab ? 'rgba(212, 175, 55, 0.2)' : 'transparent',
-                                color: activeTab === tab ? 'var(--accent)' : '#8892b0',
-                                cursor: 'pointer',
-                                fontWeight: '700',
-                                transition: 'all 0.3s'
-                            }}
-                        >
-                            {tab === 'Reception' && '🏨 '}
-                            {tab === 'Kitchen' && '🍳 '}
-                            {tab === 'Cleaning' && '🧹 '}
-                            {tab === 'Laundry' && '🧺 '}
-                            {tab === 'Checkouts' && '🔑 '}
-                            {tab === 'Workforce' && '👥 '}
-                            {tab === 'Attendance' && '📅 '}
-                            {tab === 'Finance' && '📊 '}
-                            {tab === 'Menu Config' && '⚙️ '}
-                            {tab === 'Checkouts' ? 'Room Checkouts' : tab}
-                        </div>
-                    ))}
-                </nav>
-
-                <div style={{ marginTop: 'auto', padding: '20px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.8rem', color: '#8892b0' }}>LOGGED IN AS</div>
-                    <div style={{ fontWeight: 'bold', color: 'var(--accent)' }}>System Admin</div>
-                </div>
-            </aside>
+        <div className="mobile-app-container flex flex-col md:flex-row" style={{ maxWidth: '100%', background: '#f4f6f9', minHeight: '100vh' }}>
+            <OpsSidebar activeTab={activeTab} onSelect={tab => goTo(tab)} onHome={() => onNavigate('shop')} />
 
             {/* Main Operational Area */}
-            <main style={{ flex: 1, padding: '50px', overflowY: 'auto' }}>
-                <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
-                    <h1 style={{ fontSize: '2.5rem', fontWeight: '800', color: 'var(--primary-navy)' }}>
-                        {activeTab === 'Attendance' ? 'Personnel Attendance' : `${activeTab} Dashboard`}
-                    </h1>
-                    <div style={{ display: 'flex', gap: '20px' }}>
-                        <div className="stat-pill">Occupied: <b>{stats.occupied}</b></div>
-                        <div className="stat-pill" style={{ color: '#e74c3c' }}>Dirty: <b>{stats.dirty}</b></div>
-                        <div className="stat-pill" style={{ color: '#27ae60' }}>Available: <b>{stats.clean}</b></div>
-                    </div>
-                </header>
+            <main className="p-4 md:px-10 md:py-8" style={{ flex: 1, overflowY: 'auto', minWidth: 0 }}>
+                <OpsHeader
+                    title={activeTab === 'Attendance' ? 'Personnel Attendance' : activeTab === 'Today' ? 'Today' : `${activeTab} Dashboard`}
+                    subtitle={new Date().toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
+                    liveReady={liveReady}
+                    savingCount={savingCount}
+                    stats={stats}
+                />
 
-                {/* Tab: Reception (Room Grid) */}
+                {activeTab === 'Today' && (
+                    <TodayView rooms={rooms} orders={orders} settlements={settlements} attendanceLogs={attendanceLogs} todayKey={dayKey()} onGo={goTo} />
+                )}
+
+                {/* Tab: Reception (Room board) */}
                 {activeTab === 'Reception' && (
-                    <div style={{ 
-                        display: 'flex', 
-                        flexDirection: 'column', 
-                        gap: '30px',
-                        padding: '40px',
-                        borderRadius: '30px',
-                        minHeight: '800px',
-                        position: 'relative',
-                        background: 'linear-gradient(rgba(10, 25, 47, 0.85), rgba(10, 25, 47, 0.85)), url("/sky5_luxury_reception_background.png")',
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                        boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
-                        overflow: 'hidden'
-                    }}>
-                        
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                        <RoomBoard
+                            key={receptionFilter}
+                            initialFilter={receptionFilter}
+                            rooms={rooms}
+                            onCheckIn={handleCheckInClick}
+                            onPrintReceipt={handlePrintReceipt}
+                            onCheckout={handleStartCheckout}
+                            onMarkCleaned={id => updateRoomStatus(id, 'Clean')}
+                        />
+
                         {/* Front Desk Rate Card Overlay - New Feature */}
-                        <div style={{ background: 'white', borderRadius: '25px', padding: '25px', boxShadow: '0 10px 40px rgba(0,0,0,0.2)', marginBottom: '30px', borderLeft: '8px solid var(--accent)' }}>
+                        <div style={{ background: 'white', borderRadius: '25px', padding: '25px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', border: '1px solid #e6e8ec', borderLeft: '6px solid var(--accent)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                                 <div>
                                     <h3 style={{ margin: 0, color: 'var(--primary-navy)', fontSize: '1.1rem', fontFamily: 'Cinzel, serif' }}>📋 RECEPTION RATE CARD</h3>
-                                    <div style={{ fontSize: '0.7rem', color: '#888' }}>Authorized Rent Ranges for All Rooms</div>
+                                    <div style={{ fontSize: '0.7rem', color: '#6b6b6b' }}>Authorized Rent Ranges for All Rooms</div>
                                 </div>
-                                <button onClick={handleShareRateCard} style={{ background: '#25D366', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '10px', fontWeight: 'bold', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <button onClick={handleShareRateCard} style={{ background: '#0f7a40', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '10px', fontWeight: 'bold', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
                                     🟢 SHARE RATES
                                 </button>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px' }}>
                                 {roomRateData.map((tier, i) => (
                                     <div key={i} style={{ padding: '12px', background: '#f8f9fa', borderRadius: '12px', border: `1px solid ${tier.color}44` }}>
                                         <div style={{ fontSize: '0.6rem', fontWeight: '900', color: tier.color, textTransform: 'uppercase' }}>{tier.category}</div>
@@ -1707,21 +1844,22 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                             </div>
                         </div>
 
-                        {/* Real-World Front Desk Context Row */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '20px', marginBottom: '10px' }}>
+                        <div className="ops-split-2-1" style={{ display: 'grid', gap: '20px' }}>
                             {/* CCTV Monitor Panel */}
                             <div style={{ background: '#1a1a1a', borderRadius: '20px', padding: '20px', color: 'white', display: 'flex', flexDirection: 'column', gap: '15px', border: '3px solid #333', position: 'relative' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#888' }}>🔴 LIVE CCTV FEED - RECEPTION & CORRIDORS</span>
+                                    <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#a0a0a0' }}>🔴 LIVE CCTV FEED - RECEPTION & CORRIDORS</span>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                        <span style={{ fontSize: '0.7rem', color: '#27ae60' }}>SYSTEM ACTIVE</span>
+                                        <span style={{ fontSize: '0.7rem', color: '#4ade80' }}>SYSTEM ACTIVE</span>
                                         <button 
                                             onClick={() => {
-                                                const urls = prompt("Enter Camera MJPEG/Stream URLs separated by commas (Cam1,Cam2,...):", localStorage.getItem('sky5_cams') || '');
-                                                if (urls !== null) localStorage.setItem('sky5_cams', urls);
-                                                window.location.reload();
+                                                const urls = prompt("Enter Camera MJPEG/Stream URLs separated by commas (Cam1,Cam2,...):", camUrls.join(','));
+                                                if (urls !== null) {
+                                                    try { localStorage.setItem('sky5_cams', urls); } catch { /* storage blocked */ }
+                                                    setCamUrls(urls.split(','));
+                                                }
                                             }}
-                                            style={{ background: 'transparent', border: '1px solid #444', color: '#888', fontSize: '0.6rem', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer' }}
+                                            style={{ background: 'transparent', border: '1px solid #444', color: '#a0a0a0', fontSize: '0.6rem', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer' }}
                                         >
                                             ⚙️ CONFIG
                                         </button>
@@ -1729,23 +1867,22 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
                                     {(() => {
-                                        const savedCams = (localStorage.getItem('sky5_cams') || '').split(',');
                                         return [1,2,3,4,5,6].map((cam, idx) => {
-                                            const url = savedCams[idx];
+                                            const url = camUrls[idx]?.trim();
                                             return (
-                                                <div key={cam} style={{ background: '#222', height: '80px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', color: '#444', border: '1px solid #333', overflow: 'hidden', position: 'relative' }}>
+                                                <div key={cam} style={{ background: '#222', height: '80px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', color: '#9a9a9a', border: '1px solid #333', overflow: 'hidden', position: 'relative' }}>
                                                     {url ? (
-                                                        <img src={url} alt={`Cam ${cam}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.style.display='none'; e.target.parentElement.innerHTML=`<div style="color:#e74c3c">CAM ${cam} OFFLINE</div>`; }} />
+                                                        (offlineCams[url] ? <div style={{ color: '#ff7b7b' }}>CAM {cam} OFFLINE</div> : <img src={url} alt={`Cam ${cam}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => setOfflineCams(prev => ({ ...prev, [url]: true }))} />)
                                                     ) : (
                                                         <span>CAM {cam}</span>
                                                     )}
-                                                    <div style={{ position: 'absolute', top: '5px', left: '5px', background: 'rgba(0,0,0,0.5)', padding: '2px 5px', borderRadius: '3px', fontSize: '0.5rem', color: '#aaa' }}>CAM {cam}</div>
+                                                    <div style={{ position: 'absolute', top: '5px', left: '5px', background: 'rgba(0,0,0,0.5)', padding: '2px 5px', borderRadius: '3px', fontSize: '0.5rem', color: '#a0a0a0' }}>CAM {cam}</div>
                                                 </div>
                                             );
                                         });
                                     })()}
                                 </div>
-                                <div style={{ fontSize: '0.6rem', color: '#555', fontStyle: 'italic' }}>
+                                <div style={{ fontSize: '0.6rem', color: '#9a9a9a', fontStyle: 'italic' }}>
                                     Note: Use MJPEG stream URLs from your NVR (e.g., http://192.168.1.10:8080/video)
                                 </div>
                             </div>
@@ -1756,78 +1893,11 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                 <div style={{ fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Check-In:</span> <b>12:00 PM</b></div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Check-Out:</span> <b>11:00 AM</b></div>
-                                    <div style={{ marginTop: '5px', color: '#e74c3c', fontSize: '0.7rem', fontWeight: 'bold' }}>🚭 NO SMOKING ZONE</div>
+                                    <div style={{ marginTop: '5px', color: '#c0392b', fontSize: '0.7rem', fontWeight: 'bold' }}>🚭 NO SMOKING ZONE</div>
                                 </div>
                             </div>
 
-                            {/* Quick Pay / QR Panel */}
-                            <div style={{ background: 'white', borderRadius: '20px', padding: '20px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                                <div style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#555', marginBottom: '10px' }}>SCAN TO PAY</div>
-                                <div style={{ width: '60px', height: '60px', background: '#f0f2f5', borderRadius: '8px', border: '1px dashed #ccc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>
-                                    📱
-                                </div>
-                                <div style={{ fontSize: '0.6rem', marginTop: '10px', color: '#888' }}>PhonePe / UPI</div>
-                            </div>
                         </div>
-
-                        {/* Room Categories */}
-                        {['Super Deluxe Room', 'Deluxe Room', 'Standard Room'].map(roomType => {
-                            const categoryRooms = rooms.filter(r => r.type === roomType);
-                            if (categoryRooms.length === 0) return null;
-                            return (
-                                <div key={roomType}>
-                                    <h2 style={{ fontSize: '1.5rem', color: 'var(--primary-navy)', marginBottom: '20px', borderBottom: '2px solid #e0e0e0', paddingBottom: '10px' }}>
-                                        {roomType}s
-                                    </h2>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '30px' }}>
-                                        {categoryRooms.map(room => (
-                                            <div key={room.id} style={{ background: 'white', borderRadius: '20px', padding: '25px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', position: 'relative' }}>
-                                                <div style={{ 
-                                                    position: 'absolute', top: '20px', right: '20px', 
-                                                    background: room.status === 'Clean' ? '#27ae60' : room.status === 'Occupied' ? '#3498db' : '#e74c3c',
-                                                    color: 'white', padding: '5px 12px', borderRadius: '10px', fontSize: '0.7rem', fontWeight: 'bold'
-                                                }}>{room.status.toUpperCase()}</div>
-                                                
-                                                <h3 style={{ margin: '0 0 5px 0', fontSize: '1.4rem', color: 'var(--primary-navy)' }}>Room {room.id}</h3>
-                                                <div style={{ color: '#27ae60', fontSize: '0.85rem', marginBottom: '10px', fontWeight: 'bold' }}>{room.description}</div>
-                                                <div style={{ color: '#888', fontSize: '0.75rem', marginBottom: '15px' }}>Features: {room.amenities.join(', ')}</div>
-                                                
-                                                {room.status === 'Occupied' && room.guest ? (
-                                                    <div style={{ background: '#f8f9fa', padding: '12px', borderRadius: '8px', marginBottom: '20px', borderLeft: '4px solid #3498db', fontSize: '0.8rem' }}>
-                                                        <div style={{ fontWeight: '800', color: '#0a192f', marginBottom: '5px' }}>👤 {room.guest.name}</div>
-                                                        <div style={{ color: '#555', marginBottom: '3px' }}>📞 {room.guest.phone}</div>
-                                                        {room.guest.address && <div style={{ color: '#555', marginBottom: '3px' }}>📍 {room.guest.address}</div>}
-                                                        <div style={{ color: '#888', fontSize: '0.7rem', marginBottom: '10px' }}>🕒 In: {room.guest.checkIn}</div>
-                                                        <div style={{ borderTop: '1px dashed #ccc', paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Room Rate:</span> <b>₹{room.price}</b></div>
-                                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Food Bill:</span> <b>₹{room.foodBill || 0}</b></div>
-                                                            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#27ae60' }}><span>Advance {room.guest.advanceType ? `(${room.guest.advanceType})` : ''}:</span> <b>- ₹{room.guest.advance || 0}</b></div>
-                                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px', paddingTop: '5px', borderTop: '1px solid #ddd', fontWeight: 'bold', fontSize: '0.9rem', color: ((room.price + (room.foodBill || 0)) - (room.guest.advance || 0)) > 0 ? '#e74c3c' : '#27ae60' }}>
-                                                                <span>Balance:</span> <span>₹{(room.price + (room.foodBill || 0)) - (room.guest.advance || 0)}</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <div style={{ height: '70px', marginBottom: '20px' }}></div>
-                                                )}
-                                                
-                                                <div style={{ display: 'flex', gap: '10px' }}>
-                                                    {room.status === 'Clean' && <button className="checkout-btn" style={{ padding: '8px', fontSize: '0.8rem' }} onClick={() => handleCheckInClick(room)}>CHECK-IN</button>}
-                                                    {room.status === 'Occupied' && (
-                                                        <>
-                                                            <button className="checkout-btn" style={{ padding: '8px', fontSize: '0.8rem', background: '#e67e22' }} onClick={() => handleCheckInClick(room)}>EDIT GUEST</button>
-                                                            <button className="checkout-btn" style={{ padding: '8px', fontSize: '0.8rem', background: '#27ae60' }} onClick={() => handlePrintReceipt(room)}>PRINT RECEIPT</button>
-                                                            <button className="checkout-btn" style={{ padding: '8px', fontSize: '0.8rem', background: '#34495e' }} onClick={() => handleStartCheckout(room)}>CHECK-OUT</button>
-                                                        </>
-                                                    )}
-                                                    {room.status === 'Dirty' && <button className="checkout-btn" style={{ padding: '8px', fontSize: '0.8rem', background: 'var(--accent)', color: 'black' }} onClick={() => updateRoomStatus(room.id, 'Clean')}>MARK CLEANED</button>}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            );
-                        })}
                     </div>
                 )}
 
@@ -1849,14 +1919,14 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                 {orders.map(order => (
                                     <tr key={order.id} style={{ borderBottom: '1px solid #f9f9f9' }}>
                                         <td style={{ padding: '20px', fontWeight: 'bold' }}>{order.id}</td>
-                                        <td style={{ fontWeight: 'bold', color: '#e74c3c' }}>{order.table || 'N/A'}</td>
+                                        <td style={{ fontWeight: 'bold', color: '#c0392b' }}>{order.table || 'N/A'}</td>
                                         <td>{order.items}</td>
                                         <td>{order.time}</td>
-                                        <td><span style={{ padding: '5px 10px', borderRadius: '8px', background: order.status === 'Completed' ? '#2ecc71' : order.status === 'Preparing' ? '#3498db' : '#f1c40f', color: order.status === 'Completed' || order.status === 'Preparing' ? 'white' : 'black', fontSize: '0.7rem', fontWeight: 'bold' }}>{order.status}</span></td>
+                                        <td><span style={{ padding: '5px 10px', borderRadius: '8px', background: order.status === 'Completed' ? '#1e8449' : order.status === 'Preparing' ? '#2471a3' : '#f1c40f', color: order.status === 'Completed' || order.status === 'Preparing' ? 'white' : 'black', fontSize: '0.7rem', fontWeight: 'bold' }}>{order.status}</span></td>
                                         <td>
                                             {order.status === 'Pending' && <button className="shop-now-btn" style={{ padding: '5px 15px' }} onClick={() => setOrders(prev => prev.map(o => o.id === order.id ? {...o, status: 'Preparing'} : o))}>PREPARE</button>}
-                                            {order.status === 'Preparing' && <button className="shop-now-btn" style={{ padding: '5px 15px', background: '#3498db', color: 'white', border: 'none' }} onClick={() => setOrders(prev => prev.map(o => o.id === order.id ? {...o, status: 'Completed'} : o))}>SERVE</button>}
-                                            {order.status === 'Completed' && <span style={{ color: '#2ecc71', fontWeight: 'bold' }}>✓ DELIVERED</span>}
+                                            {order.status === 'Preparing' && <button className="shop-now-btn" style={{ padding: '5px 15px', background: '#2471a3', color: 'white', border: 'none' }} onClick={() => setOrders(prev => prev.map(o => o.id === order.id ? {...o, status: 'Completed'} : o))}>SERVE</button>}
+                                            {order.status === 'Completed' && <span style={{ color: '#1e7b34', fontWeight: 'bold' }}>✓ DELIVERED</span>}
                                         </td>
                                     </tr>
                                 ))}
@@ -1871,13 +1941,13 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                         <section>
                             <h2 style={{ fontSize: '1.5rem', color: 'var(--primary-navy)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '15px' }}>
                                 🧹 Rooms Awaiting Turnover 
-                                <span style={{ fontSize: '0.9rem', background: '#e74c3c', color: 'white', padding: '4px 12px', borderRadius: '20px' }}>{stats.dirty} Pending</span>
+                                <span style={{ fontSize: '0.9rem', background: '#c0392b', color: 'white', padding: '4px 12px', borderRadius: '20px' }}>{stats.dirty} Pending</span>
                             </h2>
                             
                             {/* Forensic Room Checklist Card */}
                             <div style={{ background: '#0a192f', color: 'white', padding: '25px', borderRadius: '20px', marginBottom: '30px', borderLeft: '8px solid var(--accent)', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}>
-                                <h3 style={{ margin: '0 0 15px 0', color: 'var(--accent)', fontSize: '1rem', letterSpacing: '1px' }}>📋 OFFICIAL 10-ITEM ROOM INSPECTION CHECKLIST</h3>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
+                                <h3 style={{ margin: '0 0 15px 0', color: 'var(--accent)', fontSize: '1rem', letterSpacing: '1px' }}>📋 OFFICIAL {cleaningChecklist.length}-ITEM ROOM INSPECTION CHECKLIST</h3>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px' }}>
                                     {cleaningChecklist.map((item, idx) => (
                                         <div key={idx} style={{ fontSize: '0.75rem', fontWeight: '700', background: 'rgba(255,255,255,0.1)', padding: '8px', borderRadius: '8px', textAlign: 'center' }}>
                                             {idx + 1}. {item}
@@ -1899,7 +1969,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                     <div key={room.id} style={{ background: 'white', borderRadius: '18px', padding: '20px', boxShadow: '0 8px 20px rgba(0,0,0,0.05)', borderLeft: '6px solid #e74c3c' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                                             <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--primary-navy)' }}>Room {room.id}</h3>
-                                            <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#e74c3c' }}>NEEDS CLEANING</span>
+                                            <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#c0392b' }}>NEEDS CLEANING</span>
                                         </div>
                                         <div style={{ fontSize: '0.85rem', color: '#666', marginBottom: '15px' }}>{room.type}</div>
                                         <button 
@@ -1911,7 +1981,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                     </div>
                                 ))}
                                 {stats.dirty === 0 && (
-                                    <div style={{ gridColumn: '1 / -1', padding: '40px', textAlign: 'center', background: 'rgba(39, 174, 96, 0.05)', borderRadius: '18px', border: '2px dashed #27ae60', color: '#27ae60' }}>
+                                    <div style={{ gridColumn: '1 / -1', padding: '40px', textAlign: 'center', background: 'rgba(39, 174, 96, 0.05)', borderRadius: '18px', border: '2px dashed #27ae60', color: '#1e7b34' }}>
                                         <b>✨ All rooms are currently clean. Excellent job!</b>
                                     </div>
                                 )}
@@ -1925,14 +1995,14 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                 <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 10px' }}>
                                     <thead>
                                         <tr style={{ textAlign: 'left' }}>
-                                            <th style={{ padding: '15px', color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>ROOM #</th>
-                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>ROOM TYPE</th>
-                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>STAFF NAME</th>
-                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>IN TIME</th>
-                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>OUT TIME</th>
-                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>MISSING ITEMS</th>
-                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>REMARKS</th>
-                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>ACTIONS</th>
+                                            <th style={{ padding: '15px', color: '#6b6b6b', fontWeight: '600', fontSize: '0.85rem' }}>ROOM #</th>
+                                            <th style={{ color: '#6b6b6b', fontWeight: '600', fontSize: '0.85rem' }}>ROOM TYPE</th>
+                                            <th style={{ color: '#6b6b6b', fontWeight: '600', fontSize: '0.85rem' }}>STAFF NAME</th>
+                                            <th style={{ color: '#6b6b6b', fontWeight: '600', fontSize: '0.85rem' }}>IN TIME</th>
+                                            <th style={{ color: '#6b6b6b', fontWeight: '600', fontSize: '0.85rem' }}>OUT TIME</th>
+                                            <th style={{ color: '#6b6b6b', fontWeight: '600', fontSize: '0.85rem' }}>MISSING ITEMS</th>
+                                            <th style={{ color: '#6b6b6b', fontWeight: '600', fontSize: '0.85rem' }}>REMARKS</th>
+                                            <th style={{ color: '#6b6b6b', fontWeight: '600', fontSize: '0.85rem' }}>ACTIONS</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1947,7 +2017,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                                     <span style={{ 
                                                         padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold',
                                                         background: log.missingItems === 'None' ? '#eafaf1' : '#fdf2f2',
-                                                        color: log.missingItems === 'None' ? '#27ae60' : '#e74c3c'
+                                                        color: log.missingItems === 'None' ? '#1e7b34' : '#c0392b'
                                                     }}>
                                                         {log.missingItems}
                                                     </span>
@@ -1971,7 +2041,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                                         </button>
                                                         <button 
                                                             onClick={() => handleShareWhatsApp(log)}
-                                                            style={{ background: '#25D366', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', color: 'white', fontWeight: 'bold', fontSize: '0.75rem' }}
+                                                            style={{ background: '#0f7a40', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', color: 'white', fontWeight: 'bold', fontSize: '0.75rem' }}
                                                         >
                                                             💬 WHATSAPP
                                                         </button>
@@ -2027,7 +2097,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                     <div key={room.id} style={{ background: 'white', borderRadius: '14px', padding: '15px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderLeft: '5px solid var(--accent)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <span style={{ fontWeight: '800', color: 'var(--primary-navy)' }}>Room {room.id}</span>
-                                            <span style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#27ae60', background: '#eafaf1', padding: '2px 8px', borderRadius: '8px' }}>OCCUPIED</span>
+                                            <span style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#1e7b34', background: '#eafaf1', padding: '2px 8px', borderRadius: '8px' }}>OCCUPIED</span>
                                         </div>
                                         <button 
                                             onClick={() => handleStartLaundry(room)}
@@ -2047,13 +2117,13 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                 <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 10px' }}>
                                     <thead>
                                         <tr style={{ textAlign: 'left' }}>
-                                            <th style={{ padding: '15px', color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>ROOM #</th>
-                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>DATE & TIME</th>
-                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>PICKED UP BY</th>
-                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>SUPERVISOR</th>
-                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>ITEMS SUMMARY</th>
-                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>REMARKS</th>
-                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>ACTIONS</th>
+                                            <th style={{ padding: '15px', color: '#6b6b6b', fontWeight: '600', fontSize: '0.85rem' }}>ROOM #</th>
+                                            <th style={{ color: '#6b6b6b', fontWeight: '600', fontSize: '0.85rem' }}>DATE & TIME</th>
+                                            <th style={{ color: '#6b6b6b', fontWeight: '600', fontSize: '0.85rem' }}>PICKED UP BY</th>
+                                            <th style={{ color: '#6b6b6b', fontWeight: '600', fontSize: '0.85rem' }}>SUPERVISOR</th>
+                                            <th style={{ color: '#6b6b6b', fontWeight: '600', fontSize: '0.85rem' }}>ITEMS SUMMARY</th>
+                                            <th style={{ color: '#6b6b6b', fontWeight: '600', fontSize: '0.85rem' }}>REMARKS</th>
+                                            <th style={{ color: '#6b6b6b', fontWeight: '600', fontSize: '0.85rem' }}>ACTIONS</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -2066,7 +2136,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                                 <td style={{ fontSize: '0.85rem' }}>
                                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
                                                         {Object.entries(log.items || {}).map(([item, qty]) => (
-                                                            <span key={item} style={{ background: '#eaf2f8', color: '#2980b9', padding: '3px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                                            <span key={item} style={{ background: '#eaf2f8', color: '#1f618d', padding: '3px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold' }}>
                                                                 {qty}x {item}
                                                             </span>
                                                         ))}
@@ -2089,7 +2159,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                                         </button>
                                                         <button 
                                                             onClick={() => handleShareLaundryWhatsApp(log)}
-                                                            style={{ background: '#25D366', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', color: 'white', fontWeight: 'bold', fontSize: '0.75rem' }}
+                                                            style={{ background: '#0f7a40', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', color: 'white', fontWeight: 'bold', fontSize: '0.75rem' }}
                                                         >
                                                             💬 WHATSAPP
                                                         </button>
@@ -2115,7 +2185,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                             {/* Checklist Items Display Panel */}
                             <div style={{ background: '#0a192f', color: 'white', padding: '25px', borderRadius: '20px', marginBottom: '30px', borderLeft: '8px solid var(--accent)', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}>
                                 <h3 style={{ margin: '0 0 15px 0', color: 'var(--accent)', fontSize: '1rem', letterSpacing: '1px' }}>📋 REQUIRED ROOM CHECKOUT CHECKS</h3>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px' }}>
                                     {checkoutChecklist.map((item, idx) => (
                                         <div key={idx} style={{ fontSize: '0.75rem', fontWeight: '700', background: 'rgba(255,255,255,0.1)', padding: '8px', borderRadius: '8px', textAlign: 'center' }}>
                                             {idx + 1}. {item}
@@ -2145,7 +2215,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                     <div key={room.id} style={{ background: 'white', borderRadius: '14px', padding: '15px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderLeft: '5px solid var(--accent)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <span style={{ fontWeight: '800', color: 'var(--primary-navy)' }}>Room {room.id}</span>
-                                            <span style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#27ae60', background: '#eafaf1', padding: '2px 8px', borderRadius: '8px' }}>OCCUPIED</span>
+                                            <span style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#1e7b34', background: '#eafaf1', padding: '2px 8px', borderRadius: '8px' }}>OCCUPIED</span>
                                         </div>
                                         <div style={{ fontSize: '0.8rem', color: '#666' }}>{room.guest?.name || 'Guest'}</div>
                                         <button 
@@ -2157,7 +2227,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                     </div>
                                 ))}
                                 {rooms.filter(r => r.status === 'Occupied').length === 0 && (
-                                    <div style={{ gridColumn: '1 / -1', padding: '20px', textAlign: 'center', background: 'rgba(0,0,0,0.02)', border: '1px dashed #ccc', borderRadius: '12px', color: '#888' }}>
+                                    <div style={{ gridColumn: '1 / -1', padding: '20px', textAlign: 'center', background: 'rgba(0,0,0,0.02)', border: '1px dashed #ccc', borderRadius: '12px', color: '#6b6b6b' }}>
                                         No rooms are currently occupied.
                                     </div>
                                 )}
@@ -2171,14 +2241,14 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                 <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 10px' }}>
                                     <thead>
                                         <tr style={{ textAlign: 'left' }}>
-                                            <th style={{ padding: '15px', color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>ROOM #</th>
-                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>ROOM TYPE</th>
-                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>CHECKOUT TIME</th>
-                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>STAFF NAME</th>
-                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>CHECKLIST STATUS</th>
-                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>DAMAGES STATUS</th>
-                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>REMARKS</th>
-                                            <th style={{ color: '#888', fontWeight: '600', fontSize: '0.85rem' }}>ACTIONS</th>
+                                            <th style={{ padding: '15px', color: '#6b6b6b', fontWeight: '600', fontSize: '0.85rem' }}>ROOM #</th>
+                                            <th style={{ color: '#6b6b6b', fontWeight: '600', fontSize: '0.85rem' }}>ROOM TYPE</th>
+                                            <th style={{ color: '#6b6b6b', fontWeight: '600', fontSize: '0.85rem' }}>CHECKOUT TIME</th>
+                                            <th style={{ color: '#6b6b6b', fontWeight: '600', fontSize: '0.85rem' }}>STAFF NAME</th>
+                                            <th style={{ color: '#6b6b6b', fontWeight: '600', fontSize: '0.85rem' }}>CHECKLIST STATUS</th>
+                                            <th style={{ color: '#6b6b6b', fontWeight: '600', fontSize: '0.85rem' }}>DAMAGES STATUS</th>
+                                            <th style={{ color: '#6b6b6b', fontWeight: '600', fontSize: '0.85rem' }}>REMARKS</th>
+                                            <th style={{ color: '#6b6b6b', fontWeight: '600', fontSize: '0.85rem' }}>ACTIONS</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -2199,7 +2269,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                                         <span style={{ 
                                                             padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold',
                                                             background: returnedCount === totalStandard ? '#eafaf1' : '#fef9e7',
-                                                            color: returnedCount === totalStandard ? '#27ae60' : '#d35400'
+                                                            color: returnedCount === totalStandard ? '#1e7b34' : '#a84300'
                                                         }}>
                                                             {returnedCount}/{totalStandard} Items
                                                         </span>
@@ -2208,7 +2278,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                                         <span style={{ 
                                                             padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold',
                                                             background: isDamaged ? '#fdf2f2' : '#eafaf1',
-                                                            color: isDamaged ? '#e74c3c' : '#27ae60'
+                                                            color: isDamaged ? '#c0392b' : '#1e7b34'
                                                         }}>
                                                             {isDamaged ? '⚠️ DAMAGED' : '✅ ALL CLEAR'}
                                                         </span>
@@ -2230,7 +2300,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                                             </button>
                                                             <button 
                                                                 onClick={() => handleShareCheckoutWhatsApp(log)}
-                                                                style={{ background: '#25D366', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', color: 'white', fontWeight: 'bold', fontSize: '0.75rem' }}
+                                                                style={{ background: '#0f7a40', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', color: 'white', fontWeight: 'bold', fontSize: '0.75rem' }}
                                                             >
                                                                 💬 WHATSAPP
                                                             </button>
@@ -2249,18 +2319,18 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                 {activeTab === 'Workforce' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
                         {/* Summary Stats Row */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '20px' }}>
                             <div style={{ background: 'white', padding: '25px', borderRadius: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.05)', borderLeft: '6px solid #e67e22' }}>
-                                <h4 style={{ margin: 0, color: '#888', fontSize: '0.8rem', textTransform: 'uppercase' }}>Front Desk</h4>
-                                <div style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-navy)' }}>3 STAFF</div>
+                                <h4 style={{ margin: 0, color: '#6b6b6b', fontSize: '0.8rem', textTransform: 'uppercase' }}>Front Desk</h4>
+                                <div data-testid="wf-count-reception" style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-navy)' }}>{staffRegistry.reception.length} STAFF</div>
                             </div>
                             <div style={{ background: 'white', padding: '25px', borderRadius: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.05)', borderLeft: '6px solid #3498db' }}>
-                                <h4 style={{ margin: 0, color: '#888', fontSize: '0.8rem', textTransform: 'uppercase' }}>Kitchen Personnel</h4>
-                                <div style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-navy)' }}>3 STAFF</div>
+                                <h4 style={{ margin: 0, color: '#6b6b6b', fontSize: '0.8rem', textTransform: 'uppercase' }}>Kitchen Personnel</h4>
+                                <div data-testid="wf-count-kitchen" style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-navy)' }}>{staffRegistry.kitchen.length} STAFF</div>
                             </div>
                             <div style={{ background: 'white', padding: '25px', borderRadius: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.05)', borderLeft: '6px solid #27ae60' }}>
-                                <h4 style={{ margin: 0, color: '#888', fontSize: '0.8rem', textTransform: 'uppercase' }}>Housekeeping</h4>
-                                <div style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-navy)' }}>2 STAFF</div>
+                                <h4 style={{ margin: 0, color: '#6b6b6b', fontSize: '0.8rem', textTransform: 'uppercase' }}>Housekeeping</h4>
+                                <div data-testid="wf-count-housekeeping" style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-navy)' }}>{staffRegistry.housekeeping.length} STAFF</div>
                             </div>
                         </div>
 
@@ -2271,7 +2341,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                                     <button 
                                         onClick={handleShareWorkforce}
-                                        style={{ background: '#25D366', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 5px 15px rgba(37, 211, 102, 0.3)' }}
+                                        style={{ background: '#0f7a40', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 5px 15px rgba(37, 211, 102, 0.3)' }}
                                     >
                                         💬 SHARE ON WHATSAPP
                                     </button>
@@ -2285,7 +2355,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
                                     {staffRegistry.dailySchedule.map((s, idx) => (
                                         <div key={idx} style={{ flex: 1, background: 'white', padding: '12px', borderRadius: '10px', boxShadow: '0 4px 10px rgba(0,0,0,0.03)', textAlign: 'center' }}>
-                                            <div style={{ fontSize: '0.65rem', color: '#888', fontWeight: 'bold' }}>{s.event}</div>
+                                            <div style={{ fontSize: '0.65rem', color: '#6b6b6b', fontWeight: 'bold' }}>{s.event}</div>
                                             <div style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--primary-navy)' }}>{s.time}</div>
                                         </div>
                                     ))}
@@ -2296,7 +2366,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                 {/* Time Labels (06:00 to 22:00) */}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #eee', paddingBottom: '10px', marginBottom: '20px' }}>
                                     {['6AM', '8AM', '10AM', '12PM', '2PM', '4PM', '6PM', '8PM', '10PM'].map(time => (
-                                        <span key={time} style={{ fontSize: '0.65rem', color: '#aaa', fontWeight: 'bold' }}>{time}</span>
+                                        <span key={time} style={{ fontSize: '0.65rem', color: '#6b6b6b', fontWeight: 'bold' }}>{time}</span>
                                     ))}
                                 </div>
 
@@ -2314,11 +2384,11 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                         if (staff.name === 'Karan') { left = '12.5%'; width = '54.1%'; }
                                         if (staff.name === 'Amar Singh') { left = '12.5%'; width = '50%'; }
                                         if (staff.name === 'Veerwati') { left = '25%'; width = '37.5%'; }
-                                        if (staff.name === 'Bhawana') { left = '15.6%'; width = '35.4%'; }
+                                        if (staff.name === 'Bhawna') { left = '15.6%'; width = '35.4%'; }
 
-                                        let color = '#3498db'; // Kitchen default
-                                        if (staffRegistry.reception.includes(staff)) color = '#e67e22'; // Reception
-                                        if (staffRegistry.housekeeping.includes(staff)) color = '#27ae60'; // Housekeeping
+                                        let color = '#2471a3'; // Kitchen default
+                                        if (staffRegistry.reception.includes(staff)) color = '#a35207'; // Reception
+                                        if (staffRegistry.housekeeping.includes(staff)) color = '#1e7b34'; // Housekeeping
 
                                         return (
                                             <div key={staff.name} style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
@@ -2413,16 +2483,16 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                                 <span style={{ fontWeight: '800', fontSize: '1.1rem', color: 'var(--primary-navy)' }}>{staff.name}</span>
                                                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                                     <span 
-                                                        onClick={() => handleEditStaff(staff)}
+                                                        onClick={() => handleEditStaff(staff)} role="button" tabIndex={0} onKeyDown={keyActivate}
                                                         style={{ fontSize: '0.65rem', background: '#34495e', color: 'white', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer' }}
                                                     >EDIT</span>
-                                                    <span style={{ fontSize: '0.7rem', background: '#e67e22', color: 'white', padding: '3px 10px', borderRadius: '10px' }}>{staff.role}</span>
+                                                    <span style={{ fontSize: '0.7rem', background: '#a35207', color: 'white', padding: '3px 10px', borderRadius: '10px' }}>{staff.role}</span>
                                                 </div>
                                             </div>
                                             <div style={{ fontSize: '0.85rem', color: '#555', marginBottom: '10px' }}>⏰ {staff.shift}</div>
-                                            <div style={{ fontSize: '0.8rem', color: '#888', fontStyle: 'italic', marginBottom: '10px' }}>{staff.duties}</div>
+                                            <div style={{ fontSize: '0.8rem', color: '#6b6b6b', fontStyle: 'italic', marginBottom: '10px' }}>{staff.duties}</div>
                                             {staff.phone && (
-                                                <a href={`tel:${staff.phone}`} style={{ textDecoration: 'none', color: '#27ae60', fontWeight: 'bold', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                <a href={`tel:${staff.phone}`} style={{ textDecoration: 'none', color: '#1e7b34', fontWeight: 'bold', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
                                                     📞 {staff.phone} • CALL NOW
                                                 </a>
                                             )}
@@ -2441,15 +2511,15 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                                 <span style={{ fontWeight: '800', fontSize: '1.1rem', color: 'var(--primary-navy)' }}>{staff.name}</span>
                                                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                                     <span 
-                                                        onClick={() => handleEditStaff(staff)}
+                                                        onClick={() => handleEditStaff(staff)} role="button" tabIndex={0} onKeyDown={keyActivate}
                                                         style={{ fontSize: '0.65rem', background: '#34495e', color: 'white', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer' }}
                                                     >EDIT</span>
-                                                    <span style={{ fontSize: '0.7rem', background: '#3498db', color: 'white', padding: '3px 10px', borderRadius: '10px' }}>{staff.role}</span>
+                                                    <span style={{ fontSize: '0.7rem', background: '#2471a3', color: 'white', padding: '3px 10px', borderRadius: '10px' }}>{staff.role}</span>
                                                 </div>
                                             </div>
                                             <div style={{ fontSize: '0.85rem', color: '#555', marginBottom: '10px' }}>⏰ {staff.shift}</div>
-                                            <div style={{ fontSize: '0.8rem', color: '#888', fontStyle: 'italic', marginBottom: '10px' }}>{staff.duties}</div>
-                                            <a href={`tel:${staff.phone}`} style={{ textDecoration: 'none', color: '#27ae60', fontWeight: 'bold', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                            <div style={{ fontSize: '0.8rem', color: '#6b6b6b', fontStyle: 'italic', marginBottom: '10px' }}>{staff.duties}</div>
+                                            <a href={`tel:${staff.phone}`} style={{ textDecoration: 'none', color: '#1e7b34', fontWeight: 'bold', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
                                                 📞 {staff.phone} • CALL NOW
                                             </a>
                                         </div>
@@ -2467,16 +2537,16 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                                 <span style={{ fontWeight: '800', fontSize: '1.1rem', color: 'var(--primary-navy)' }}>{staff.name}</span>
                                                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                                     <span 
-                                                        onClick={() => handleEditStaff(staff)}
+                                                        onClick={() => handleEditStaff(staff)} role="button" tabIndex={0} onKeyDown={keyActivate}
                                                         style={{ fontSize: '0.65rem', background: '#34495e', color: 'white', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer' }}
                                                     >EDIT</span>
-                                                    <span style={{ fontSize: '0.7rem', background: '#27ae60', color: 'white', padding: '3px 10px', borderRadius: '10px' }}>{staff.role}</span>
+                                                    <span style={{ fontSize: '0.7rem', background: '#1e8449', color: 'white', padding: '3px 10px', borderRadius: '10px' }}>{staff.role}</span>
                                                 </div>
                                             </div>
                                             <div style={{ fontSize: '0.85rem', color: '#555', marginBottom: '10px' }}>⏰ {staff.shift}</div>
-                                            <div style={{ fontSize: '0.8rem', color: '#888', fontStyle: 'italic', marginBottom: '10px' }}>{staff.duties}</div>
+                                            <div style={{ fontSize: '0.8rem', color: '#6b6b6b', fontStyle: 'italic', marginBottom: '10px' }}>{staff.duties}</div>
                                             {staff.phone && (
-                                                <a href={`tel:${staff.phone}`} style={{ textDecoration: 'none', color: '#27ae60', fontWeight: 'bold', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                <a href={`tel:${staff.phone}`} style={{ textDecoration: 'none', color: '#1e7b34', fontWeight: 'bold', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
                                                     📞 {staff.phone} • CALL NOW
                                                 </a>
                                             )}
@@ -2511,18 +2581,18 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                 {activeTab === 'Attendance' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
                         {/* Attendance Header Summary */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '20px' }}>
                             <div style={{ background: 'white', padding: '25px', borderRadius: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.05)', borderLeft: '6px solid #2ecc71' }}>
-                                <h4 style={{ margin: 0, color: '#888', fontSize: '0.8rem', textTransform: 'uppercase' }}>Present Today</h4>
-                                <div style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-navy)' }}>{attendanceLogs.filter(l => l.status === 'Present').length} STAFF</div>
+                                <h4 style={{ margin: 0, color: '#6b6b6b', fontSize: '0.8rem', textTransform: 'uppercase' }}>Present Today</h4>
+                                <div data-testid="att-present-today" style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-navy)' }}>{attendanceLogs.filter(l => l.date === dayKey() && l.status === 'Present').length} STAFF</div>
                             </div>
                             <div style={{ background: 'white', padding: '25px', borderRadius: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.05)', borderLeft: '6px solid #f1c40f' }}>
-                                <h4 style={{ margin: 0, color: '#888', fontSize: '0.8rem', textTransform: 'uppercase' }}>On Leave</h4>
-                                <div style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-navy)' }}>{staffRegistry.special.filter(s => s.name.includes('Leave')).length} STAFF</div>
+                                <h4 style={{ margin: 0, color: '#6b6b6b', fontSize: '0.8rem', textTransform: 'uppercase' }}>On Leave</h4>
+                                <div data-testid="att-leave-today" style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-navy)' }}>{attendanceLogs.filter(l => l.date === dayKey() && /leave/i.test(l.status)).length} STAFF</div>
                             </div>
                             <div style={{ background: 'white', padding: '25px', borderRadius: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.05)', borderLeft: '6px solid #3498db' }}>
-                                <h4 style={{ margin: 0, color: '#888', fontSize: '0.8rem', textTransform: 'uppercase' }}>Upcoming Holiday</h4>
-                                <div style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--primary-navy)', marginTop: '5px' }}>{holidays[0].event} ({holidays[0].date})</div>
+                                <h4 style={{ margin: 0, color: '#6b6b6b', fontSize: '0.8rem', textTransform: 'uppercase' }}>Upcoming Holiday</h4>
+                                <div style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--primary-navy)', marginTop: '5px' }}>{upcomingHoliday.event} ({upcomingHoliday.date})</div>
                             </div>
                         </div>
 
@@ -2531,7 +2601,11 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
                                 <div>
                                     <h3 style={{ margin: 0, color: 'var(--primary-navy)', fontSize: '1.4rem', fontFamily: 'Cinzel, serif' }}>FORENSIC ATTENDANCE REGISTER</h3>
-                                    <div style={{ fontSize: '0.85rem', color: '#888', marginTop: '5px' }}>Audit Date: <b style={{ color: 'var(--primary-navy)' }}>{activeAttendanceDate} 2026</b></div>
+                                    <div style={{ fontSize: '0.85rem', color: '#6b6b6b', marginTop: '5px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                        <span data-testid="att-audit-date">Audit Date: <b style={{ color: 'var(--primary-navy)' }}>{activeAttendanceDate}-{calMonth.getFullYear()}</b></span>
+                                        <button data-testid="att-scope-day" onClick={() => setLedgerScope('day')} style={{ border: '1px solid #e0e0e0', borderRadius: '8px', padding: '3px 10px', fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer', background: ledgerScope === 'day' ? 'var(--primary-navy)' : 'white', color: ledgerScope === 'day' ? 'white' : 'var(--primary-navy)' }}>THIS DAY</button>
+                                        <button data-testid="att-scope-all" onClick={() => setLedgerScope('all')} style={{ border: '1px solid #e0e0e0', borderRadius: '8px', padding: '3px 10px', fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer', background: ledgerScope === 'all' ? 'var(--primary-navy)' : 'white', color: ledgerScope === 'all' ? 'white' : 'var(--primary-navy)' }}>ALL RECORDS</button>
+                                    </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '10px' }}>
                                     <div style={{ position: 'relative', display: 'flex', gap: '8px' }}>
@@ -2553,10 +2627,16 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                         >
                                             📁 YEARLY
                                         </button>
+                                        <button
+                                            onClick={handleShareAttendanceWhatsApp}
+                                            style={{ background: '#0f7a40', color: 'white', border: 'none', padding: '10px 15px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.75rem' }}
+                                        >
+                                            💬 SHARE
+                                        </button>
                                     </div>
                                     <button 
                                         onClick={() => setShowStaffModal(true)}
-                                        style={{ background: '#3498db', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.85rem', boxShadow: '0 4px 15px rgba(52,152,219,0.2)' }}
+                                        style={{ background: '#2471a3', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.85rem', boxShadow: '0 4px 15px rgba(52,152,219,0.2)' }}
                                     >
                                         + ENROLL STAFF
                                     </button>
@@ -2573,28 +2653,32 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                     <thead>
                                         <tr style={{ textAlign: 'left', borderBottom: '2px solid #f0f0f0' }}>
-                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Staff Identity</th>
-                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Department</th>
-                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Scheduled Shift</th>
-                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Actual Check-In</th>
-                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Check-Out</th>
-                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Performance</th>
-                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Status</th>
+                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#6b6b6b', textTransform: 'uppercase', letterSpacing: '1px' }}>Staff Identity</th>
+                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#6b6b6b', textTransform: 'uppercase', letterSpacing: '1px' }}>Department</th>
+                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#6b6b6b', textTransform: 'uppercase', letterSpacing: '1px' }}>Scheduled Shift</th>
+                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#6b6b6b', textTransform: 'uppercase', letterSpacing: '1px' }}>Actual Check-In</th>
+                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#6b6b6b', textTransform: 'uppercase', letterSpacing: '1px' }}>Check-Out</th>
+                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#6b6b6b', textTransform: 'uppercase', letterSpacing: '1px' }}>Performance</th>
+                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#6b6b6b', textTransform: 'uppercase', letterSpacing: '1px' }}>Status</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {attendanceLogs.map(log => {
+                                        {ledgerLogs.length === 0 && (
+                                            <tr><td colSpan={8} data-testid="att-empty" style={{ padding: '30px', textAlign: 'center', color: '#6b6b6b' }}>No attendance recorded for {activeAttendanceDate}.</td></tr>
+                                        )}
+                                        {ledgerLogs.map(log => {
                                             const staffInfo = [...staffRegistry.reception, ...staffRegistry.kitchen, ...staffRegistry.housekeeping].find(s => s.name === log.staffName);
                                             const dept = staffRegistry.reception.find(s => s.name === log.staffName) ? 'Reception' : 
                                                          staffRegistry.kitchen.find(s => s.name === log.staffName) ? 'Kitchen' : 'Housekeeping';
                                             
-                                            // Simple Punctuality Logic
-                                            let performance = "On Time";
-                                            let perfColor = "#27ae60";
-                                            if (log.checkIn !== '--') {
-                                                const checkInTime = log.checkIn.split(' ')[0];
-                                                const shiftStart = staffInfo?.shift?.split(' – ')[0] || staffInfo?.shift?.split(' TO ')[0] || "09:00 AM";
-                                                // Forensic comparison would happen here
+                                            // Punctuality: more than 10 min after shift start = LATE
+                                            let performance = "ON TIME";
+                                            let perfColor = "#1e7b34";
+                                            const inMin = toMinutes(log.checkIn);
+                                            const shiftMin = toMinutes(staffInfo?.shift);
+                                            if (inMin !== null && shiftMin !== null && inMin - shiftMin > 10) {
+                                                performance = "LATE";
+                                                perfColor = "#c0392b";
                                             }
 
                                             return (
@@ -2606,7 +2690,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                                             </div>
                                                             <div>
                                                                 <div style={{ fontWeight: 'bold', color: 'var(--primary-navy)', fontSize: '1rem' }}>{log.staffName}</div>
-                                                                <div style={{ fontSize: '0.7rem', color: '#888' }}>ID: EMP-00{log.id}</div>
+                                                                <div style={{ fontSize: '0.7rem', color: '#6b6b6b' }}>Log #{String(log.id).padStart(3, '0')}</div>
                                                             </div>
                                                         </div>
                                                     </td>
@@ -2616,30 +2700,30 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                                     <td style={{ padding: '18px 15px', fontSize: '0.85rem', color: '#666' }}>{staffInfo?.shift || 'Flexible'}</td>
                                                     <td style={{ padding: '18px 15px' }}>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                            <span style={{ fontWeight: '800', color: log.checkIn === '--' ? '#ccc' : '#27ae60', fontSize: '0.95rem' }}>{log.checkIn}</span>
+                                                            <span style={{ fontWeight: '800', color: log.checkIn === '--' ? '#ccc' : '#1e7b34', fontSize: '0.95rem' }}>{log.checkIn}</span>
                                                             {log.checkIn === '--' && (
-                                                                <button onClick={() => handleQuickCheckIn(log.staffName)} style={{ background: '#e8f5e9', color: '#2e7d32', border: 'none', padding: '5px 10px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 'bold', cursor: 'pointer' }}>CHECK-IN</button>
+                                                                <button onClick={() => handleQuickCheckIn(log.id)} style={{ background: '#e8f5e9', color: '#2e7d32', border: 'none', padding: '5px 10px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 'bold', cursor: 'pointer' }}>CHECK-IN</button>
                                                             )}
                                                         </div>
                                                     </td>
                                                     <td style={{ padding: '18px 15px' }}>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                            <span style={{ fontWeight: '800', color: log.checkOut === '--' ? '#ccc' : '#e67e22', fontSize: '0.95rem' }}>{log.checkOut}</span>
+                                                            <span style={{ fontWeight: '800', color: log.checkOut === '--' ? '#ccc' : '#a35207', fontSize: '0.95rem' }}>{log.checkOut}</span>
                                                             {log.checkIn !== '--' && log.checkOut === '--' && (
-                                                                <button onClick={() => handleQuickCheckOut(log.staffName)} style={{ background: '#fff3e0', color: '#e65100', border: 'none', padding: '5px 10px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 'bold', cursor: 'pointer' }}>CHECK-OUT</button>
+                                                                <button onClick={() => handleQuickCheckOut(log.id)} style={{ background: '#fff3e0', color: '#b23c00', border: 'none', padding: '5px 10px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 'bold', cursor: 'pointer' }}>CHECK-OUT</button>
                                                             )}
                                                         </div>
                                                     </td>
                                                     <td style={{ padding: '18px 15px' }}>
                                                         {log.status === 'Present' ? (
                                                             <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#27ae60' }}></div>
-                                                                <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#27ae60' }}>EXCELLENT</span>
+                                                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: perfColor }}></div>
+                                                                <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: perfColor }}>{log.checkIn === '--' ? 'NOT IN' : performance}</span>
                                                             </div>
                                                         ) : log.status === 'Half-Day Leave' ? (
                                                             <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#e67e22' }}></div>
-                                                                <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#e67e22' }}>PLANNED</span>
+                                                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#a35207' }}></div>
+                                                                <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#a35207' }}>PLANNED</span>
                                                             </div>
                                                         ) : (
                                                             <span style={{ fontSize: '0.8rem', color: '#ccc' }}>--</span>
@@ -2651,7 +2735,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                                             padding: '6px 12px', 
                                                             borderRadius: '20px', 
                                                             background: log.status === 'Present' ? '#e8f5e9' : log.status === 'Half-Day Leave' ? '#fff3e0' : '#f5f5f5', 
-                                                            color: log.status === 'Present' ? '#2e7d32' : log.status === 'Half-Day Leave' ? '#e65100' : '#757575', 
+                                                            color: log.status === 'Present' ? '#2e7d32' : log.status === 'Half-Day Leave' ? '#a84300' : '#757575', 
                                                             fontWeight: '900',
                                                             border: `1px solid ${log.status === 'Present' ? '#c8e6c9' : log.status === 'Half-Day Leave' ? '#ffe0b2' : '#e0e0e0'}`,
                                                             letterSpacing: '0.5px'
@@ -2668,7 +2752,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                         </div>
 
                         {/* Leaves & Holidays Grid */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '30px' }}>
+                        <div className="ops-split-12-1" style={{ display: 'grid', gap: '30px' }}>
                             {/* Approved Leaves */}
                             <div style={{ background: 'white', borderRadius: '25px', padding: '30px', boxShadow: '0 10px 40px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>
                                 <h3 style={{ margin: '0 0 20px 0', color: 'var(--primary-navy)', fontSize: '1.1rem' }}>📜 Approved Leaves & Alerts</h3>
@@ -2685,17 +2769,17 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                             boxShadow: leave.name.includes('MD Sir') ? '0 5px 15px rgba(212, 175, 55, 0.1)' : 'none'
                                         }}>
                                             <div>
-                                                <div style={{ fontWeight: 'bold', color: leave.name.includes('MD Sir') ? '#b8860b' : 'var(--primary-navy)' }}>
+                                                <div style={{ fontWeight: 'bold', color: leave.name.includes('MD Sir') ? '#7a5c0f' : 'var(--primary-navy)' }}>
                                                     {leave.name.includes('MD Sir') ? '👑 ' : ''}{leave.name}
                                                 </div>
-                                                <div style={{ fontSize: '0.75rem', color: '#888' }}>Reason: {leave.location}</div>
+                                                <div style={{ fontSize: '0.75rem', color: '#6b6b6b' }}>Reason: {leave.location}</div>
                                             </div>
                                             <div style={{ textAlign: 'right' }}>
-                                                <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: leave.name.includes('MD Sir') ? '#b8860b' : '#e74c3c' }}>{leave.shift}</div>
+                                                <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: leave.name.includes('MD Sir') ? '#7a5c0f' : '#a02a1f' }}>{leave.shift}</div>
                                                 <div style={{ 
                                                     fontSize: '0.65rem', 
                                                     background: leave.name.includes('MD Sir') ? '#d4af37' : '#fadbd8', 
-                                                    color: leave.name.includes('MD Sir') ? 'white' : '#c0392b', 
+                                                    color: leave.name.includes('MD Sir') ? '#1a1a1a' : '#a02a1f', 
                                                     padding: '2px 8px', 
                                                     borderRadius: '5px', 
                                                     marginTop: '4px',
@@ -2726,18 +2810,27 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                 </div>
 
                                 {calendarView === 'grid' ? (
+                                    <div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', color: 'white' }}>
+                                        <button data-testid="cal-prev" aria-label="Previous month" onClick={() => setCalMonth(m => new Date(m.getFullYear(), m.getMonth() - 1, 1))} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '6px', padding: '2px 10px', cursor: 'pointer' }}>‹</button>
+                                        <b data-testid="cal-month">{calMonth.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</b>
+                                        <button data-testid="cal-next" aria-label="Next month" onClick={() => setCalMonth(m => new Date(m.getFullYear(), m.getMonth() + 1, 1))} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '6px', padding: '2px 10px', cursor: 'pointer' }}>›</button>
+                                    </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px' }}>
-                                        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => <div key={d} style={{ textAlign: 'center', fontSize: '0.65rem', fontWeight: '800', color: '#8892b0', paddingBottom: '5px' }}>{d}</div>)}
-                                        {Array.from({ length: 31 }).map((_, i) => {
+                                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div key={d} style={{ textAlign: 'center', fontSize: '0.65rem', fontWeight: '800', color: '#8892b0', paddingBottom: '5px' }}>{d[0]}</div>)}
+                                        {Array.from({ length: calMonth.getDay() }).map((_, i) => <div key={`pad-${i}`} />)}
+                                        {Array.from({ length: new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 0).getDate() }).map((_, i) => {
                                             const day = i + 1;
-                                            const dateStr = `${day.toString().padStart(2, '0')}-May`;
-                                            const isHoliday = holidays.find(h => h.date.startsWith(day.toString().padStart(2, '0')));
+                                            const dateStr = dayKey(new Date(calMonth.getFullYear(), calMonth.getMonth(), day));
+                                            const isHoliday = holidays.find(h => h.date === dateStr);
                                             const isActive = activeAttendanceDate === dateStr;
-                                            
+
                                             return (
-                                                <div 
-                                                    key={i} 
-                                                    onClick={() => setActiveAttendanceDate(dateStr)}
+                                                <div
+                                                    key={dateStr}
+                                                    data-testid={`cal-day-${dateStr}`}
+                                                    title={isHoliday ? isHoliday.event : undefined}
+                                                    onClick={() => { setActiveAttendanceDate(dateStr); setLedgerScope('day'); }} role="button" tabIndex={0} onKeyDown={keyActivate}
                                                     style={{ 
                                                         height: '45px', 
                                                         background: isActive ? 'var(--accent)' : isHoliday ? 'rgba(212, 175, 55, 0.2)' : 'rgba(255,255,255,0.03)', 
@@ -2756,6 +2849,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                                 </div>
                                             );
                                         })}
+                                    </div>
                                     </div>
                                 ) : (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -2781,43 +2875,71 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                 {activeTab === 'Finance' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
                         {/* Financial Summary Cards */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '20px' }}>
                             <div style={{ background: 'white', padding: '25px', borderRadius: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.05)', borderBottom: '5px solid #2ecc71' }}>
-                                <h4 style={{ margin: 0, color: '#888', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Total Revenue</h4>
+                                <h4 style={{ margin: 0, color: '#6b6b6b', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Total Revenue</h4>
                                 <div style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-navy)', marginTop: '5px' }}>
-                                    ₹{rooms.reduce((acc, r) => acc + (r.status === 'Occupied' ? (r.price + (r.foodBill || 0)) : 0), 0).toLocaleString()}
+                                    ₹{occupiedFolios.reduce((acc, { f }) => acc + f.subtotal, 0).toLocaleString('en-IN')}
                                 </div>
-                                <div style={{ fontSize: '0.75rem', color: '#2ecc71', fontWeight: 'bold', marginTop: '5px' }}>↑ 12% vs Yesterday</div>
+                                <div style={{ fontSize: '0.75rem', color: '#1e7b34', fontWeight: 'bold', marginTop: '5px' }}>Occupied rooms, before GST</div>
                             </div>
                             <div style={{ background: 'white', padding: '25px', borderRadius: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.05)', borderBottom: '5px solid #3498db' }}>
-                                <h4 style={{ margin: 0, color: '#888', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Occupancy Rate</h4>
+                                <h4 style={{ margin: 0, color: '#6b6b6b', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Occupancy Rate</h4>
                                 <div style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-navy)', marginTop: '5px' }}>
                                     {Math.round((rooms.filter(r => r.status === 'Occupied').length / rooms.length) * 100)}%
                                 </div>
-                                <div style={{ fontSize: '0.75rem', color: '#3498db', fontWeight: 'bold', marginTop: '5px' }}>{rooms.filter(r => r.status === 'Occupied').length} / {rooms.length} Rooms Active</div>
+                                <div style={{ fontSize: '0.75rem', color: '#1f618d', fontWeight: 'bold', marginTop: '5px' }}>{rooms.filter(r => r.status === 'Occupied').length} / {rooms.length} Rooms Active</div>
                             </div>
                             <div style={{ background: 'white', padding: '25px', borderRadius: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.05)', borderBottom: '5px solid #f1c40f' }}>
-                                <h4 style={{ margin: 0, color: '#888', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Food Revenue</h4>
+                                <h4 style={{ margin: 0, color: '#6b6b6b', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Food Revenue</h4>
                                 <div style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-navy)', marginTop: '5px' }}>
-                                    ₹{rooms.reduce((acc, r) => acc + (r.foodBill || 0), 0).toLocaleString()}
+                                    ₹{occupiedFolios.reduce((acc, { f }) => acc + f.foodTotal, 0).toLocaleString('en-IN')}
                                 </div>
-                                <div style={{ fontSize: '0.75rem', color: '#f1c40f', fontWeight: 'bold', marginTop: '5px' }}>Sky Kitchen Integration</div>
+                                <div style={{ fontSize: '0.75rem', color: '#8a6d1a', fontWeight: 'bold', marginTop: '5px' }}>Sky Kitchen Integration</div>
                             </div>
                             <div style={{ background: 'white', padding: '25px', borderRadius: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.05)', borderBottom: '5px solid #e74c3c' }}>
-                                <h4 style={{ margin: 0, color: '#888', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Pending Balances</h4>
+                                <h4 style={{ margin: 0, color: '#6b6b6b', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Pending Balances</h4>
                                 <div style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-navy)', marginTop: '5px' }}>
-                                    ₹{rooms.reduce((acc, r) => {
-                                        if (r.status !== 'Occupied' || !r.guest) return acc;
-                                        const total = (r.price + (r.foodBill || 0)) * 1.12; // with GST
-                                        return acc + (total - (r.guest.advance || 0));
-                                    }, 0).toLocaleString()}
+                                    ₹{occupiedFolios.reduce((acc, { f }) => acc + f.due, 0).toLocaleString('en-IN')}
                                 </div>
-                                <div style={{ fontSize: '0.75rem', color: '#e74c3c', fontWeight: 'bold', marginTop: '5px' }}>Estimated Receivables</div>
+                                <div style={{ fontSize: '0.75rem', color: '#c0392b', fontWeight: 'bold', marginTop: '5px' }}>Estimated Receivables</div>
                             </div>
                         </div>
 
+                        {/* Bills settled at checkout */}
+                        <div data-testid="finance-settlements" style={{ background: 'white', borderRadius: '25px', padding: '30px', boxShadow: '0 10px 40px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '20px' }}>
+                                <h3 style={{ margin: 0, color: 'var(--primary-navy)', fontSize: '1.1rem' }}>✅ SETTLED AT CHECKOUT</h3>
+                                <div style={{ fontWeight: 'bold', color: '#1e7b34' }}>Collected: ₹{settlements.reduce((a, x) => a + x.collected, 0).toLocaleString('en-IN')}</div>
+                            </div>
+                            {settlements.length === 0 ? (
+                                <div style={{ color: '#6b6b6b', fontSize: '0.9rem' }}>No checkouts settled yet.</div>
+                            ) : (
+                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                    <thead>
+                                        <tr style={{ textAlign: 'left', borderBottom: '2px solid #f0f0f0', fontSize: '0.75rem', color: '#6b6b6b' }}>
+                                            <th style={{ padding: '10px' }}>ROOM</th><th style={{ padding: '10px' }}>GUEST</th><th style={{ padding: '10px' }}>NIGHTS</th><th style={{ padding: '10px' }}>BILL (INCL. GST)</th><th style={{ padding: '10px' }}>ADVANCE</th><th style={{ padding: '10px' }}>COLLECTED</th><th style={{ padding: '10px' }}>TIME</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {settlements.map(x => (
+                                            <tr key={x.id} style={{ borderBottom: '1px solid #f9f9f9' }}>
+                                                <td style={{ padding: '10px', fontWeight: 'bold' }}>{x.roomId}</td>
+                                                <td style={{ padding: '10px' }}>{x.guest}</td>
+                                                <td style={{ padding: '10px' }}>{x.nights}</td>
+                                                <td style={{ padding: '10px' }}>₹{x.total.toLocaleString('en-IN')}</td>
+                                                <td style={{ padding: '10px' }}>₹{x.advance.toLocaleString('en-IN')}</td>
+                                                <td style={{ padding: '10px', fontWeight: 'bold', color: '#1e7b34' }}>₹{x.collected.toLocaleString('en-IN')}</td>
+                                                <td style={{ padding: '10px', color: '#6b6b6b' }}>{x.date}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+
                         {/* Visual Charts & Logs Section */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '30px' }}>
+                        <div className="ops-split-15-1" style={{ display: 'grid', gap: '30px' }}>
                             {/* Transaction Log */}
                             <div style={{ background: 'white', borderRadius: '25px', padding: '30px', boxShadow: '0 10px 40px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>
                                 <h3 style={{ margin: '0 0 25px 0', color: 'var(--primary-navy)', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -2826,11 +2948,11 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                     <thead>
                                         <tr style={{ textAlign: 'left', borderBottom: '2px solid #f0f0f0' }}>
-                                            <th style={{ padding: '15px 10px', fontSize: '0.75rem', color: '#888' }}>ROOM</th>
-                                            <th style={{ padding: '15px 10px', fontSize: '0.75rem', color: '#888' }}>GUEST</th>
-                                            <th style={{ padding: '15px 10px', fontSize: '0.75rem', color: '#888' }}>REVENUE</th>
-                                            <th style={{ padding: '15px 10px', fontSize: '0.75rem', color: '#888' }}>PAYMENT</th>
-                                            <th style={{ padding: '15px 10px', fontSize: '0.75rem', color: '#888' }}>STATUS</th>
+                                            <th style={{ padding: '15px 10px', fontSize: '0.75rem', color: '#6b6b6b' }}>ROOM</th>
+                                            <th style={{ padding: '15px 10px', fontSize: '0.75rem', color: '#6b6b6b' }}>GUEST</th>
+                                            <th style={{ padding: '15px 10px', fontSize: '0.75rem', color: '#6b6b6b' }}>REVENUE</th>
+                                            <th style={{ padding: '15px 10px', fontSize: '0.75rem', color: '#6b6b6b' }}>PAYMENT</th>
+                                            <th style={{ padding: '15px 10px', fontSize: '0.75rem', color: '#6b6b6b' }}>STATUS</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -2838,12 +2960,12 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                             <tr key={r.id} style={{ borderBottom: '1px solid #f9f9f9' }}>
                                                 <td style={{ padding: '15px 10px', fontWeight: 'bold', color: 'var(--primary-navy)' }}>{r.id}</td>
                                                 <td style={{ padding: '15px 10px', fontSize: '0.9rem' }}>{r.guest?.name}</td>
-                                                <td style={{ padding: '15px 10px', fontWeight: 'bold' }}>₹{(r.price + (r.foodBill || 0)).toLocaleString()}</td>
+                                                <td style={{ padding: '15px 10px', fontWeight: 'bold' }}>₹{roomFolio(r).subtotal.toLocaleString('en-IN')}</td>
                                                 <td style={{ padding: '15px 10px' }}>
                                                     <span style={{ fontSize: '0.7rem', padding: '3px 8px', borderRadius: '5px', background: '#f0f2f5', color: '#555' }}>{r.guest?.advanceType || 'CASH'}</span>
                                                 </td>
                                                 <td style={{ padding: '15px 10px' }}>
-                                                    <span style={{ fontSize: '0.7rem', color: '#2ecc71', fontWeight: 'bold' }}>ACTIVE</span>
+                                                    <span style={{ fontSize: '0.7rem', color: '#1e7b34', fontWeight: 'bold' }}>ACTIVE</span>
                                                 </td>
                                             </tr>
                                         ))}
@@ -2856,17 +2978,17 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                 <h3 style={{ margin: '0 0 25px 0', color: 'var(--accent)', fontSize: '1.1rem' }}>📊 Revenue Breakdown</h3>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                     {[
-                                        { label: 'Room Stays', amount: rooms.reduce((acc, r) => acc + (r.status === 'Occupied' ? r.price : 0), 0), color: '#3498db' },
-                                        { label: 'Food & Dining', amount: rooms.reduce((acc, r) => acc + (r.foodBill || 0), 0), color: '#f1c40f' },
-                                        { label: 'GST Collected', amount: Math.round(rooms.reduce((acc, r) => acc + (r.status === 'Occupied' ? (r.price + (r.foodBill || 0)) : 0), 0) * 0.12), color: '#2ecc71' }
+                                        { label: 'Room Stays', amount: occupiedFolios.reduce((acc, { f }) => acc + f.roomTotal, 0), color: '#1f618d' },
+                                        { label: 'Food & Dining', amount: occupiedFolios.reduce((acc, { f }) => acc + f.foodTotal, 0), color: '#f1c40f' },
+                                        { label: 'GST Payable', amount: occupiedFolios.reduce((acc, { f }) => acc + f.gst, 0), color: '#1e7b34' }
                                     ].map((item, idx) => {
-                                        const total = rooms.reduce((acc, r) => acc + (r.status === 'Occupied' ? (r.price + (r.foodBill || 0)) : 0), 0) * 1.12;
+                                        const total = occupiedFolios.reduce((acc, { f }) => acc + f.grandTotal, 0);
                                         const percent = total > 0 ? (item.amount / total) * 100 : 0;
                                         return (
                                             <div key={idx}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '8px' }}>
                                                     <span>{item.label}</span>
-                                                    <span style={{ fontWeight: 'bold' }}>₹{item.amount.toLocaleString()}</span>
+                                                    <span style={{ fontWeight: 'bold' }}>₹{item.amount.toLocaleString('en-IN')}</span>
                                                 </div>
                                                 <div style={{ height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
                                                     <div style={{ width: `${percent}%`, height: '100%', background: item.color }} />
@@ -2876,14 +2998,15 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                     })}
                                 </div>
                                 <div style={{ marginTop: '40px', padding: '20px', background: 'rgba(255,255,255,0.05)', borderRadius: '15px', border: '1px dashed rgba(255,255,255,0.2)' }}>
-                                    <div style={{ fontSize: '0.8rem', color: '#888' }}>FORECASTED COLLECTION</div>
-                                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--accent)', marginTop: '5px' }}>₹32,500.00</div>
-                                    <div style={{ fontSize: '0.7rem', color: '#2ecc71', marginTop: '5px' }}>Monthly Target: 78% Achieved</div>
+                                    <div style={{ fontSize: '0.8rem', color: '#b8c2d1' }}>TOTAL BILLED (INCL. GST)</div>
+                                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--accent)', marginTop: '5px' }}>₹{occupiedFolios.reduce((acc, { f }) => acc + f.grandTotal, 0).toLocaleString('en-IN')}</div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 )}
+
+                {activeTab === 'Inventory' && <InventoryView />}
 
                 {activeTab === 'Menu Config' && (
                     <div style={{ background: 'white', borderRadius: '25px', padding: '40px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
@@ -2905,12 +3028,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                         <td style={{ fontWeight: 'bold', color: 'var(--primary-navy)' }}>{item.name}</td>
                                         <td>{item.category}</td>
                                         <td>
-                                            <input 
-                                                type="number" 
-                                                value={item.price} 
-                                                onChange={(e) => setMenuItems(prev => prev.map(m => m.id === item.id ? {...m, price: Number(e.target.value)} : m))}
-                                                style={{ padding: '8px', width: '80px', borderRadius: '8px', border: '1px solid #ccc', outline: 'none' }}
-                                            />
+                                                                                        <PriceInput item={item} onCommit={(price) => setMenuItems(prev => prev.map(m => m.id === item.id ? {...m, price} : m))} />
                                         </td>
                                         <td>
                                             <button 
@@ -2919,7 +3037,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                                     padding: '8px 15px', 
                                                     borderRadius: '8px', 
                                                     border: 'none', 
-                                                    background: item.isActive ? '#2ecc71' : '#e74c3c', 
+                                                    background: item.isActive ? '#1e8449' : '#c0392b', 
                                                     color: 'white', 
                                                     fontWeight: 'bold',
                                                     cursor: 'pointer'
@@ -2957,7 +3075,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                             {/* Modal Body */}
                             <div style={{ padding: '30px', display: 'flex', flexDirection: 'column', gap: '20px', maxHeight: '70vh', overflowY: 'auto' }}>
                                 <div>
-                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase', letterSpacing: '1px' }}>Primary Guest Identity <span style={{color: '#e74c3c'}}>*</span></label>
+                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase', letterSpacing: '1px' }}>Primary Guest Identity <span style={{color: '#c0392b'}}>*</span></label>
                                 <input 
                                     type="text" 
                                     value={guestForm.name} 
@@ -3065,8 +3183,10 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8f9fa', padding: '15px', borderRadius: '12px', border: '1px solid #eee' }}>
                                 <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--primary-navy)' }}>GST TAXATION ENABLED</span>
                                 <div 
+                                    role="switch" aria-checked={!!guestForm.gstEnabled} aria-label="GST taxation" tabIndex={0}
+                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setGuestForm({...guestForm, gstEnabled: !guestForm.gstEnabled}); } }}
                                     onClick={() => setGuestForm({...guestForm, gstEnabled: !guestForm.gstEnabled})}
-                                    style={{ width: '50px', height: '26px', background: guestForm.gstEnabled ? '#2ecc71' : '#bdc3c7', borderRadius: '13px', position: 'relative', cursor: 'pointer', transition: 'background 0.3s' }}
+                                    style={{ width: '50px', height: '26px', background: guestForm.gstEnabled ? '#1e8449' : '#bdc3c7', borderRadius: '13px', position: 'relative', cursor: 'pointer', transition: 'background 0.3s' }}
                                 >
                                     <div style={{ width: '20px', height: '20px', background: 'white', borderRadius: '50%', position: 'absolute', top: '3px', left: guestForm.gstEnabled ? '27px' : '3px', transition: 'left 0.3s' }} />
                                 </div>
@@ -3083,29 +3203,31 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                             </div>
 
                             {/* Forensic Tax Summary Panel */}
+                            {(() => { const f = computeRoomBill({ price: editingRoom.price, foodBill: liveFoodBill, checkIn: guestForm.checkInTime, checkOut: guestForm.checkOutTime, gstEnabled: guestForm.gstEnabled, advance: guestForm.advance }); return (
                             <div style={{ background: '#0a192f', padding: '25px', borderRadius: '20px', color: 'white', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '12px' }}>
-                                    <span style={{ color: '#8892b0' }}>Base Room Rent:</span>
-                                    <span style={{ fontWeight: 'bold' }}>₹{editingRoom.price.toLocaleString()}</span>
+                                    <span style={{ color: '#8892b0' }}>Base Room Rent{f.nights > 1 ? ` (${f.nights} nights × ₹${f.rate.toLocaleString('en-IN')})` : ''}:</span>
+                                    <span style={{ fontWeight: 'bold' }}>₹{f.roomTotal.toLocaleString('en-IN')}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '12px' }}>
                                     <span style={{ color: '#8892b0' }}>Sky Kitchen (Dining):</span>
-                                    <span style={{ fontWeight: 'bold' }}>₹{(Number(guestForm.foodBill) || 0).toLocaleString()}</span>
+                                    <span style={{ fontWeight: 'bold' }}>₹{(Number(liveFoodBill) || 0).toLocaleString('en-IN')}</span>
                                 </div>
                                 {guestForm.gstEnabled && (
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--accent)', marginBottom: '15px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '12px' }}>
-                                        <span>GST Applied (12%):</span>
-                                        <span style={{ fontWeight: 'bold' }}>₹{Math.round((editingRoom.price + (Number(guestForm.foodBill) || 0)) * 0.12).toLocaleString()}</span>
+                                        <span>GST Applied (Room {pct(ROOM_GST_RATE)} + Food {pct(GST_RATE)}):</span>
+                                        <span style={{ fontWeight: 'bold' }}>₹{f.gst.toLocaleString('en-IN')}</span>
                                     </div>
                                 )}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.3rem', fontWeight: '900', marginTop: '10px' }}>
                                     <span style={{ color: '#fff' }}>TOTAL BILLED:</span>
-                                    <span style={{ color: 'var(--accent)' }}>₹{Math.round((editingRoom.price + (Number(guestForm.foodBill) || 0)) * (guestForm.gstEnabled ? 1.12 : 1.0)).toLocaleString()}</span>
+                                    <span style={{ color: 'var(--accent)' }}>₹{f.grandTotal.toLocaleString('en-IN')}</span>
                                 </div>
                                 <div style={{ fontSize: '0.65rem', color: '#8892b0', marginTop: '10px', textAlign: 'center', letterSpacing: '1px' }}>
                                     {guestForm.gstEnabled ? 'INCLUSIVE OF ALL APPLICABLE TAXES' : 'EXCLUDING GST AS PER OPERATIONAL OVERRIDE'}
                                 </div>
                             </div>
+                            ); })()}
                             
                             {/* Modal Footer */}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
@@ -3137,7 +3259,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                         <div style={{ padding: '30px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
                             <div style={{ display: 'flex', gap: '15px' }}>
                                 <div style={{ flex: 1 }}>
-                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Room Number <span style={{color: '#e74c3c'}}>*</span></label>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Room Number <span style={{color: '#c0392b'}}>*</span></label>
                                     <input 
                                         type="number" 
                                         value={cleaningForm.roomNumber} 
@@ -3147,7 +3269,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                     />
                                 </div>
                                 <div style={{ flex: 2 }}>
-                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Staff Name <span style={{color: '#e74c3c'}}>*</span></label>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Staff Name <span style={{color: '#c0392b'}}>*</span></label>
                                     <select 
                                         value={cleaningForm.staffName} 
                                         onChange={(e) => setCleaningForm({...cleaningForm, staffName: e.target.value})}
@@ -3208,14 +3330,14 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                 {editingLog && (
                                     <div style={{ display: 'flex', gap: '10px' }}>
                                         <button 
-                                            onClick={() => handlePrintSlip(editingLog)}
+                                            onClick={() => handlePrintSlip({ ...editingLog, ...cleaningForm, roomNumber: Number(cleaningForm.roomNumber) })}
                                             style={{ flex: 1, padding: '12px', background: '#f8f9fa', border: '2px solid #d4af37', borderRadius: '12px', color: '#0a192f', fontWeight: 'bold', cursor: 'pointer' }}
                                         >
                                             🖨️ PRINT SLIP
                                         </button>
                                         <button 
-                                            onClick={() => handleShareWhatsApp(editingLog)}
-                                            style={{ flex: 1, padding: '12px', background: '#25D366', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}
+                                            onClick={() => handleShareWhatsApp({ ...editingLog, ...cleaningForm, roomNumber: Number(cleaningForm.roomNumber) })}
+                                            style={{ flex: 1, padding: '12px', background: '#0f7a40', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}
                                         >
                                             💬 SHARE WHATSAPP
                                         </button>
@@ -3229,7 +3351,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
 
             {/* Laundry Entry Modal */}
             {laundryRoom && (
-                <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0, 33, 71, 0.8)', display: 'flex', alignItems: 'center', justifycontent: 'center', zIndex: 1000, backdropFilter: 'blur(5px)' }}>
+                <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0, 33, 71, 0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(5px)' }}>
                     <div style={{ background: 'white', borderRadius: '24px', width: '500px', maxHeight: '90vh', boxShadow: '0 25px 50px rgba(0,0,0,0.3)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                         <div style={{ background: 'var(--primary-navy)', padding: '25px 30px', borderBottom: '3px solid var(--accent)' }}>
                             <h2 style={{ margin: '0', color: 'white', fontFamily: 'Cinzel, serif', fontSize: '1.6rem', letterSpacing: '1px' }}>LAUNDRY PICKUP</h2>
@@ -3239,7 +3361,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                         <div style={{ padding: '30px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', flex: 1 }}>
                             <div style={{ display: 'flex', gap: '15px' }}>
                                 <div style={{ flex: 1 }}>
-                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Room Number <span style={{color: '#e74c3c'}}>*</span></label>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Room Number <span style={{color: '#c0392b'}}>*</span></label>
                                     <input 
                                         type="number" 
                                         value={laundryForm.roomNumber} 
@@ -3249,7 +3371,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                     />
                                 </div>
                                 <div style={{ flex: 1.5 }}>
-                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Picked Up By <span style={{color: '#e74c3c'}}>*</span></label>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Picked Up By <span style={{color: '#c0392b'}}>*</span></label>
                                     <select 
                                         value={laundryForm.pickedUpBy} 
                                         onChange={(e) => setLaundryForm({...laundryForm, pickedUpBy: e.target.value})}
@@ -3354,23 +3476,23 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                 {/* Professional Bill Modal */}
                 {showBill && (
                     <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '20px' }}>
-                        <div style={{ background: 'white', width: '500px', borderRadius: '5px', padding: '40px', boxShadow: '0 0 50px rgba(0,0,0,0.5)', fontFamily: 'serif', color: '#000', position: 'relative' }}>
+                        <div className="print-area" data-testid="bill-sheet" style={{ background: 'white', width: '500px', borderRadius: '5px', padding: '40px', boxShadow: '0 0 50px rgba(0,0,0,0.5)', fontFamily: 'serif', color: '#000', position: 'relative' }}>
                             {/* Hotel Header */}
                             <div style={{ textAlign: 'center', borderBottom: '2px solid #000', paddingBottom: '20px', marginBottom: '25px' }}>
                                 <div style={{ fontSize: '2rem', fontWeight: 'bold', letterSpacing: '2px' }}>HOTEL SKY 5</div>
-                                <div style={{ fontSize: '0.8rem', color: '#555', marginTop: '5px' }}>Zirakpur-Panchkula Highway, Near Chandigarh</div>
+                                <div style={{ fontSize: '0.8rem', color: '#555', marginTop: '5px' }}>5th Floor, Disha Arcade Building, IT Park Rd, Mansa Devi Complex, Sector 4, Panchkula, Haryana 134114</div>
                                 <div style={{ fontSize: '0.9rem', fontWeight: 'bold', marginTop: '10px', color: '#000' }}>OFFICIAL TAX INVOICE</div>
                             </div>
 
                             {/* Guest & Room Info */}
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', fontSize: '0.9rem', marginBottom: '30px' }}>
                                 <div>
-                                    <div style={{ color: '#888', fontSize: '0.7rem', fontWeight: 'bold' }}>GUEST NAME</div>
+                                    <div style={{ color: '#6b6b6b', fontSize: '0.7rem', fontWeight: 'bold' }}>GUEST NAME</div>
                                     <div style={{ fontWeight: 'bold' }}>{guestForm.name.toUpperCase()}</div>
                                     <div style={{ color: '#555', marginTop: '5px' }}>{guestForm.phone}</div>
                                 </div>
                                 <div style={{ textAlign: 'right' }}>
-                                    <div style={{ color: '#888', fontSize: '0.7rem', fontWeight: 'bold' }}>ROOM / TYPE</div>
+                                    <div style={{ color: '#6b6b6b', fontSize: '0.7rem', fontWeight: 'bold' }}>ROOM / TYPE</div>
                                     <div style={{ fontWeight: 'bold' }}>ROOM {editingRoom.id}</div>
                                     <div style={{ color: '#555', marginTop: '5px' }}>{editingRoom.type.toUpperCase()}</div>
                                 </div>
@@ -3379,10 +3501,11 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                             {/* Occupancy Detail */}
                             <div style={{ background: '#f9f9f9', padding: '10px 15px', borderRadius: '4px', fontSize: '0.8rem', display: 'flex', justifyContent: 'space-between', marginBottom: '30px', border: '1px solid #eee' }}>
                                 <span><strong>OCCUPANCY:</strong> {guestForm.adults} Adult(s), {guestForm.children} Child(ren)</span>
-                                <span><strong>CHECK-IN:</strong> {new Date(guestForm.checkInTime).toLocaleDateString()}</span>
+                                <span><strong>CHECK-IN:</strong> {formatStayDate(guestForm.checkInTime)}{guestForm.checkOutTime ? <> &nbsp; <strong>CHECK-OUT:</strong> {formatStayDate(guestForm.checkOutTime)}</> : null}</span>
                             </div>
 
                             {/* Itemized Table */}
+                            {(() => { const f = computeRoomBill({ price: editingRoom.price, foodBill: liveFoodBill, checkIn: guestForm.checkInTime, checkOut: guestForm.checkOutTime, gstEnabled: guestForm.gstEnabled, advance: guestForm.advance }); return (<>
                             <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '30px' }}>
                                 <thead>
                                     <tr style={{ borderBottom: '1px solid #000', textAlign: 'left', fontSize: '0.8rem' }}>
@@ -3392,12 +3515,12 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                 </thead>
                                 <tbody style={{ fontSize: '0.95rem' }}>
                                     <tr>
-                                        <td style={{ padding: '12px 0' }}>Room Rent Charge ({editingRoom.type})</td>
-                                        <td style={{ textAlign: 'right' }}>{editingRoom.price.toLocaleString()}.00</td>
+                                        <td style={{ padding: '12px 0' }}>Room Rent Charge ({editingRoom.type}) — {f.nights} night{f.nights > 1 ? 's' : ''} × ₹{f.rate.toLocaleString('en-IN')}</td>
+                                        <td style={{ textAlign: 'right' }}>{f.roomTotal.toLocaleString('en-IN')}.00</td>
                                     </tr>
                                     <tr>
                                         <td style={{ padding: '12px 0' }}>Sky Kitchen (Room Service / Dining)</td>
-                                        <td style={{ textAlign: 'right' }}>{(Number(guestForm.foodBill) || 0).toLocaleString()}.00</td>
+                                        <td style={{ textAlign: 'right' }}>{f.foodTotal.toLocaleString('en-IN')}.00</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -3406,19 +3529,30 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                             <div style={{ borderTop: '2px solid #000', paddingTop: '15px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '8px' }}>
                                     <span>SUBTOTAL</span>
-                                    <span>₹{(editingRoom.price + (Number(guestForm.foodBill) || 0)).toLocaleString()}.00</span>
+                                    <span>₹{f.subtotal.toLocaleString('en-IN')}.00</span>
                                 </div>
                                 {guestForm.gstEnabled && (
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '8px', color: '#444' }}>
-                                        <span>GST (12.0%)</span>
-                                        <span>₹{Math.round((editingRoom.price + (Number(guestForm.foodBill) || 0)) * 0.12).toLocaleString()}.00</span>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '8px', color: '#9a9a9a' }}>
+                                        <span>GST (Room {pct(ROOM_GST_RATE)} + Food {pct(GST_RATE)})</span>
+                                        <span>₹{f.gst.toLocaleString('en-IN')}.00</span>
                                     </div>
                                 )}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.4rem', fontWeight: 'bold', marginTop: '10px', borderTop: '1px double #000', paddingTop: '10px' }}>
+                                    <span>GRAND TOTAL</span>
+                                    <span>₹{f.grandTotal.toLocaleString('en-IN')}.00</span>
+                                </div>
+                                {f.advance > 0 && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginTop: '8px', color: '#1e7b34' }}>
+                                        <span>ADVANCE PAID</span>
+                                        <span>- ₹{f.advance.toLocaleString('en-IN')}.00</span>
+                                    </div>
+                                )}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem', fontWeight: 'bold', marginTop: '8px' }}>
                                     <span>NET PAYABLE</span>
-                                    <span>₹{Math.round((editingRoom.price + (Number(guestForm.foodBill) || 0)) * (guestForm.gstEnabled ? 1.12 : 1.0)).toLocaleString()}.00</span>
+                                    <span>₹{f.balance.toLocaleString('en-IN')}.00</span>
                                 </div>
                             </div>
+                            </>); })()}
 
                             {/* Note */}
                             <div style={{ marginTop: '40px', fontSize: '0.7rem', color: '#777', fontStyle: 'italic', textAlign: 'center' }}>
@@ -3426,7 +3560,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                             </div>
 
                             {/* Bill Actions */}
-                            <div style={{ marginTop: '30px', display: 'flex', gap: '10px' }}>
+                            <div className="no-print" style={{ marginTop: '30px', display: 'flex', gap: '10px' }}>
                                 <button 
                                     onClick={() => window.print()}
                                     style={{ flex: 1, padding: '12px', background: '#000', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}
@@ -3522,7 +3656,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                 {showStaffModal && (
                     <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0, 33, 71, 0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, backdropFilter: 'blur(5px)' }}>
                         <div style={{ background: 'white', borderRadius: '24px', width: '500px', boxShadow: '0 25px 50px rgba(0,0,0,0.3)', overflow: 'hidden' }}>
-                            <div style={{ background: '#3498db', padding: '25px 30px', borderBottom: '3px solid rgba(255,255,255,0.2)' }}>
+                            <div style={{ background: '#2471a3', padding: '25px 30px', borderBottom: '3px solid rgba(255,255,255,0.2)' }}>
                                 <h2 style={{ margin: '0', color: 'white', fontFamily: 'Cinzel, serif', fontSize: '1.4rem', letterSpacing: '1px' }}>PERSONNEL ENROLLMENT</h2>
                                 <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.8rem', marginTop: '5px' }}>OFFICIAL STAFF ONBOARDING SYSTEM</div>
                             </div>
@@ -3604,7 +3738,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                 </div>
                                 <div style={{ display: 'flex', gap: '15px', marginTop: '10px' }}>
                                     <button style={{ flex: 1, padding: '15px', background: 'white', border: '2px solid #e0e0e0', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' }} onClick={() => setShowStaffModal(false)}>CANCEL</button>
-                                    <button style={{ flex: 1, padding: '15px', background: '#3498db', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(52,152,219,0.2)' }} onClick={handleEnrollStaff}>ENROLL PERSONNEL</button>
+                                    <button style={{ flex: 1, padding: '15px', background: '#2471a3', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(52,152,219,0.2)' }} onClick={handleEnrollStaff}>ENROLL PERSONNEL</button>
                                 </div>
                             </div>
                         </div>
@@ -3622,7 +3756,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                         <div style={{ padding: '30px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', flex: 1 }}>
                             <div style={{ display: 'flex', gap: '15px' }}>
                                 <div style={{ flex: 1 }}>
-                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Room Number <span style={{color: '#e74c3c'}}>*</span></label>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Room Number <span style={{color: '#c0392b'}}>*</span></label>
                                     <input 
                                         type="number" 
                                         value={checkoutForm.roomNumber}
@@ -3631,14 +3765,14 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                     />
                                 </div>
                                 <div style={{ flex: 1.5 }}>
-                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Inspected By <span style={{color: '#e74c3c'}}>*</span></label>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px', color: 'var(--primary-navy)', textTransform: 'uppercase' }}>Inspected By <span style={{color: '#c0392b'}}>*</span></label>
                                     <select 
                                         value={checkoutForm.staffName}
                                         onChange={(e) => setCheckoutForm({...checkoutForm, staffName: e.target.value})}
                                         style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #e0e0e0', background: '#f8f9fa', outline: 'none', cursor: 'pointer' }}
                                     >
                                         <option value="">Select Staff</option>
-                                        {[...staffRegistry.housekeeping, ...staffRegistry.reception].map(s => (
+                                        {[...staffRegistry.housekeeping, ...staffRegistry.reception, ...staffRegistry.kitchen].map(s => (
                                             <option key={s.name} value={s.name}>{s.name} ({s.role})</option>
                                         ))}
                                         <option value="Other">Other</option>
@@ -3675,7 +3809,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                                             [item]: !checked
                                                         }
                                                     });
-                                                }}
+                                                }} role="button" tabIndex={0} onKeyDown={keyActivate}
                                                 style={{ 
                                                     display: 'flex', 
                                                     alignItems: 'center', 
@@ -3719,14 +3853,14 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
                                 {editingCheckoutLog && (
                                     <div style={{ display: 'flex', gap: '10px' }}>
                                         <button 
-                                            onClick={() => handlePrintCheckoutSlip(editingCheckoutLog)}
+                                            onClick={() => handlePrintCheckoutSlip({ ...editingCheckoutLog, ...checkoutForm, roomNumber: Number(checkoutForm.roomNumber) })}
                                             style={{ flex: 1, padding: '12px', background: '#f8f9fa', border: '2px solid #d4af37', borderRadius: '12px', color: '#0a192f', fontWeight: 'bold', cursor: 'pointer' }}
                                         >
                                             🖨️ PRINT SLIP
                                         </button>
                                         <button 
-                                            onClick={() => handleShareCheckoutWhatsApp(editingCheckoutLog)}
-                                            style={{ flex: 1, padding: '12px', background: '#25D366', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}
+                                            onClick={() => handleShareCheckoutWhatsApp({ ...editingCheckoutLog, ...checkoutForm, roomNumber: Number(checkoutForm.roomNumber) })}
+                                            style={{ flex: 1, padding: '12px', background: '#0f7a40', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}
                                         >
                                             💬 SHARE WHATSAPP
                                         </button>

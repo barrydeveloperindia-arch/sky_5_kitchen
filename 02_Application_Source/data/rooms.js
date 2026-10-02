@@ -27,3 +27,8 @@ export const rooms = [
     { id: 19, type: "Standard Room", price: 1200, status: "Clean", amenities: ["Non-AC", "Bed", "TV"], image: "/images/actual_room_3.jpg", description: "Rate: ₹1200 - ₹2000/-" },
     { id: 20, type: "Standard Room", price: 1200, status: "Clean", amenities: ["Non-AC", "Bed", "TV"], image: "/images/actual_room_3.jpg", description: "Rate: ₹1200 - ₹2000/-" }
 ];
+
+// Starting state for the LIVE hotel data: every room free, no guests. The statuses/guests above
+// are sample data used only by the test environment.
+// eslint-disable-next-line no-unused-vars
+export const liveSeedRooms = () => rooms.map(({ guest, foodBill, ...r }) => ({ ...r, status: 'Clean' }));

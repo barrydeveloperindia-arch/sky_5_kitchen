@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+/* Inter font is loaded in index.html (a CSS @import cannot live inside the cascade layer). */
 
 :root {
   --primary: #0a192f;
@@ -904,7 +904,7 @@ header {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #888;
+  color: #6b6b6b;
   font-size: 0.9rem;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
@@ -1187,7 +1187,7 @@ header {
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  color: #999;
+  color: #6b6b6b;
   font-size: 0.7rem;
   cursor: pointer;
 }
@@ -1323,7 +1323,7 @@ header {
 
 .status-Pending {
   background: #f0f0f0;
-  color: #888;
+  color: #6b6b6b;
 }
 
 /* =========================================
@@ -1416,7 +1416,7 @@ header {
 }
 
 .header-left p {
-  color: #888;
+  color: #6b6b6b;
   font-size: 0.95rem;
 }
 
@@ -1535,7 +1535,7 @@ header {
 
 .stat-label {
   font-size: 0.9rem;
-  color: #888;
+  color: #6b6b6b;
   margin-top: 15px;
   display: block;
 }
@@ -1694,7 +1694,7 @@ header {
 
 .order-details p {
   font-size: 0.85rem;
-  color: #888;
+  color: #6b6b6b;
   margin: 0;
 }
 
@@ -1757,7 +1757,7 @@ header {
 
 .staff-info p {
   font-size: 0.75rem;
-  color: #888;
+  color: #6b6b6b;
   margin: 0;
 }
 
@@ -2041,7 +2041,7 @@ header {
 
 .item-weight {
   font-size: 0.75rem;
-  color: #999;
+  color: #6b6b6b;
   margin-bottom: 15px;
 }
 
@@ -2435,8 +2435,20 @@ header {
     visibility: hidden; /* Hide everything else */
   }
 
-  .menu-print-container, .menu-print-container * {
-    visibility: visible; /* Show only the menu */
+  .menu-print-container, .menu-print-container *,
+  .print-area, .print-area * {
+    visibility: visible; /* Show only the menu / the invoice being printed */
+  }
+
+  .print-area {
+    position: absolute !important;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
   }
 
   .menu-print-container {
@@ -2513,7 +2525,7 @@ header {
 }
 
 .menu-action-btn-whatsapp {
-  background: #25D366;
+  background: #0F7A40;
   color: white;
   box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3);
 }
@@ -2561,3 +2573,33 @@ header {
   }
 }
 
+
+/* OPS Center split layouts: side by side on a computer, stacked on a phone */
+.ops-split-2-1 { grid-template-columns: 2fr 1fr; }
+.ops-split-15-1 { grid-template-columns: 1.5fr 1fr; }
+.ops-split-12-1 { grid-template-columns: 1.2fr 1fr; }
+@media (max-width: 767px) {
+  .ops-split-2-1, .ops-split-15-1, .ops-split-12-1 { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Shop header: the text menu is for big screens; phones/tablets use the bottom tab bar (same links) */
+.desktop-menu { display: flex; }
+@media (max-width: 1023px) {
+  .desktop-menu { display: none; }
+}
+@media (max-width: 480px) {
+  .mobile-nav .profile-circle { display: none; }
+  .mobile-nav { gap: 8px; }
+}
+
+/* Shop invoice: A4 look on a computer, readable without cut-off on a phone */
+.invoice-page { padding: 40px; }
+.invoice-sheet { padding: 60px; }
+.invoice-head { padding: 40px; margin: -60px -60px 40px -60px; }
+@media (max-width: 600px) {
+  .invoice-page { padding: 10px; }
+  .invoice-sheet { padding: 18px; }
+  .invoice-head { padding: 20px; margin: -18px -18px 24px -18px; }
+  .invoice-head h2 { font-size: 1.8rem !important; }
+  .invoice-head h1 { font-size: 1.5rem !important; }
+}

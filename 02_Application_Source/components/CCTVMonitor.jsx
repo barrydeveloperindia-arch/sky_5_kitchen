@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
+import { keyActivate } from '../lib/utils';
 
 const CCTVMonitor = () => {
     const [selectedCamera, setSelectedCamera] = useState(null);
-    const [isLive, setIsLive] = useState(true);
 
     const cameras = [
         { id: 1, name: 'RECEPTION MAIN', type: 'W Box IP', status: 'Online', resolution: '4K' },
@@ -42,7 +42,7 @@ const CCTVMonitor = () => {
                         aspectRatio: '16/9',
                         cursor: 'pointer',
                         boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
-                    }} onClick={() => setSelectedCamera(cam)}>
+                    }} onClick={() => setSelectedCamera(cam)} role="button" tabIndex={0} onKeyDown={keyActivate}>
                         {/* Camera Header Overlay */}
                         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '15px', background: 'linear-gradient(to bottom, rgba(0,0,0,0.8), transparent)', display: 'flex', justifyContent: 'space-between', zIndex: 2 }}>
                             <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>CH {cam.id} | {cam.name}</div>

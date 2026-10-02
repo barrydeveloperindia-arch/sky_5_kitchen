@@ -1,80 +1,89 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import ShopView from './components/ShopView';
 import AdminDashboard from './components/AdminDashboard';
+import StaffInventory from './components/StaffInventory';
 import { combos } from './data/combos';
-import { rooms as initialRooms } from './data/rooms';
+import { rooms as roomData, liveSeedRooms } from './data/rooms';
+import { parseRoomNumber, addFoodBillToRoom } from './lib/billing';
+import { IS_TEST_ENV } from './lib/firebase';
+import { useSyncedCollection, useSyncedDoc } from './lib/syncedState';
 
-function App() {
+// Staff get a direct link to /inventory (vercel.json rewrites every path to index.html)
+const isStaffInventory = window.location.pathname.replace(/\/+$/, '') === '/inventory';
+
+// Live data starts clean: every room free, no guests, no orders. The sample guests/orders
+// exist only in the test environment (E2E fixtures), never in the live hotel data.
+const SEED_ROOMS = IS_TEST_ENV ? roomData : liveSeedRooms();
+const SEED_ORDERS = IS_TEST_ENV ? [
+  { id: 'ORD-8241', table: 'Table 2', items: '2x Aloo Paratha, 1x Tea', status: 'Pending', time: '12:45 PM' },
+  { id: 'ORD-9102', table: 'Room 105', items: '1x Special Thali', status: 'Preparing', time: '1:10 PM' },
+] : [];
+
+// Menu = combos.js + owner's changes from Menu Config (price / active), stored as overrides only
+const menuFromOverrides = (ov) => combos.map(c => ({ ...c, isActive: true, ...(ov?.[c.id] || {}) }));
+const overridesFromMenu = (items) => {
+  const ov = {};
+  for (const m of items) {
+    const base = combos.find(c => c.id === m.id);
+    if (base && (m.price !== base.price || m.isActive === false)) ov[m.id] = { price: m.price, isActive: m.isActive !== false };
+  }
+  return ov;
+};
+
+function HotelApp() {
   const [view, setView] = useState('shop'); // default to shop
-  
-  // Initialize combos with an isActive property
-  const [menuItems, setMenuItems] = useState(() => {
-      return combos.map(c => ({ ...c, isActive: true }));
-  });
 
-  // Synchronize combos changes with state to ensure HMR updates new items/prices
-  useEffect(() => {
-      setMenuItems(prev => {
-          return combos.map(c => {
-              const prevItem = prev.find(p => p.id === c.id);
-              return {
-                  ...c,
-                  isActive: prevItem ? prevItem.isActive : true
-              };
-          });
+  const [menuOverrides, setMenuOverrides] = useSyncedDoc('menuOverrides', {});
+  const menuItems = useMemo(() => menuFromOverrides(menuOverrides), [menuOverrides]);
+  const setMenuItems = useCallback((updater) => {
+      setMenuOverrides(prevOv => {
+          const current = menuFromOverrides(prevOv);
+          const next = typeof updater === 'function' ? updater(current) : updater;
+          return overridesFromMenu(next);
       });
-  }, [combos]);
+  }, [setMenuOverrides]);
 
-  const [roomList, setRoomList] = useState(initialRooms);
-
-  // Global orders state
-  const [orders, setOrders] = useState([
-      { id: 'ORD-8241', table: 'Table 2', items: '2x Aloo Paratha, 1x Tea', status: 'Pending', time: '12:45 PM' },
-      { id: 'ORD-9102', table: 'Room 105', items: '1x Special Thali', status: 'Preparing', time: '1:10 PM' }
-  ]);
+  const [roomList, setRoomList, roomsReady] = useSyncedCollection('hotel_rooms', SEED_ROOMS);
+  const [orders, setOrders] = useSyncedCollection('hotel_orders', SEED_ORDERS, { newestFirst: true });
 
   const handlePlaceOrder = (newOrder, totalAmount) => {
       setOrders(prev => [newOrder, ...prev]);
 
-      // If this is a room charge, add it to the room's food bill
-      const tableStr = (newOrder.table || '').toLowerCase();
-      if (tableStr.includes('room')) {
-          // Extract the numbers from "Room 101"
-          const match = tableStr.match(/\d+/);
-          if (match) {
-              const roomId = parseInt(match[0]);
-              setRoomList(prevRooms => prevRooms.map(r => {
-                  if (r.id === roomId) {
-                      const currentFoodBill = r.foodBill || 0;
-                      return { ...r, foodBill: currentFoodBill + totalAmount };
-                  }
-                  return r;
-              }));
-          }
+      // Only "Room Charge" orders go on the room folio (pre-GST); UPI / Card / COD are already paid
+      const roomId = newOrder.paymentMethod === 'Room Charge' ? parseRoomNumber(newOrder.table) : null;
+      if (roomId !== null) {
+          setRoomList(prevRooms => addFoodBillToRoom(prevRooms, roomId, totalAmount));
       }
   };
 
   return (
     <>
       {view === 'shop' ? (
-        <ShopView 
-          onNavigate={setView} 
-          menuItems={menuItems.filter(item => item.isActive)} 
-          onPlaceOrder={handlePlaceOrder} 
+        <ShopView
+          onNavigate={setView}
+          menuItems={menuItems.filter(item => item.isActive)}
+          onPlaceOrder={handlePlaceOrder}
+          liveRooms={roomList}
         />
       ) : (
-        <AdminDashboard 
-          onNavigate={setView} 
-          orders={orders} 
-          setOrders={setOrders} 
+        <AdminDashboard
+          onNavigate={setView}
+          orders={orders}
+          setOrders={setOrders}
           menuItems={menuItems}
           setMenuItems={setMenuItems}
           rooms={roomList}
           setRooms={setRoomList}
+          liveReady={roomsReady}
         />
       )}
     </>
   );
+}
+
+function App() {
+  // .legacy keeps the existing screens on browser defaults (see styles/ui.css); new shadcn screens use .ui
+  return <div className="legacy">{isStaffInventory ? <StaffInventory /> : <HotelApp />}</div>;
 }
 
 export default App;

@@ -1,0 +1,59 @@
+rules_version = '2';
+// Hotel Sky 5 inventory. Every device signs in anonymously. Entries can be created and soft-deleted
+// (deleted: true) but never edited or hard-deleted, so the full history is always recoverable.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+
+    match /inventory_transactions/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll(['code', 'type', 'qty', 'date', 'by', 'location'])
+        && request.resource.data.type in ['IN', 'OUT', 'TRANSFER']
+        && request.resource.data.location is string
+        && (request.resource.data.type != 'TRANSFER' || (request.resource.data.toLocation is string && request.resource.data.toLocation != request.resource.data.location))
+        && request.resource.data.qty is number && request.resource.data.qty > 0
+        && request.resource.data.code is string && request.resource.data.code.matches('SKY-[A-Z]{2}-[0-9]{3}')
+        && request.resource.data.by is string && request.resource.data.by.size() > 0;
+      allow delete: if false;
+      allow update: if signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleted', 'deletedAt'])
+        && request.resource.data.deleted == true;
+    }
+
+    match /inventory_settings/{doc} {
+      allow read, write: if signedIn();
+    }
+
+    // Money fields must be real, non-negative numbers when present
+    function okMoney(d, k) { return !(k in d) || (d[k] is number && d[k] >= 0); }
+    // Basic shape checks so a bad or garbled save can never corrupt a room bill or a settlement
+    function validHotel(col, d) {
+      return (col != 'hotel_rooms' || (
+                d.status in ['Clean', 'Occupied', 'Dirty']
+                && d.price is number && d.price >= 0
+                && okMoney(d, 'foodBill')
+                && (!('guest' in d) || d.guest == null || d.guest is map)))
+        && (col != 'hotel_settlements' || (
+                okMoney(d, 'total') && okMoney(d, 'collected') && okMoney(d, 'refund') && okMoney(d, 'advance')))
+        && (col != 'hotel_orders' || (!('status' in d) || d.status is string));
+    }
+
+    // OPS Center + shop live data (rooms, orders, logs, attendance, settlements, staff, menu).
+    // Anyone on the app can read and save; nothing can be hard-deleted.
+    match /{col}/{id} {
+      allow read: if signedIn() && col in [
+        'hotel_rooms', 'hotel_orders', 'hotel_settlements', 'hotel_cleaning_logs', 'hotel_checkout_logs',
+        'hotel_laundry_logs', 'hotel_attendance', 'hotel_state', 'hotel_meta'];
+      allow create, update: if signedIn() && col in [
+        'hotel_rooms', 'hotel_orders', 'hotel_settlements', 'hotel_cleaning_logs', 'hotel_checkout_logs',
+        'hotel_laundry_logs', 'hotel_attendance', 'hotel_state', 'hotel_meta']
+        && validHotel(col, request.resource.data);
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

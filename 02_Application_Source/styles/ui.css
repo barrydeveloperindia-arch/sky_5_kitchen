@@ -1,0 +1,126 @@
+/* Hotel Sky 5 design system: Tailwind v4 + shadcn/ui tokens (brand: navy + gold).
+   Tokens are named --ui-* so they never clash with the older --primary/--accent in index.css. */
+/* Layer order: legacy CSS beats Tailwind's reset (base) but loses to Tailwind utilities,
+   so old screens keep their look and new shadcn components get their styling. */
+@layer theme, base, legacy, components, utilities;
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "../index.css" layer(legacy);
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: "Inter", "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --radius-sm: calc(var(--ui-radius) - 4px);
+  --radius-md: calc(var(--ui-radius) - 2px);
+  --radius-lg: var(--ui-radius);
+  --radius-xl: calc(var(--ui-radius) + 4px);
+  --color-background: var(--ui-background);
+  --color-foreground: var(--ui-foreground);
+  --color-card: var(--ui-card);
+  --color-card-foreground: var(--ui-card-foreground);
+  --color-popover: var(--ui-popover);
+  --color-popover-foreground: var(--ui-popover-foreground);
+  --color-primary: var(--ui-primary);
+  --color-primary-foreground: var(--ui-primary-foreground);
+  --color-secondary: var(--ui-secondary);
+  --color-secondary-foreground: var(--ui-secondary-foreground);
+  --color-muted: var(--ui-muted);
+  --color-muted-foreground: var(--ui-muted-foreground);
+  --color-accent: var(--ui-accent);
+  --color-accent-foreground: var(--ui-accent-foreground);
+  --color-destructive: var(--ui-destructive);
+  --color-border: var(--ui-border);
+  --color-input: var(--ui-input);
+  --color-ring: var(--ui-ring);
+  --color-gold: var(--ui-gold);
+  --color-success: var(--ui-success);
+  --color-warning: var(--ui-warning);
+  --color-chart-1: var(--ui-chart-1);
+  --color-chart-2: var(--ui-chart-2);
+  --color-chart-3: var(--ui-chart-3);
+  --color-chart-4: var(--ui-chart-4);
+  --color-chart-5: var(--ui-chart-5);
+  --color-sidebar: var(--ui-sidebar);
+  --color-sidebar-foreground: var(--ui-sidebar-foreground);
+  --color-sidebar-primary: var(--ui-sidebar-primary);
+  --color-sidebar-primary-foreground: var(--ui-sidebar-primary-foreground);
+  --color-sidebar-accent: var(--ui-sidebar-accent);
+  --color-sidebar-accent-foreground: var(--ui-sidebar-accent-foreground);
+  --color-sidebar-border: var(--ui-sidebar-border);
+  --color-sidebar-ring: var(--ui-sidebar-ring);
+}
+
+:root {
+  --ui-radius: 0.625rem;
+  --ui-background: oklch(0.985 0.002 250);
+  --ui-foreground: oklch(0.2 0.03 260);
+  --ui-card: oklch(1 0 0);
+  --ui-card-foreground: oklch(0.2 0.03 260);
+  --ui-popover: oklch(1 0 0);
+  --ui-popover-foreground: oklch(0.2 0.03 260);
+  --ui-primary: oklch(0.23 0.05 262);            /* hotel navy #0a192f */
+  --ui-primary-foreground: oklch(0.985 0 0);
+  --ui-secondary: oklch(0.96 0.005 250);
+  --ui-secondary-foreground: oklch(0.23 0.05 262);
+  --ui-muted: oklch(0.96 0.005 250);
+  --ui-muted-foreground: oklch(0.46 0.02 260);
+  --ui-accent: oklch(0.95 0.03 90);
+  --ui-accent-foreground: oklch(0.35 0.07 80);
+  --ui-destructive: oklch(0.52 0.21 27);
+  --ui-border: oklch(0.91 0.006 250);
+  --ui-input: oklch(0.91 0.006 250);
+  --ui-ring: oklch(0.72 0.12 85);                /* gold focus ring */
+  --ui-gold: oklch(0.72 0.12 85);                /* hotel gold #c9a227 */
+  --ui-success: oklch(0.47 0.13 150);
+  --ui-warning: oklch(0.52 0.12 65);
+  --ui-chart-1: oklch(0.23 0.05 262);
+  --ui-chart-2: oklch(0.72 0.12 85);
+  --ui-chart-3: oklch(0.55 0.14 150);
+  --ui-chart-4: oklch(0.6 0.15 250);
+  --ui-chart-5: oklch(0.58 0.22 27);
+  --ui-sidebar: oklch(0.2 0.045 262);
+  --ui-sidebar-foreground: oklch(0.8 0.02 260);
+  --ui-sidebar-primary: oklch(0.72 0.12 85);
+  --ui-sidebar-primary-foreground: oklch(0.2 0.045 262);
+  --ui-sidebar-accent: oklch(0.28 0.05 262);
+  --ui-sidebar-accent-foreground: oklch(0.97 0 0);
+  --ui-sidebar-border: oklch(0.3 0.04 262);
+  --ui-sidebar-ring: oklch(0.72 0.12 85);
+}
+
+.dark {
+  --ui-background: oklch(0.16 0.03 262);
+  --ui-foreground: oklch(0.97 0 0);
+  --ui-card: oklch(0.2 0.035 262);
+  --ui-card-foreground: oklch(0.97 0 0);
+  --ui-popover: oklch(0.2 0.035 262);
+  --ui-popover-foreground: oklch(0.97 0 0);
+  --ui-primary: oklch(0.72 0.12 85);
+  --ui-primary-foreground: oklch(0.2 0.045 262);
+  --ui-secondary: oklch(0.26 0.04 262);
+  --ui-secondary-foreground: oklch(0.97 0 0);
+  --ui-muted: oklch(0.26 0.04 262);
+  --ui-muted-foreground: oklch(0.72 0.02 260);
+  --ui-accent: oklch(0.3 0.05 262);
+  --ui-accent-foreground: oklch(0.97 0 0);
+  --ui-destructive: oklch(0.65 0.2 25);
+  --ui-border: oklch(1 0 0 / 12%);
+  --ui-input: oklch(1 0 0 / 15%);
+  --ui-ring: oklch(0.72 0.12 85);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+}
+
+/* Legacy screens (guest shop, printed menu card, older OPS Center tabs) were built on browser defaults.
+   Undo Tailwind's reset inside .legacy so they render exactly as before; new shadcn screens opt in
+   with .ui. index.css sits in the legacy layer (above this reset, below utilities). */
+@layer base {
+  html { line-height: revert; }
+  :where(.legacy, .legacy *, .legacy ::before, .legacy ::after):not(:where(.ui, .ui *)) { all: revert; }
+  .ui { line-height: 1.5; font-family: var(--font-sans); color: var(--color-foreground); }
+}

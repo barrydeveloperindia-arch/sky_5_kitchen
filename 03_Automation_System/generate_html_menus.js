@@ -1,6 +1,11 @@
 import fs from 'fs';
-import path from 'path';
 import { combos } from '../02_Application_Source/data/combos.js';
+
+const bevPrice = (...names) => names.map(n => {
+    const item = combos.find(c => c.name === n);
+    if (!item) throw new Error(`Beverage "${n}" not found in combos.js`);
+    return item.price;
+}).join(' / ');
 
 const htmlFiles = [
     { path: '01_Design_Brand/OFFICIAL_MENU_CARD_V5.html', useThumbnails: false },
@@ -55,39 +60,37 @@ const renderBeveragesHtml = (useThumbnails = false) => {
     let lemonThumb = '';
     let lassiThumb = '';
     let cokeThumb = '';
-    let paddingLeft = '12px';
 
     if (useThumbnails) {
         teaThumb = `<img class="item-thumb" src="/images/food_tea.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;">`;
         lemonThumb = `<img class="item-thumb" src="/images/food_soda.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;">`;
         lassiThumb = `<img class="item-thumb" src="/images/food_lassi.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;">`;
         cokeThumb = `<img class="item-thumb" src="/images/food_cold_drink.png" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--gold); object-fit: cover; flex-shrink: 0; margin-right: 4px;">`;
-        paddingLeft = '42px';
     }
 
     return `
                         <div class="menu-item">
                             <div class="menu-item-main">
                                 <div class="item-details"><span class="veg-icon"></span>${teaThumb}<span class="item-name">Tea / Coffee / Glass of Milk</span></div>
-                                <span class="item-price">₹50 / 70 / 70</span>
+                                <span class="item-price">₹${bevPrice('Tea', 'Coffee', 'Glass of Milk')}</span>
                             </div>
                         </div>
                         <div class="menu-item">
                             <div class="menu-item-main">
                                 <div class="item-details"><span class="veg-icon"></span>${lemonThumb}<span class="item-name">Lemon Water / Fresh Lemonade / Plain Soda</span></div>
-                                <span class="item-price">₹50 / 99 / 50</span>
+                                <span class="item-price">₹${bevPrice('Lemon Water', 'Fresh Lemonade', 'Plain Soda')}</span>
                             </div>
                         </div>
                         <div class="menu-item">
                             <div class="menu-item-main">
                                 <div class="item-details"><span class="veg-icon"></span>${lassiThumb}<span class="item-name">Sweet Lassi / Salted Lassi</span></div>
-                                <span class="item-price">₹109 / 109</span>
+                                <span class="item-price">₹${bevPrice('Sweet Lassi', 'Salted Lassi')}</span>
                             </div>
                         </div>
                         <div class="menu-item">
                             <div class="menu-item-main">
                                 <div class="item-details"><span class="veg-icon"></span>${cokeThumb}<span class="item-name">Coke / Limca / Mineral Water (1 Ltr)</span></div>
-                                <span class="item-price">₹50 / 50 / 50</span>
+                                <span class="item-price">₹${bevPrice('Coke', 'Limca', 'Mineral Water (1 Ltr)')}</span>
                             </div>
                         </div>`;
 };
@@ -167,7 +170,7 @@ const processFile = ({ path: filePath, useThumbnails }) => {
     // 2. Replace section items using regex
     const replaceSectionItems = (sectionTitle, newItemsHtml) => {
         const pattern = new RegExp(
-            `(<span class="section-title">` + sectionTitle + `<\/span>.*?<div class="item-list">)(.*?)(<\/div>\\s*<\/section>)`,
+            `(<span class="section-title">` + sectionTitle + `</span>.*?<div class="item-list">)(.*?)(</div>\\s*</section>)`,
             's'
         );
         if (pattern.test(content)) {

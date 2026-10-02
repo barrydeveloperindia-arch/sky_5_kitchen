@@ -1,10 +1,21 @@
-import { useState, useMemo, useEffect } from 'react';
-import { combos } from '../data/combos';
-import { rooms } from '../data/rooms';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { keyActivate } from '../lib/utils';
+import { rooms as seedRooms } from '../data/rooms';
 import { ambiance } from '../data/ambiance';
 import Logo from './Logo';
+import { CART_STORAGE_KEY, loadCart, pruneCart, computeBill, resolveCartItem, parseRoomNumber } from '../lib/billing';
 
-function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
+// liveRooms = current room list from the admin side (status Occupied / Clean / Dirty)
+function ShopView({ onNavigate, onPlaceOrder, menuItems, liveRooms }) {
+    const rooms = liveRooms || seedRooms;
+    const searchRef = useRef(null);
+    const [availableOnly, setAvailableOnly] = useState(false);
+    const [stayDate, setStayDate] = useState(() => {
+        const d = new Date();
+        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+        return d.toISOString().split('T')[0];
+    });
+    const [stayGuests, setStayGuests] = useState('2 Guests');
     const [toast, setToast] = useState(null);
 
     const showToast = (message, type = 'success') => {
@@ -16,33 +27,28 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
 
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Load cart from localStorage
+    // Load cart from localStorage (drops corrupt data and items no longer on the menu)
     const [cart, setCart] = useState(() => {
-        const savedCart = localStorage.getItem('sky5_cart');
-        return savedCart ? JSON.parse(savedCart) : {};
+        let raw = null;
+        try { raw = localStorage.getItem(CART_STORAGE_KEY); } catch { /* storage blocked */ }
+        return pruneCart(loadCart(raw), menuItems, rooms);
     });
 
     const [paymentMethod, setPaymentMethod] = useState('UPI');
-    const [tableNumber, setTableNumber] = useState('');
+    // Auto-detect table number from URL (e.g. ?table=5)
+    const [tableNumber, setTableNumber] = useState(() => {
+        const tableParam = new URLSearchParams(window.location.search).get('table');
+        return tableParam ? 'Table ' + tableParam : '';
+    });
     const [showCart, setShowCart] = useState(false);
     const [showPayment, setShowPayment] = useState(false);
     const [showMenuCard, setShowMenuCard] = useState(false);
-    const [showRoomModal, setShowRoomModal] = useState(null);
     const [showInvoice, setShowInvoice] = useState(false);
     const [currentOrder, setCurrentOrder] = useState(null);
 
-    // Auto-detect table number from URL (e.g. ?table=5)
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        const tableParam = params.get('table');
-        if (tableParam) {
-            setTableNumber('Table ' + tableParam);
-        }
-    }, []);
-
     // Save cart
     useEffect(() => {
-        localStorage.setItem('sky5_cart', JSON.stringify(cart));
+        try { localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart)); } catch { /* storage blocked */ }
     }, [cart]);
 
     // ... (rest of filtering logic)
@@ -74,21 +80,8 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
         showToast('Item added to cart', 'success');
     };
 
-    // Calculations
-    const cartTotalItems = Object.values(cart).reduce((a, b) => a + b, 0);
-
-    const { totalPrice, totalMrp } = Object.entries(cart).reduce((acc, [id, qty]) => {
-        const item = menuItems.find(c => c.id === parseInt(id)) || rooms.find(r => r.id === parseInt(id));
-        if (item) {
-            acc.totalPrice += item.price * qty;
-            acc.totalMrp += (item.originalPrice || item.price) * qty;
-        }
-        return acc;
-    }, { totalPrice: 0, totalMrp: 0 });
-
-    const totalSavings = totalMrp - totalPrice;
-    const gst = Math.round(totalPrice * 0.05);
-    const grandTotal = totalPrice + gst;
+    // Calculations (items deactivated by admin after being added are ignored)
+    const { items: cartItems, totalItems: cartTotalItems, subtotal: totalPrice, gst, grandTotal } = computeBill(cart, menuItems, rooms);
 
     const processCheckout = () => {
         if (cartTotalItems === 0) {
@@ -99,20 +92,37 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
             showToast('Please enter Table/Room Number', 'error');
             return;
         }
-        
-        const orderItemsList = Object.keys(cart).map(id => {
-            const item = menuItems.find(c => c.id === parseInt(id)) || rooms.find(r => r.id === parseInt(id));
-            return { ...item, quantity: cart[id] };
-        });
+        // Room Charge goes on a checked-in guest's folio, so the room must exist and be occupied
+        if (paymentMethod === 'Room Charge') {
+            const roomNo = parseRoomNumber(tableNumber);
+            if (roomNo === null) {
+                showToast('For Room Charge enter the room, e.g. "Room 5"', 'error');
+                return;
+            }
+            const room = rooms.find(r => r.id === roomNo);
+            if (!room || room.status !== 'Occupied') {
+                showToast(`Room ${roomNo} has no checked-in guest. Choose another payment method.`, 'error');
+                return;
+            }
+            if (cartItems.some(i => i.category === 'Stays')) {
+                showToast('A room booking cannot go on a room bill. Pay it by UPI, Card or Cash.', 'error');
+                return;
+            }
+        }
+
+        const orderItemsList = cartItems;
 
         const orderData = {
-            id: `SKY5-${Math.floor(1000 + Math.random() * 9000)}`,
+            // time + random part: unique across devices and never repeats (the old 7-digit cut wrapped every 2.8 h)
+            id: `SKY5-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2, 5).toUpperCase()}`,
             table: tableNumber,
             date: new Date().toLocaleString(),
             items: orderItemsList,
             subtotal: totalPrice,
-            gst: gst,
-            total: grandTotal
+            gst: paymentMethod === 'Room Charge' ? 0 : gst,
+            total: paymentMethod === 'Room Charge' ? totalPrice : grandTotal,
+            gstLabel: cartItems.some(i => i.category === 'Stays') ? 'GST' : 'GST (5%)',
+            paymentMethod
         };
         
         setCurrentOrder(orderData);
@@ -121,27 +131,30 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
         setShowPayment(false);
         setCart({}); // Clear cart after checkout
 
-        // Push order to global admin state
-        if (onPlaceOrder) {
-            const formattedItemsText = orderItemsList.map(i => `${i.quantity}x ${i.name}`).join(', ');
+        // Push food to the kitchen (room bookings are not kitchen orders)
+        const foodItems = orderItemsList.filter(i => i.category !== 'Stays');
+        if (onPlaceOrder && foodItems.length > 0) {
+            const formattedItemsText = foodItems.map(i => `${i.quantity}x ${i.name}`).join(', ');
             const now = new Date();
             const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-            
+            const foodSubtotal = foodItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
+
             onPlaceOrder({
                 id: orderData.id,
                 table: tableNumber,
                 items: formattedItemsText,
                 status: 'Pending',
                 time: timeStr,
-                details: orderItemsList
-            }, grandTotal);
+                paymentMethod,
+                details: foodItems
+            }, foodSubtotal); // pre-GST: the room folio adds GST once at checkout
         }
     };
 
     const shareOnWhatsApp = () => {
         if (!currentOrder) return;
         
-        const message = `🏨 *Hotel Sky 5 - OFFICIAL INVOICE* 🏨\n----------------------------------------\n🧾 *Order ID:* #${currentOrder.id}\n📅 *Date:* ${currentOrder.date}\n🚪 *Room / Table:* ${currentOrder.table}\n\n🍽️ *ORDER DETAILS:*\n${currentOrder.items.map(i => `▪️ ${i.quantity}x ${i.name}`).join('\n')}\n\n💰 *Subtotal:* ₹${currentOrder.subtotal}\n🏛️ *GST (5%):* ₹${currentOrder.gst}\n----------------------------------------\n✅ *GRAND TOTAL: ₹${currentOrder.total}*\n----------------------------------------\n🙏 Thank you for dining with Hotel Sky 5!`;
+        const message = `🏨 *Hotel Sky 5 - OFFICIAL INVOICE* 🏨\n----------------------------------------\n🧾 *Order ID:* #${currentOrder.id}\n📅 *Date:* ${currentOrder.date}\n🚪 *Room / Table:* ${currentOrder.table}\n💳 *Payment:* ${currentOrder.paymentMethod}\n\n🍽️ *ORDER DETAILS:*\n${currentOrder.items.map(i => `▪️ ${i.quantity}x ${i.name}`).join('\n')}\n\n💰 *Subtotal:* ₹${currentOrder.subtotal}\n🏛️ *${currentOrder.paymentMethod === 'Room Charge' ? 'GST (5%):* added on room bill at check-out' : `${currentOrder.gstLabel || 'GST (5%)'}:* ₹${currentOrder.gst}`}\n----------------------------------------\n✅ *${currentOrder.paymentMethod === 'Room Charge' ? 'ADDED TO ROOM BILL' : 'GRAND TOTAL'}: ₹${currentOrder.total}*\n----------------------------------------\n🙏 Thank you for dining with Hotel Sky 5!`;
         const encoded = encodeURIComponent(message);
         window.open(`https://wa.me/?text=${encoded}`, '_blank');
     };
@@ -149,20 +162,19 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
     // Render Professional A4 Invoice
     if (showInvoice && currentOrder) {
         return (
-            <div className="mobile-app-container" style={{ background: '#f8f9fa', maxWidth: '100%', padding: '40px' }}>
+            <div className="mobile-app-container invoice-page" style={{ background: '#f8f9fa', maxWidth: '100%' }}>
                 <div style={{ 
                     background: 'white', 
                     maxWidth: '800px', 
                     margin: '0 auto', 
-                    padding: '60px', 
                     boxShadow: '0 20px 60px rgba(0,0,0,0.1)',
                     border: '1px solid #eee',
                     fontFamily: 'Inter, sans-serif',
                     position: 'relative',
                     overflow: 'hidden'
-                }} id="invoice-sheet">
+                }} id="invoice-sheet" className="print-area invoice-sheet">
                     {/* Watermark Logo */}
-                    <div style={{
+                    <div aria-hidden="true" style={{
                         position: 'absolute',
                         top: '55%',
                         left: '50%',
@@ -175,17 +187,17 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                     </div>
                     
                     {/* Invoice Header */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', backgroundColor: '#0a192f', color: 'white', padding: '40px', margin: '-60px -60px 40px -60px', borderBottom: '4px solid #d4af37', position: 'relative', zIndex: 1 }}>
+                    <div className="invoice-head" style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', justifyContent: 'space-between', backgroundColor: '#0a192f', color: 'white', borderBottom: '4px solid #d4af37', position: 'relative', zIndex: 1 }}>
                         <div>
                             <Logo size={100} noBorder={true} />
                             <h1 style={{ color: 'white', margin: '15px 0 5px 0', fontSize: '2rem' }}>Hotel Sky 5</h1>
-                            <p style={{ color: '#aaa', fontSize: '0.85rem', margin: '5px 0 0 0' }}>5th Floor, Disha Arcade Building, IT Park Rd, Mansa Devi Complex, Sector 4, Panchkula, Haryana 134114</p>
-                            <p style={{ color: '#aaa', fontSize: '0.85rem', margin: '3px 0 0 0' }}>📞 +91 81464 07934 | 🌐 hotelsky5.com</p>
+                            <p style={{ color: '#b8c2d1', fontSize: '0.85rem', margin: '5px 0 0 0' }}>5th Floor, Disha Arcade Building, IT Park Rd, Mansa Devi Complex, Sector 4, Panchkula, Haryana 134114</p>
+                            <p style={{ color: '#b8c2d1', fontSize: '0.85rem', margin: '3px 0 0 0' }}>📞 +91 81464 07934 | 🌐 hotelsky5.com</p>
                         </div>
                         <div style={{ textAlign: 'right' }}>
                             <h2 style={{ color: '#d4af37', fontSize: '2.5rem', margin: '0' }}>INVOICE</h2>
                             <p style={{ fontWeight: '800', margin: '10px 0 5px 0', color: 'white' }}># {currentOrder.id}</p>
-                            <p style={{ color: '#aaa' }}>{currentOrder.date}</p>
+                            <p style={{ color: '#b8c2d1' }}>{currentOrder.date}</p>
                         </div>
                     </div>
 
@@ -204,7 +216,7 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                                 <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
                                     <td style={{ padding: '15px' }}>
                                         <div style={{ fontWeight: '700' }}>{item.name}</div>
-                                        <div style={{ fontSize: '0.8rem', color: '#888' }}>{item.category}</div>
+                                        <div style={{ fontSize: '0.8rem', color: '#6b6b6b' }}>{item.category}</div>
                                     </td>
                                     <td style={{ textAlign: 'center', padding: '15px' }}>₹{item.price}</td>
                                     <td style={{ textAlign: 'center', padding: '15px' }}>{item.quantity}</td>
@@ -222,27 +234,31 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                                 <span>₹{currentOrder.subtotal}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #ddd' }}>
-                                <span>GST (5%)</span>
-                                <span>₹{currentOrder.gst}</span>
+                                <span>{currentOrder.paymentMethod === 'Room Charge' ? 'GST (5%)' : (currentOrder.gstLabel || 'GST (5%)')}</span>
+                                <span data-testid="invoice-gst">{currentOrder.paymentMethod === 'Room Charge' ? 'added on room bill' : `₹${currentOrder.gst}`}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '20px 0', fontWeight: '900', fontSize: '1.4rem', color: '#0a192f' }}>
-                                <span>GRAND TOTAL</span>
-                                <span>₹{currentOrder.total}</span>
+                                <span>{currentOrder.paymentMethod === 'Room Charge' ? 'ADDED TO ROOM BILL' : 'GRAND TOTAL'}</span>
+                                <span data-testid="invoice-total">₹{currentOrder.total.toLocaleString('en-IN')}</span>
+                            </div>
+                            <div data-testid="invoice-payment" style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', color: '#555' }}>
+                                <span>Payment</span>
+                                <span style={{ fontWeight: '700' }}>{currentOrder.paymentMethod === 'Room Charge' ? `Charged to ${currentOrder.table}` : currentOrder.paymentMethod}</span>
                             </div>
                         </div>
                     </div>
 
                     {/* Footer */}
                     <div style={{ marginTop: '100px', textAlign: 'center', borderTop: '2px dashed #eee', paddingTop: '40px' }}>
-                        <h3 style={{ color: '#d4af37' }}>Thank You for Visiting! 🙏</h3>
-                        <p style={{ color: '#999' }}>Hope to see you again soon at Hotel Sky 5.</p>
+                        <h3 style={{ color: '#8a6d1a' }}>Thank You for Visiting! 🙏</h3>
+                        <p style={{ color: '#6b6b6b' }}>Hope to see you again soon at Hotel Sky 5.</p>
                     </div>
                 </div>
 
                 {/* Actions */}
-                <div style={{ maxWidth: '800px', margin: '40px auto', display: 'flex', gap: '20px' }}>
+                <div className="no-print" style={{ maxWidth: '800px', margin: '40px auto', display: 'flex', gap: '20px' }}>
                     <button className="checkout-btn" style={{ flex: 1 }} onClick={() => window.print()}>🖨️ PRINT / SAVE AS PDF</button>
-                    <button className="checkout-btn" style={{ flex: 1, background: '#25D366' }} onClick={shareOnWhatsApp}>💬 SHARE VIA WHATSAPP</button>
+                    <button className="checkout-btn" style={{ flex: 1, background: '#0F7A40' }} onClick={shareOnWhatsApp}>💬 SHARE VIA WHATSAPP</button>
                     <button className="checkout-btn" style={{ flex: 1, background: '#666' }} onClick={() => setShowInvoice(false)}>BACK TO HOME</button>
                 </div>
             </div>
@@ -284,34 +300,24 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
             );
         };
 
-        // Helper to get price of a menu item by name
-        const getPrice = (name, defaultPrice) => {
-            const item = menuItems.find(i => i.name.toLowerCase() === name.toLowerCase());
-            return item ? item.price : defaultPrice;
-        };
-
-        const beverageGroups = [
-            {
-                name: "Tea / Coffee / Glass of Milk",
-                price: `${getPrice("Tea", 40)} / ${getPrice("Coffee", 60)} / ${getPrice("Glass of Milk", 60)}`,
-                image: menuItems.find(i => i.id === 7001)?.image || "/images/food_tea.png"
-            },
-            {
-                name: "Lemon Water / Fresh Lemonade",
-                price: `${getPrice("Lemon Water", 40)} / ${getPrice("Fresh Lemonade", 79)}`,
-                image: menuItems.find(i => i.id === 7004)?.image || "/images/food_soda.png"
-            },
-            {
-                name: "Sweet Lassi / Salted Lassi",
-                price: `${getPrice("Sweet Lassi", 109)} / ${getPrice("Salted Lassi", 109)}`,
-                image: menuItems.find(i => i.id === 7006)?.image || "/images/food_lassi.png"
-            },
-            {
-                name: "Coke / Limca / Mineral Water (1 Ltr)",
-                price: `${getPrice("Coke", 50)} / ${getPrice("Limca", 50)} / ${getPrice("Mineral Water (1 Ltr)", 40)}`,
-                image: menuItems.find(i => i.id === 7008)?.image || "/images/food_cold_drink.png"
-            }
+        // Group beverages by name; items that are missing/deactivated are left out
+        // instead of printing a hardcoded fallback price.
+        const beverageGroupDefs = [
+            { names: ["Tea", "Coffee", "Glass of Milk"], image: "/images/food_tea.png" },
+            { names: ["Lemon Water", "Fresh Lemonade", "Plain Soda"], image: "/images/food_soda.png" },
+            { names: ["Sweet Lassi", "Salted Lassi"], image: "/images/food_lassi.png" },
+            { names: ["Coke", "Limca", "Mineral Water (1 Ltr)"], image: "/images/food_cold_drink.png" }
         ];
+        const beverageGroups = beverageGroupDefs.map(def => {
+            const found = def.names
+                .map(n => menuItems.find(i => i.name.toLowerCase() === n.toLowerCase()))
+                .filter(Boolean);
+            return {
+                name: found.map(i => i.name).join(' / '),
+                price: found.map(i => i.price).join(' / '),
+                image: found[0]?.image || def.image
+            };
+        }).filter(g => g.name);
 
         return (
             <div className="menu-print-container" style={{ background: '#f5f5f5', maxWidth: '100%', height: 'auto', minHeight: '100vh', overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
@@ -641,9 +647,18 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
 
 
     // Render Full Cart View (Same as before but wrapped in our container)
+    // Shared by every screen so validation messages are visible on cart / payment too
+    const toastEl = toast && (
+        <div className={`toast-notification ${toast.type === 'success' ? 'toast-success' : ''}`}>
+            <span>{toast.type === 'success' ? '✅' : 'ℹ️'}</span>
+            {toast.message}
+        </div>
+    );
+
     if (showCart || showPayment) {
         return (
             <div className="mobile-app-container">
+                {toastEl}
                 {showCart ? (
                     <div className="cart-view" style={{ position: 'absolute' }}>
                         <div className="cart-header">
@@ -652,14 +667,14 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                         </div>
 
                         <div className="cart-items">
-                            {Object.keys(cart).length === 0 ? (
-                                <div style={{ textAlign: 'center', padding: '40px 20px', color: '#888' }}>
+                            {cartItems.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: '40px 20px', color: '#6b6b6b' }}>
                                     <div style={{ fontSize: '3rem', marginBottom: '10px' }}>🛒</div>
                                     <p>Your cart is empty.</p>
                                 </div>
                             ) : (
                                 Object.entries(cart).map(([id, qty]) => {
-                                    const item = menuItems.find(c => c.id === parseInt(id)) || rooms.find(r => r.id === parseInt(id));
+                                    const item = resolveCartItem(id, menuItems, rooms);
                                     if (!item) return null;
                                     return (
                                         <div key={id} className="cart-item">
@@ -673,18 +688,15 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                                             </div>
                                             <div className="cart-item-actions">
                                                 <div className="qty-control">
-                                                    <button onClick={() => {
-                                                        const newQty = qty - 1;
-                                                        if (newQty === 0) {
-                                                            const newCart = { ...cart };
-                                                            delete newCart[id];
-                                                            setCart(newCart);
-                                                        } else {
-                                                            setCart({ ...cart, [id]: newQty });
-                                                        }
-                                                    }}>-</button>
+                                                    <button onClick={() => setCart(prev => {
+                                                        const newQty = (prev[id] || 0) - 1;
+                                                        const newCart = { ...prev };
+                                                        if (newQty <= 0) delete newCart[id];
+                                                        else newCart[id] = newQty;
+                                                        return newCart;
+                                                    })}>-</button>
                                                     <span>{qty}</span>
-                                                    <button onClick={() => setCart(prev => ({ ...prev, [id]: qty + 1 }))}>+</button>
+                                                    <button onClick={() => setCart(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }))}>+</button>
                                                 </div>
                                             </div>
                                         </div>
@@ -726,7 +738,7 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                                     <div
                                         key={method}
                                         className={`pay-option ${paymentMethod === method ? 'selected' : ''}`}
-                                        onClick={() => setPaymentMethod(method)}
+                                        onClick={() => setPaymentMethod(method)} role="button" tabIndex={0} onKeyDown={keyActivate}
                                     >
                                         <div className="pay-info">
                                             <div className="pay-title">{method}</div>
@@ -756,20 +768,20 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                 </div>
                 
                 {/* Desktop Menu Tabs */}
-                <div className="desktop-menu" style={{ display: 'flex', gap: '30px', margin: '0 40px' }}>
+                <div className="desktop-menu" style={{ gap: '30px', margin: '0 40px' }}>
                    {['Home', 'Menu Card', 'Admin'].map(tab => (
                        <span 
                         key={tab} 
                         style={{ 
                             cursor: 'pointer', 
                             fontWeight: '600', 
-                            color: tab === 'Home' ? 'var(--primary)' : '#888',
+                            color: tab === 'Home' ? 'var(--sky-accent)' : '#d6dbe3',
                             fontSize: '0.9rem'
                         }}
                         onClick={() => {
                             if (tab === 'Menu Card') setShowMenuCard(true);
                             if (tab === 'Admin') onNavigate('dashboard');
-                        }}
+                        }} role="button" tabIndex={0} onKeyDown={keyActivate}
                        >{tab}</span>
                    ))}
                 </div>
@@ -789,6 +801,7 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                         <span>🔍</span>
                         <input
                             type="text"
+                            ref={searchRef}
                             placeholder='Search "Paneer Butter Masala"...'
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -826,7 +839,7 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                 <span>Shop by Category</span>
             </div>
             <div className="modern-filters">
-                <div className={`filter-chip ${activeCategory === 'All' ? 'active' : ''}`} onClick={() => setActiveCategory('All')}>
+                <div className={`filter-chip ${activeCategory === 'All' ? 'active' : ''}`} onClick={() => setActiveCategory('All')} role="button" tabIndex={0} onKeyDown={keyActivate}>
                     <span className="filter-icon">🍽️</span>
                     <span className="filter-name">Explore All</span>
                 </div>
@@ -834,7 +847,7 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                     <div
                         key={cat}
                         className={`filter-chip ${activeCategory === cat ? 'active' : ''}`}
-                        onClick={() => setActiveCategory(cat)}
+                        onClick={() => setActiveCategory(cat)} role="button" tabIndex={0} onKeyDown={keyActivate}
                     >
 
                         <span className="filter-icon">
@@ -870,26 +883,31 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                     <div style={{ gridColumn: '1 / -1' }}>
                         <div style={{ background: 'white', padding: '30px', borderRadius: '30px', marginBottom: '40px', display: 'flex', gap: '20px', alignItems: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', flexWrap: 'wrap' }}>
                              <div style={{ flex: 1, minWidth: '200px' }}>
-                                <label style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#999', textTransform: 'uppercase' }}>Check-in & Out</label>
-                                <input type="date" className="hero-search-pill" style={{ width: '100%', marginTop: '5px', padding: '12px' }} defaultValue={new Date().toISOString().split('T')[0]} />
+                                <label style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#6b6b6b', textTransform: 'uppercase' }}>Check-in & Out</label>
+                                <input data-testid="stay-date" type="date" className="hero-search-pill" style={{ width: '100%', marginTop: '5px', padding: '12px' }} value={stayDate} onChange={e => setStayDate(e.target.value)} />
                              </div>
                              <div style={{ flex: 1, minWidth: '150px' }}>
-                                <label style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#999', textTransform: 'uppercase' }}>Guests</label>
-                                <select className="hero-search-pill" style={{ width: '100%', marginTop: '5px', padding: '12px' }}>
+                                <label style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#6b6b6b', textTransform: 'uppercase' }}>Guests</label>
+                                <select data-testid="stay-guests" className="hero-search-pill" value={stayGuests} onChange={e => setStayGuests(e.target.value)} style={{ width: '100%', marginTop: '5px', padding: '12px' }}>
                                     <option>1 Guest</option>
-                                    <option selected>2 Guests</option>
+                                    <option>2 Guests</option>
                                     <option>3 Guests</option>
                                     <option>4+ Guests</option>
                                 </select>
                              </div>
-                             <button className="shop-now-btn" style={{ height: '50px', alignSelf: 'flex-end' }}>Update Search</button>
+                             <button data-testid="stay-check" className="shop-now-btn" style={{ height: '50px', alignSelf: 'flex-end' }} onClick={() => {
+                                 const free = rooms.filter(r => r.status !== 'Occupied').length;
+                                 setAvailableOnly(true);
+                                 showToast(`${free} rooms free now for ${stayGuests}, ${stayDate.split('-').reverse().join('-')}. Call 081464 07934 to confirm.`, 'success');
+                             }}>Check Availability</button>
+                             {availableOnly && <button data-testid="stay-show-all" className="shop-now-btn" style={{ height: '50px', alignSelf: 'flex-end', background: 'transparent', color: 'var(--primary-navy)', border: '1px solid #ccc' }} onClick={() => setAvailableOnly(false)}>Show All Rooms</button>}
                         </div>
                         <div className="modern-menu-list">
-                            {rooms.map(room => (
-                                <div key={room.id} className="luxury-room-card" style={{ height: 'auto' }}>
+                            {rooms.filter(r => !availableOnly || r.status !== 'Occupied').map(room => (
+                                <div key={room.id} className="luxury-room-card" data-testid={`stay-room-${room.id}`} style={{ height: 'auto' }}>
                                     <div style={{ height: '240px', overflow: 'hidden', position: 'relative' }}>
                                         <img src={room.image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={room.type} />
-                                        <div style={{ position: 'absolute', top: '20px', right: '20px', background: 'rgba(255,255,255,0.9)', padding: '5px 12px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: '800' }}>⭐ 4.9</div>
+                                        <div style={{ position: 'absolute', top: '20px', right: '20px', background: room.status === 'Occupied' ? 'rgba(231,76,60,0.95)' : 'rgba(39,174,96,0.95)', color: 'white', padding: '5px 12px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: '800' }}>{room.status === 'Occupied' ? 'OCCUPIED' : 'AVAILABLE'}</div>
                                     </div>
                                     <div style={{ padding: '25px' }}>
                                         <h3 style={{ margin: '0 0 5px 0', fontSize: '1.4rem', color: 'var(--primary-navy)' }}>{room.type}</h3>
@@ -898,11 +916,12 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                                             {room.amenities.map(a => <span key={a} className="amenity-chip">{a}</span>)}
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <div style={{ fontSize: '1.5rem', fontWeight: '800' }}>₹{room.price} <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#999' }}>/ night</span></div>
-                                            <button className="add-btn-square" style={{ width: 'auto', padding: '0 25px' }} onClick={() => {
-                                                addToCart(room.id);
+                                            <div style={{ fontSize: '1.5rem', fontWeight: '800' }}>₹{room.price} <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#6b6b6b' }}>/ night</span></div>
+                                            <button className="add-btn-square" style={{ width: 'auto', padding: '0 25px', opacity: room.status === 'Occupied' ? 0.45 : 1, cursor: room.status === 'Occupied' ? 'not-allowed' : 'pointer' }}
+                                                disabled={room.status === 'Occupied'} onClick={() => {
+                                                setCart(prev => ({ ...prev, [room.id]: (prev[room.id] || 0) + 1 }));
                                                 showToast(`${room.type} added to reservation.`, 'success');
-                                            }}>BOOK NOW</button>
+                                            }}>{room.status === 'Occupied' ? 'OCCUPIED' : 'BOOK NOW'}</button>
                                         </div>
                                     </div>
                                 </div>
@@ -951,7 +970,7 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
 
                             <div className="price-row-modern">
                                 <div className="item-price">₹{item.price}</div>
-                                <div className="add-btn-square" onClick={() => addToCart(item.id)}>+</div>
+                                <div className="add-btn-square" aria-label={`Add ${item.name} to cart`} onClick={() => addToCart(item.id)} role="button" tabIndex={0} onKeyDown={keyActivate}>+</div>
                             </div>
                         </div>
                     </div>
@@ -961,15 +980,15 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
 
             {/* 5. Bottom Tabs */}
             <div className="bottom-tabs">
-                <div className="nav-tab active">
+                <div className="nav-tab active" data-testid="tab-home" onClick={() => { setActiveCategory('All'); setSearchTerm(''); window.scrollTo({ top: 0, behavior: 'smooth' }); }} role="button" tabIndex={0} onKeyDown={keyActivate}>
                     <span className="nav-icon">🏠</span>
                     <span>Home</span>
                 </div>
-                <div className="nav-tab">
+                <div className="nav-tab" data-testid="tab-search" onClick={() => { searchRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); searchRef.current?.focus(); }} role="button" tabIndex={0} onKeyDown={keyActivate}>
                     <span className="nav-icon">🔍</span>
                     <span>Search</span>
                 </div>
-                <div className="nav-tab" onClick={() => setShowCart(true)}>
+                <div className="nav-tab" onClick={() => setShowCart(true)} role="button" tabIndex={0} onKeyDown={keyActivate}>
                     <span className="nav-icon" style={{ position: 'relative' }}>
                         🛍️
                         {cartTotalItems > 0 && <span style={{
@@ -980,11 +999,11 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                     </span>
                     <span>Bag</span>
                 </div>
-                <div className="nav-tab" onClick={() => setShowMenuCard(true)}>
+                <div className="nav-tab" onClick={() => setShowMenuCard(true)} role="button" tabIndex={0} onKeyDown={keyActivate}>
                     <span className="nav-icon">📖</span>
                     <span>Menu</span>
                 </div>
-                <div className="nav-tab" onClick={() => onNavigate('dashboard')}>
+                <div className="nav-tab" onClick={() => onNavigate('dashboard')} role="button" tabIndex={0} onKeyDown={keyActivate}>
                     <span className="nav-icon">👤</span>
                     <span>Admin</span>
                 </div>
@@ -1003,7 +1022,7 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
                 <div style={{ fontWeight: 'bold', color: '#0a192f', marginBottom: '10px', fontSize: '1rem' }}>Hotel Sky 5</div>
                 <p style={{ margin: '5px 0' }}>5th Floor, Disha Arcade Building, IT Park Rd, Mansa Devi Complex, Sector 4, Panchkula, Haryana 134114</p>
                 <p style={{ margin: '5px 0' }}>
-                    <a href="https://maps.app.goo.gl/vYD2Yq42HKpCsr2J9" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--sky-accent)', textDecoration: 'none' }}>
+                    <a href="https://maps.app.goo.gl/vYD2Yq42HKpCsr2J9" target="_blank" rel="noopener noreferrer" style={{ color: '#8a6d1a', textDecoration: 'none' }}>
                         📍 View on Google Maps
                     </a>
                 </p>
@@ -1029,18 +1048,13 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems }) {
             </footer>
 
             {/* Toast Notification */}
-            {toast && (
-                <div className={`toast-notification ${toast.type === 'success' ? 'toast-success' : ''}`}>
-                    <span>{toast.type === 'success' ? '✅' : 'ℹ️'}</span>
-                    {toast.message}
-                </div>
-            )}
+            {toastEl}
 
             {/* Floating Cart Bar (Above Tabs) if items exist */}
             {cartTotalItems > 0 && (
-                <div className="cart-floating-bar" onClick={() => setShowCart(true)}>
+                <div className="cart-floating-bar" onClick={() => setShowCart(true)} role="button" tabIndex={0} onKeyDown={keyActivate}>
                     <div className="cart-info">
-                        <span>{cartTotalItems} Items</span> • ₹{totalPrice}
+                        <span>{cartTotalItems} Items</span> • ₹{grandTotal} <small>incl. GST</small>
                     </div>
                     <div style={{ fontWeight: '600', fontSize: '0.9rem' }}>View Cart &gt;</div>
                 </div>

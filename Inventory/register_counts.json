@@ -1,0 +1,1184 @@
+{
+  "_about": "Physical stock counts copied from the handwritten registers (photos shared 29-09-2026). Source of truth for opening stock. Do not edit quantities without a new count.",
+  "locations": [
+    {
+      "id": "kitchen",
+      "name": "Kitchen (Upar)",
+      "countDate": "23-09-2026",
+      "lists": [
+        {
+          "title": "Kitchen - Stock list (page 1, 23-09-2026)",
+          "lines": [
+            {
+              "sr": 1,
+              "code": "SKY-GA-003",
+              "item": "Napkin",
+              "qty": 4,
+              "unit": "Pkt",
+              "asWritten": "Nepkin"
+            },
+            {
+              "sr": 2,
+              "code": "SKY-GA-005",
+              "item": "Toilet Roll",
+              "qty": 11,
+              "unit": "Pcs",
+              "asWritten": "Toilete Roll"
+            },
+            {
+              "sr": 3,
+              "code": "SKY-GA-002",
+              "item": "Hotel Soap",
+              "qty": 70,
+              "unit": "Pcs",
+              "asWritten": "Hotel Soap"
+            },
+            {
+              "sr": 4,
+              "code": "SKY-HK-009",
+              "item": "Naphthalene Balls (Phenyl Goli)",
+              "qty": 2,
+              "unit": "Pkt",
+              "asWritten": "Phyneule Goli",
+              "note": "Read as phenyl goli = naphthalene balls",
+              "toConfirm": true
+            },
+            {
+              "sr": 5,
+              "code": "SKY-HK-006",
+              "item": "Garbage Bag (Small)",
+              "qty": 2,
+              "unit": "Pkt",
+              "asWritten": "Small Garbage Beg"
+            },
+            {
+              "sr": 6,
+              "code": "SKY-PT-006",
+              "item": "Sugar Pouch",
+              "qty": 70,
+              "unit": "Pcs",
+              "asWritten": "Sugar pouch"
+            },
+            {
+              "sr": 7,
+              "code": "SKY-PT-004",
+              "item": "Milk Pouch",
+              "qty": 27,
+              "unit": "Pcs",
+              "asWritten": "Milk pouch"
+            },
+            {
+              "sr": 8,
+              "code": "SKY-PT-008",
+              "item": "Tea Bag",
+              "qty": 96,
+              "unit": "Pcs",
+              "asWritten": "Tea Beg",
+              "note": "Figure read as 96 (could be 36) - please confirm",
+              "toConfirm": true
+            },
+            {
+              "sr": 9,
+              "code": "SKY-PT-001",
+              "item": "Coffee Pouch",
+              "qty": 103,
+              "unit": "Pcs",
+              "asWritten": "Coffee pouch"
+            },
+            {
+              "sr": 10,
+              "code": "SKY-PT-002",
+              "item": "Green Tea",
+              "qty": 25,
+              "unit": "Pcs",
+              "asWritten": "Green Tea"
+            },
+            {
+              "sr": 11,
+              "code": "SKY-BV-004",
+              "item": "Mineral Water (1 Ltr)",
+              "qty": 12,
+              "unit": "Pcs",
+              "asWritten": "Minral water 1Ltr"
+            },
+            {
+              "sr": 12,
+              "code": "SKY-CC-009",
+              "item": "Tile Cleaner",
+              "qty": 3,
+              "unit": "Ltr",
+              "asWritten": "Tile Cleaner"
+            },
+            {
+              "sr": 13,
+              "code": "SKY-CC-007",
+              "item": "Phenyl",
+              "qty": 4.5,
+              "unit": "Ltr",
+              "asWritten": "Phynail"
+            },
+            {
+              "sr": 14,
+              "code": "SKY-CC-005",
+              "item": "Harpic",
+              "qty": 2,
+              "unit": "Ltr",
+              "asWritten": "Harpic"
+            },
+            {
+              "sr": 15,
+              "code": "SKY-CC-002",
+              "item": "Colin",
+              "qty": 5,
+              "unit": "Ltr",
+              "asWritten": "Coline",
+              "note": "Basement counts Colin in bottles"
+            },
+            {
+              "sr": 16,
+              "code": "SKY-GA-004",
+              "item": "Shower Gel",
+              "qty": 5,
+              "unit": "Ltr",
+              "asWritten": "Shower Gel"
+            },
+            {
+              "sr": 17,
+              "code": "SKY-GA-001",
+              "item": "Hand Wash",
+              "qty": 1,
+              "unit": "Ltr",
+              "asWritten": "Handwash"
+            },
+            {
+              "sr": 18,
+              "code": "SKY-HK-005",
+              "item": "Garbage Bag (Big)",
+              "qty": 29,
+              "unit": "Pcs",
+              "asWritten": "Big Garbage Beg"
+            }
+          ]
+        },
+        {
+          "title": "Kitchen - Crockery & utensils (page 2, 23-09-2026)",
+          "lines": [
+            {
+              "sr": 1,
+              "code": "SKY-CR-009",
+              "item": "Thali",
+              "qty": 12,
+              "unit": "Pcs",
+              "asWritten": "Thali"
+            },
+            {
+              "sr": 2,
+              "code": "SKY-CR-010",
+              "item": "Thali (New)",
+              "qty": 6,
+              "unit": "Pcs",
+              "asWritten": "New Thali"
+            },
+            {
+              "sr": 3,
+              "code": "SKY-SV-005",
+              "item": "Tray",
+              "qty": 7,
+              "unit": "Pcs",
+              "asWritten": "Try"
+            },
+            {
+              "sr": 4,
+              "code": "SKY-SV-002",
+              "item": "Electric Kettle (5 Ltr)",
+              "qty": 1,
+              "unit": "Pcs",
+              "asWritten": "Cattle - 5Ltr"
+            },
+            {
+              "sr": 5,
+              "code": "SKY-SV-001",
+              "item": "Electric Kettle (1 Ltr)",
+              "qty": 2,
+              "unit": "Pcs",
+              "asWritten": "Cattle 1Ltr"
+            },
+            {
+              "sr": 6,
+              "code": "SKY-CR-004",
+              "item": "Plate",
+              "qty": 26,
+              "unit": "Pcs",
+              "asWritten": "Plats"
+            },
+            {
+              "sr": 7,
+              "code": "SKY-CR-001",
+              "item": "Bowl",
+              "qty": 17,
+              "unit": "Pcs",
+              "asWritten": "Bowl"
+            },
+            {
+              "sr": 8,
+              "code": "SKY-CU-003",
+              "item": "Spoon",
+              "qty": 32,
+              "unit": "Pcs",
+              "asWritten": "Spoon"
+            },
+            {
+              "sr": 9,
+              "code": "SKY-CU-002",
+              "item": "Fork",
+              "qty": 21,
+              "unit": "Pcs",
+              "asWritten": "Fock"
+            },
+            {
+              "sr": 10,
+              "code": "SKY-CU-001",
+              "item": "Butter Knife",
+              "qty": 11,
+              "unit": "Pcs",
+              "asWritten": "B.Knife"
+            },
+            {
+              "sr": 11,
+              "code": "SKY-CR-007",
+              "item": "Soup Bowl",
+              "qty": 4,
+              "unit": "Pcs",
+              "asWritten": "Soup Bowl"
+            },
+            {
+              "sr": 12,
+              "code": "SKY-CR-005",
+              "item": "Quarter Plate",
+              "qty": 17,
+              "unit": "Pcs",
+              "asWritten": "Q. plats 15pc+2=17",
+              "note": "Register: 15 + 2 = 17"
+            },
+            {
+              "sr": 13,
+              "code": "SKY-CR-006",
+              "item": "Saucer",
+              "qty": 17,
+              "unit": "Pcs",
+              "asWritten": "Soucer"
+            },
+            {
+              "sr": 14,
+              "code": "SKY-CR-008",
+              "item": "Steel Bowl",
+              "qty": 15,
+              "unit": "Pcs",
+              "asWritten": "Steel Bowl"
+            },
+            {
+              "sr": 15,
+              "code": "SKY-CR-011",
+              "item": "Water Glass",
+              "qty": 12,
+              "unit": "Pcs",
+              "asWritten": "water Glass"
+            },
+            {
+              "sr": 16,
+              "code": "SKY-CR-002",
+              "item": "Cup",
+              "qty": 12,
+              "unit": "Pcs",
+              "asWritten": "Cup"
+            },
+            {
+              "sr": 17,
+              "code": "SKY-CR-003",
+              "item": "Plastic Plate",
+              "qty": 10,
+              "unit": "Pcs",
+              "asWritten": "Plastic plats",
+              "note": "Figure read as 10",
+              "toConfirm": true
+            },
+            {
+              "sr": 18,
+              "code": "SKY-SV-006",
+              "item": "Water Jug",
+              "qty": 4,
+              "unit": "Pcs",
+              "asWritten": "water Jug"
+            },
+            {
+              "sr": 19,
+              "code": "SKY-SV-003",
+              "item": "Ice Bowl",
+              "qty": 2,
+              "unit": "Pcs",
+              "asWritten": "ice Bowl"
+            },
+            {
+              "sr": 20,
+              "code": "SKY-SV-004",
+              "item": "Ice Pack",
+              "qty": 4,
+              "unit": "Pcs",
+              "asWritten": "ice paked",
+              "note": "Read as \"Ice Pack\" - please confirm item",
+              "toConfirm": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "basement",
+      "name": "Basement Store",
+      "countDate": "29-09-2026",
+      "lists": [
+        {
+          "title": "Basement Store (items 1-41, 29-09-2026)",
+          "lines": [
+            {
+              "sr": 1,
+              "code": "SKY-PC-001",
+              "item": "Black HIT (Insect Spray)",
+              "qty": 1,
+              "unit": "Pcs",
+              "asWritten": "Black Hit"
+            },
+            {
+              "sr": 2,
+              "code": "SKY-CC-003",
+              "item": "Colin",
+              "qty": 4,
+              "unit": "Bottle",
+              "asWritten": "Colin"
+            },
+            {
+              "sr": 3,
+              "code": "SKY-GA-005",
+              "item": "Toilet Roll",
+              "qty": 10,
+              "unit": "Pcs",
+              "asWritten": "Toilet Rolls"
+            },
+            {
+              "sr": 4,
+              "code": "SKY-HK-007",
+              "item": "Garbage Bag (Small)",
+              "qty": 14,
+              "unit": "Roll",
+              "asWritten": "Garbage Bags (Small)",
+              "note": "Figure overwritten in register (14 or 4) - please confirm",
+              "toConfirm": true
+            },
+            {
+              "sr": 5,
+              "code": "SKY-GA-001",
+              "item": "Hand Wash",
+              "qty": 5,
+              "unit": "Ltr",
+              "asWritten": "Hand wash"
+            },
+            {
+              "sr": 6,
+              "code": "SKY-GA-004",
+              "item": "Shower Gel",
+              "qty": 15,
+              "unit": "Ltr",
+              "asWritten": "Sower Gel"
+            },
+            {
+              "sr": 7,
+              "code": "SKY-CC-009",
+              "item": "Tile Cleaner",
+              "qty": 5,
+              "unit": "Ltr",
+              "asWritten": "Tiles Cleaner"
+            },
+            {
+              "sr": 8,
+              "code": "SKY-CC-004",
+              "item": "Dish Wash",
+              "qty": 5,
+              "unit": "Ltr",
+              "asWritten": "Dish wash"
+            },
+            {
+              "sr": 9,
+              "code": "SKY-CC-008",
+              "item": "Phenyl (Green)",
+              "qty": 5,
+              "unit": "Ltr",
+              "asWritten": "Phenyl Green"
+            },
+            {
+              "sr": 10,
+              "code": "SKY-CC-005",
+              "item": "Harpic",
+              "qty": 5,
+              "unit": "Ltr",
+              "asWritten": "Harpic"
+            },
+            {
+              "sr": 11,
+              "code": "SKY-CC-001",
+              "item": "All Purpose Cleaner",
+              "qty": 5,
+              "unit": "Ltr",
+              "asWritten": "All purpose Cleaner"
+            },
+            {
+              "sr": 12,
+              "code": "SKY-GA-002",
+              "item": "Hotel Soap",
+              "qty": 50,
+              "unit": "Pcs",
+              "asWritten": "Hotel Soap"
+            },
+            {
+              "sr": 13,
+              "code": "SKY-HK-008",
+              "item": "Mop Refill Pad",
+              "qty": 1,
+              "unit": "Pcs",
+              "asWritten": "Mop Refill Pad"
+            },
+            {
+              "sr": 14,
+              "code": "SKY-HK-009",
+              "item": "Naphthalene Balls (Phenyl Goli)",
+              "qty": 13,
+              "unit": "Pkt",
+              "asWritten": "Naphthalene Balls - 13 Pack"
+            },
+            {
+              "sr": 15,
+              "code": "SKY-HK-002",
+              "item": "Duster",
+              "qty": 14,
+              "unit": "Pcs",
+              "asWritten": "Duster"
+            },
+            {
+              "sr": 16,
+              "code": "SKY-HK-003",
+              "item": "Duster Towel",
+              "qty": 1,
+              "unit": "Pcs",
+              "asWritten": "Duster Towel"
+            },
+            {
+              "sr": 17,
+              "code": "SKY-HK-011",
+              "item": "Pocha (Floor Cloth)",
+              "qty": 5,
+              "unit": "Pcs",
+              "asWritten": "Pocha"
+            },
+            {
+              "sr": 18,
+              "code": "SKY-HK-012",
+              "item": "Scotch-Brite (Big)",
+              "qty": 5,
+              "unit": "Pcs",
+              "asWritten": "Scotch Brite Big"
+            },
+            {
+              "sr": 19,
+              "code": "SKY-HK-013",
+              "item": "Scotch-Brite (Small)",
+              "qty": 12,
+              "unit": "Pcs",
+              "asWritten": "Scotch Brite Small"
+            },
+            {
+              "sr": 20,
+              "code": "SKY-HK-014",
+              "item": "Steel Scrubber",
+              "qty": 3,
+              "unit": "Pcs",
+              "asWritten": "Steel Scrubber"
+            },
+            {
+              "sr": 21,
+              "code": "SKY-HK-005",
+              "item": "Garbage Bag (Big)",
+              "qty": 20,
+              "unit": "Pcs",
+              "asWritten": "Garbage Big"
+            },
+            {
+              "sr": 22,
+              "code": "SKY-CC-006",
+              "item": "High Power Toilet Cleaner",
+              "qty": 9,
+              "unit": "Ltr",
+              "asWritten": "High Power Toilet Cleaner"
+            },
+            {
+              "sr": 23,
+              "code": "SKY-HK-004",
+              "item": "Floor Wiper",
+              "qty": 11,
+              "unit": "Pcs",
+              "asWritten": "Floor Wiper"
+            },
+            {
+              "sr": 24,
+              "code": "SKY-HK-015",
+              "item": "Stick Broom (Jhadu)",
+              "qty": 5,
+              "unit": "Pcs",
+              "asWritten": "Stick Broom"
+            },
+            {
+              "sr": 25,
+              "code": "SKY-HK-010",
+              "item": "Phool Broom (Jhadu)",
+              "qty": 1,
+              "unit": "Pcs",
+              "asWritten": "Phool Broom"
+            },
+            {
+              "sr": 26,
+              "code": "SKY-HK-017",
+              "item": "Wiper (Mini)",
+              "qty": 1,
+              "unit": "Pcs",
+              "asWritten": "Wiper (Mini)",
+              "note": "Qty column in register sits slightly above the item lines; matched row by row",
+              "toConfirm": true
+            },
+            {
+              "sr": 27,
+              "code": "SKY-HK-001",
+              "item": "Dust Pan",
+              "qty": 3,
+              "unit": "Pcs",
+              "asWritten": "Dust Pan"
+            },
+            {
+              "sr": 28,
+              "code": "SKY-HK-016",
+              "item": "Toilet Brush",
+              "qty": 6,
+              "unit": "Pcs",
+              "asWritten": "Toilet Brush"
+            },
+            {
+              "sr": 29,
+              "code": "SKY-PT-009",
+              "item": "Tomato Sauce (Pouch)",
+              "qty": 300,
+              "unit": "Pcs",
+              "asWritten": "Tomato Sauce (Pouch)"
+            },
+            {
+              "sr": 30,
+              "code": "SKY-PT-003",
+              "item": "Green Tea (Lipton)",
+              "qty": 50,
+              "unit": "Bags",
+              "asWritten": "Lipton Green Tea"
+            },
+            {
+              "sr": 31,
+              "code": "SKY-PT-001",
+              "item": "Coffee Pouch",
+              "qty": 100,
+              "unit": "Pcs",
+              "asWritten": "Coffee Pouch"
+            },
+            {
+              "sr": 32,
+              "code": "SKY-PT-007",
+              "item": "Sugar Pouch",
+              "qty": 3,
+              "unit": "Kg",
+              "asWritten": "Suger Pouch"
+            },
+            {
+              "sr": 33,
+              "code": "SKY-PT-005",
+              "item": "Milk Powder Pouch",
+              "qty": 300,
+              "unit": "Pcs",
+              "asWritten": "Mik Powder Pouch"
+            },
+            {
+              "sr": 34,
+              "code": "SKY-BV-005",
+              "item": "Thums Up (250 ml)",
+              "qty": 14,
+              "unit": "Pcs",
+              "asWritten": "Thums Up 250ML"
+            },
+            {
+              "sr": 35,
+              "code": "SKY-BV-002",
+              "item": "Coke (250 ml)",
+              "qty": 28,
+              "unit": "Pcs",
+              "asWritten": "Coke 250ML"
+            },
+            {
+              "sr": 36,
+              "code": "SKY-BV-003",
+              "item": "Limca (250 ml)",
+              "qty": 56,
+              "unit": "Pcs",
+              "asWritten": "Limca 250ML"
+            },
+            {
+              "sr": 37,
+              "code": "SKY-ST-001",
+              "item": "A4 Paper Ream",
+              "qty": 5,
+              "unit": "Pack",
+              "asWritten": "A4 Paper Rim"
+            },
+            {
+              "sr": 38,
+              "code": "SKY-BV-006",
+              "item": "Water Bottle (250 ml)",
+              "qty": 83,
+              "unit": "Cases",
+              "asWritten": "Water Botal 250ML",
+              "note": "EXPIRED as per register - do not serve; arrange return/disposal",
+              "toConfirm": true
+            },
+            {
+              "sr": 39,
+              "code": "SKY-BV-001",
+              "item": "Campa Water Bottle (1 Ltr)",
+              "qty": 6,
+              "unit": "Cases",
+              "asWritten": "Campa Water Botal 1Ltr"
+            },
+            {
+              "sr": 40,
+              "code": "SKY-FG-002",
+              "item": "Bharat Gas Cylinder (Full)",
+              "qty": 1,
+              "unit": "Pcs",
+              "asWritten": "Bharat Gas Cylinder Full"
+            },
+            {
+              "sr": 41,
+              "code": "SKY-FG-001",
+              "item": "Bharat Gas Cylinder (Empty)",
+              "qty": 2,
+              "unit": "Pcs",
+              "asWritten": "Row 41 (ditto) - 2 Pcs (Empty)",
+              "note": "Empty cylinders - book refill",
+              "toConfirm": true
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "items": [
+    {
+      "code": "SKY-GA-001",
+      "name": "Hand Wash",
+      "category": "Guest Amenities",
+      "unit": "Ltr",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GA-002",
+      "name": "Hotel Soap",
+      "category": "Guest Amenities",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GA-003",
+      "name": "Napkin",
+      "category": "Guest Amenities",
+      "unit": "Pkt",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GA-004",
+      "name": "Shower Gel",
+      "category": "Guest Amenities",
+      "unit": "Ltr",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GA-005",
+      "name": "Toilet Roll",
+      "category": "Guest Amenities",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-HK-001",
+      "name": "Dust Pan",
+      "category": "Housekeeping Supplies",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-HK-002",
+      "name": "Duster",
+      "category": "Housekeeping Supplies",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-HK-003",
+      "name": "Duster Towel",
+      "category": "Housekeeping Supplies",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-HK-004",
+      "name": "Floor Wiper",
+      "category": "Housekeeping Supplies",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-HK-005",
+      "name": "Garbage Bag (Big)",
+      "category": "Housekeeping Supplies",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-HK-006",
+      "name": "Garbage Bag (Small)",
+      "category": "Housekeeping Supplies",
+      "unit": "Pkt",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-HK-007",
+      "name": "Garbage Bag (Small)",
+      "category": "Housekeeping Supplies",
+      "unit": "Roll",
+      "condition": "Good",
+      "note": "Basement Store: Figure overwritten in register (14 or 4) - please confirm"
+    },
+    {
+      "code": "SKY-HK-008",
+      "name": "Mop Refill Pad",
+      "category": "Housekeeping Supplies",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-HK-009",
+      "name": "Naphthalene Balls (Phenyl Goli)",
+      "category": "Housekeeping Supplies",
+      "unit": "Pkt",
+      "condition": "Good",
+      "note": "Inventory Stock: Read as phenyl goli = naphthalene balls"
+    },
+    {
+      "code": "SKY-HK-010",
+      "name": "Phool Broom (Jhadu)",
+      "category": "Housekeeping Supplies",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-HK-011",
+      "name": "Pocha (Floor Cloth)",
+      "category": "Housekeeping Supplies",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-HK-012",
+      "name": "Scotch-Brite (Big)",
+      "category": "Housekeeping Supplies",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-HK-013",
+      "name": "Scotch-Brite (Small)",
+      "category": "Housekeeping Supplies",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-HK-014",
+      "name": "Steel Scrubber",
+      "category": "Housekeeping Supplies",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-HK-015",
+      "name": "Stick Broom (Jhadu)",
+      "category": "Housekeeping Supplies",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-HK-016",
+      "name": "Toilet Brush",
+      "category": "Housekeeping Supplies",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-HK-017",
+      "name": "Wiper (Mini)",
+      "category": "Housekeeping Supplies",
+      "unit": "Pcs",
+      "condition": "Good",
+      "note": "Basement Store: Qty column in register sits slightly above the item lines; matched row by row"
+    },
+    {
+      "code": "SKY-CC-001",
+      "name": "All Purpose Cleaner",
+      "category": "Cleaning Chemicals",
+      "unit": "Ltr",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-CC-002",
+      "name": "Colin",
+      "category": "Cleaning Chemicals",
+      "unit": "Ltr",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-CC-003",
+      "name": "Colin",
+      "category": "Cleaning Chemicals",
+      "unit": "Bottle",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-CC-004",
+      "name": "Dish Wash",
+      "category": "Cleaning Chemicals",
+      "unit": "Ltr",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-CC-005",
+      "name": "Harpic",
+      "category": "Cleaning Chemicals",
+      "unit": "Ltr",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-CC-006",
+      "name": "High Power Toilet Cleaner",
+      "category": "Cleaning Chemicals",
+      "unit": "Ltr",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-CC-007",
+      "name": "Phenyl",
+      "category": "Cleaning Chemicals",
+      "unit": "Ltr",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-CC-008",
+      "name": "Phenyl (Green)",
+      "category": "Cleaning Chemicals",
+      "unit": "Ltr",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-CC-009",
+      "name": "Tile Cleaner",
+      "category": "Cleaning Chemicals",
+      "unit": "Ltr",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-PT-001",
+      "name": "Coffee Pouch",
+      "category": "Pantry / Tea-Coffee",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-PT-002",
+      "name": "Green Tea",
+      "category": "Pantry / Tea-Coffee",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-PT-003",
+      "name": "Green Tea (Lipton)",
+      "category": "Pantry / Tea-Coffee",
+      "unit": "Bags",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-PT-004",
+      "name": "Milk Pouch",
+      "category": "Pantry / Tea-Coffee",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-PT-005",
+      "name": "Milk Powder Pouch",
+      "category": "Pantry / Tea-Coffee",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-PT-006",
+      "name": "Sugar Pouch",
+      "category": "Pantry / Tea-Coffee",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-PT-007",
+      "name": "Sugar Pouch",
+      "category": "Pantry / Tea-Coffee",
+      "unit": "Kg",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-PT-008",
+      "name": "Tea Bag",
+      "category": "Pantry / Tea-Coffee",
+      "unit": "Pcs",
+      "condition": "Good",
+      "note": "Inventory Stock: Figure read as 96 (could be 36) - please confirm"
+    },
+    {
+      "code": "SKY-PT-009",
+      "name": "Tomato Sauce (Pouch)",
+      "category": "Pantry / Tea-Coffee",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-BV-001",
+      "name": "Campa Water Bottle (1 Ltr)",
+      "category": "Beverages",
+      "unit": "Cases",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-BV-002",
+      "name": "Coke (250 ml)",
+      "category": "Beverages",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-BV-003",
+      "name": "Limca (250 ml)",
+      "category": "Beverages",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-BV-004",
+      "name": "Mineral Water (1 Ltr)",
+      "category": "Beverages",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-BV-005",
+      "name": "Thums Up (250 ml)",
+      "category": "Beverages",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-BV-006",
+      "name": "Water Bottle (250 ml)",
+      "category": "Beverages",
+      "unit": "Cases",
+      "condition": "EXPIRED",
+      "note": "Basement Store: EXPIRED as per register - do not serve; arrange return/disposal"
+    },
+    {
+      "code": "SKY-CR-001",
+      "name": "Bowl",
+      "category": "Crockery",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-CR-002",
+      "name": "Cup",
+      "category": "Crockery",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-CR-003",
+      "name": "Plastic Plate",
+      "category": "Crockery",
+      "unit": "Pcs",
+      "condition": "Good",
+      "note": "Crockery & Serveware: Figure read as 10"
+    },
+    {
+      "code": "SKY-CR-004",
+      "name": "Plate",
+      "category": "Crockery",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-CR-005",
+      "name": "Quarter Plate",
+      "category": "Crockery",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-CR-006",
+      "name": "Saucer",
+      "category": "Crockery",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-CR-007",
+      "name": "Soup Bowl",
+      "category": "Crockery",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-CR-008",
+      "name": "Steel Bowl",
+      "category": "Crockery",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-CR-009",
+      "name": "Thali",
+      "category": "Crockery",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-CR-010",
+      "name": "Thali (New)",
+      "category": "Crockery",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-CR-011",
+      "name": "Water Glass",
+      "category": "Crockery",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-CU-001",
+      "name": "Butter Knife",
+      "category": "Cutlery",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-CU-002",
+      "name": "Fork",
+      "category": "Cutlery",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-CU-003",
+      "name": "Spoon",
+      "category": "Cutlery",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-SV-001",
+      "name": "Electric Kettle (1 Ltr)",
+      "category": "Serveware",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-SV-002",
+      "name": "Electric Kettle (5 Ltr)",
+      "category": "Serveware",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-SV-003",
+      "name": "Ice Bowl",
+      "category": "Serveware",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-SV-004",
+      "name": "Ice Pack",
+      "category": "Serveware",
+      "unit": "Pcs",
+      "condition": "Good",
+      "note": "Crockery & Serveware: Read as \"Ice Pack\" - please confirm item"
+    },
+    {
+      "code": "SKY-SV-005",
+      "name": "Tray",
+      "category": "Serveware",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-SV-006",
+      "name": "Water Jug",
+      "category": "Serveware",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-ST-001",
+      "name": "A4 Paper Ream",
+      "category": "Stationery",
+      "unit": "Pack",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-FG-001",
+      "name": "Bharat Gas Cylinder (Empty)",
+      "category": "Fuel / Gas",
+      "unit": "Pcs",
+      "condition": "EMPTY",
+      "note": "Basement Store: Empty cylinders - book refill"
+    },
+    {
+      "code": "SKY-FG-002",
+      "name": "Bharat Gas Cylinder (Full)",
+      "category": "Fuel / Gas",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-PC-001",
+      "name": "Black HIT (Insect Spray)",
+      "category": "Pest Control",
+      "unit": "Pcs",
+      "condition": "Good"
+    }
+  ]
+}

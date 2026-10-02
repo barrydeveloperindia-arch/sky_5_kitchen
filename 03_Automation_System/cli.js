@@ -14,7 +14,9 @@ function updateConfig(updates) {
         if (fs.existsSync(configPath)) {
             config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
         }
-    } catch (e) { }
+    } catch (e) {
+        console.warn(`[CLI] Could not read existing config, starting fresh: ${e.message}`);
+    }
 
     const newConfig = { ...config, ...updates };
     fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 4));

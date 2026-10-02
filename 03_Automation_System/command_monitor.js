@@ -36,7 +36,10 @@ const DB = {
                 if (fs.existsSync(DB_PATH)) {
                     data = JSON.parse(fs.readFileSync(DB_PATH, 'utf8'));
                 }
-            } catch (err) { }
+            } catch (err) {
+                console.warn(`[DB] Ledger unreadable (${err.message}); saving a copy before continuing.`);
+                fs.copyFileSync(DB_PATH, `${DB_PATH}.corrupt-${Date.now()}`);
+            }
             data.push(record);
             fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
             console.log(`[DB] Record inserted: ${record.command}`);
@@ -49,7 +52,10 @@ const DB = {
                  if (fs.existsSync(FAILED_DB_PATH)) {
                      data = JSON.parse(fs.readFileSync(FAILED_DB_PATH, 'utf8'));
                  }
-             } catch (err) { }
+             } catch (err) {
+                 console.warn(`[DB] Failed-push ledger unreadable (${err.message}); saving a copy before continuing.`);
+                 fs.copyFileSync(FAILED_DB_PATH, `${FAILED_DB_PATH}.corrupt-${Date.now()}`);
+             }
              data.push(record);
              fs.writeFileSync(FAILED_DB_PATH, JSON.stringify(data, null, 2));
              console.log(`[DB] Failed push recorded: ${record.command}`);

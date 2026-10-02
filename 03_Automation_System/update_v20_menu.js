@@ -1,5 +1,4 @@
 import fs from 'fs';
-import path from 'path';
 
 const filePath = '01_Design_Brand/OFFICIAL_SERIALIZED_MENU_V20.html';
 console.log(`Updating file: ${filePath}`);
@@ -86,12 +85,12 @@ for (const [title, listHtml] of Object.entries(replacements)) {
     let pattern;
     if (title === 'CHEF\'S COMBOS & THALIS') {
         pattern = new RegExp(
-            `(<div class="cat-title">` + title + `<\/div>\\s*<\/div>\\s*)(<div class="thali-grid">.*?<\/div>\\s*<\/section>)`,
+            `(<div class="cat-title">` + title + `</div>\\s*</div>\\s*)(<div class="thali-grid">.*?</div>\\s*</section>)`,
             's'
         );
     } else {
         pattern = new RegExp(
-            `(<div class="cat-title">` + title + `<\/div>\\s*<\/div>\\s*)(<div class="item-list">.*?<\/div>\\s*<\/section>)`,
+            `(<div class="cat-title">` + title + `</div>\\s*</div>\\s*)(<div class="item-list">.*?</div>\\s*</section>)`,
             's'
         );
     }
