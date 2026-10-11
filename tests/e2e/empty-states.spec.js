@@ -55,5 +55,9 @@ test('every OPS Center tab renders an empty hotel without NaN / undefined / erro
     const msg = decodeURIComponent(wa.split('text=')[1]);
     expect(msg).not.toMatch(bad);
     expect(msg).toContain('No attendance marked yet today.');
+    await page.getByTestId('att-scope-all').click();
+    await expect(page.getByTestId('att-empty')).toHaveText(/No attendance recorded yet/);
+    await page.getByTestId('att-scope-day').click();
+    await expect(page.getByTestId('att-empty')).toHaveText(/No attendance recorded for \d{2}-[A-Z][a-z]{2}\./);
     expect(errors).toEqual([]);
 });

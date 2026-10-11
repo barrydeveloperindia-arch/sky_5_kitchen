@@ -81,7 +81,7 @@ export default function AttendanceLedger({
                         </TableHeader>
                         <TableBody>
                             {logs.length === 0 && (
-                                <TableRow><TableCell colSpan={8} data-testid="att-empty" className="p-8 text-center text-muted-foreground">No attendance recorded for {selectedDay}.</TableCell></TableRow>
+                                <TableRow><TableCell colSpan={8} data-testid="att-empty" className="p-8 text-center text-muted-foreground">{scope === 'day' ? `No attendance recorded for ${selectedDay}.` : 'No attendance recorded yet. Use + MANUAL LOG or + ENROLL STAFF.'}</TableCell></TableRow>
                             )}
                             {logs.map(log => {
                                 const info = all.find(s => s.name === log.staffName);
