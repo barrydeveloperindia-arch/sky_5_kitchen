@@ -236,3 +236,17 @@ Har rule ka emulator par test hai (`tests/e2e/rules.spec.js`).
 - Round 12 (03:17) shuru hote hi session band ho gaya. 03:17–08:00 ke rounds aur 07:47 ki final report nahi chali.
 - Subah dobara poora suite chalaya: lint 0 · unit 132 · build OK · E2E 286 passed · live site 200.
 - **Raat ka total:** 11 rounds, ~30 bugs theek. Unit tests 112 → 132; E2E me naye specs (rules, offline, empty-states, button-crawler, phone-fit) jude.
+
+---
+
+## Full check – 11 Oct 2026, 13:30 (no app changes)
+
+- **Suite:** lint 0 · unit 133/133 · build OK · E2E **450 passed with every test run 3x** (0 failed, 0 flaky). Covers smoke, every button, crawler, a11y/colour, rules, offline, empty states and phone width.
+- **Live smoke** (read-only):
+  - shop 55 items, no broken images
+  - all 11 OPS tabs open, "● Live", no NaN / undefined / ₹-
+  - console me koi error nahi
+- **Data, line by line:**
+  - **Live inventory:** 70/70 items match `data/inventory.js` per location (Kitchen / Basement / total). `register_counts.json` totals match the opening stock for all 70 codes, and the status of every item matches.
+  - **Live menu:** 55/55 names and prices match `combos.js`.
+- **Bugs:** naya bug nahi mila.
