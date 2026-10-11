@@ -4,6 +4,7 @@ import Logo from './Logo';
 import InventoryView from './InventoryView';
 import { OpsSidebar, OpsHeader } from './ops/OpsShell';
 import RoomBoard from './ops/RoomBoard';
+import KitchenBoard from './ops/KitchenBoard';
 import TodayView from './ops/TodayView';
 import { roomFolio, checkoutFolio, toLocalDateTime, computeRoomBill, parseStayDate, toDateTimeInput, ROOM_GST_RATE, GST_RATE } from '../lib/billing';
 import { IS_TEST_ENV } from '../lib/firebase';
@@ -1903,36 +1904,7 @@ _Generated via Sky-Ops Center_`;
 
                 {/* Tab: Kitchen (Orders) */}
                 {activeTab === 'Kitchen' && (
-                    <div style={{ background: 'white', borderRadius: '25px', padding: '40px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead>
-                                <tr style={{ textAlign: 'left', borderBottom: '2px solid #eee' }}>
-                                    <th style={{ padding: '20px' }}>Order ID</th>
-                                    <th>Table/Room</th>
-                                    <th>Items</th>
-                                    <th>Time</th>
-                                    <th>Status</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {orders.map(order => (
-                                    <tr key={order.id} style={{ borderBottom: '1px solid #f9f9f9' }}>
-                                        <td style={{ padding: '20px', fontWeight: 'bold' }}>{order.id}</td>
-                                        <td style={{ fontWeight: 'bold', color: '#c0392b' }}>{order.table || 'N/A'}</td>
-                                        <td>{order.items}</td>
-                                        <td>{order.time}</td>
-                                        <td><span style={{ padding: '5px 10px', borderRadius: '8px', background: order.status === 'Completed' ? '#1e8449' : order.status === 'Preparing' ? '#2471a3' : '#f1c40f', color: order.status === 'Completed' || order.status === 'Preparing' ? 'white' : 'black', fontSize: '0.7rem', fontWeight: 'bold' }}>{order.status}</span></td>
-                                        <td>
-                                            {order.status === 'Pending' && <button className="shop-now-btn" style={{ padding: '5px 15px' }} onClick={() => setOrders(prev => prev.map(o => o.id === order.id ? {...o, status: 'Preparing'} : o))}>PREPARE</button>}
-                                            {order.status === 'Preparing' && <button className="shop-now-btn" style={{ padding: '5px 15px', background: '#2471a3', color: 'white', border: 'none' }} onClick={() => setOrders(prev => prev.map(o => o.id === order.id ? {...o, status: 'Completed'} : o))}>SERVE</button>}
-                                            {order.status === 'Completed' && <span style={{ color: '#1e7b34', fontWeight: 'bold' }}>✓ DELIVERED</span>}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                    <KitchenBoard orders={orders} onSetStatus={(id, status) => setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o))} />
                 )}
 
                 {activeTab === 'Cleaning' && (

@@ -510,3 +510,23 @@ test('reception: receipt escapes typed text, prints readable dates, "GST: Not ap
     expect(html).not.toContain('₹-');
     expect(html).not.toContain('class="stamp"'); // a refund is not "paid & verified"
 });
+
+// Phase 3: kitchen board status filters
+test('kitchen: status filters show only that status and their counts add up', async ({ page }) => {
+    await adminTab(page, 'kitchen');
+    const board = page.getByTestId('kitchen-board');
+    const n = async (k) => Number((await page.getByTestId(`kitchen-filter-${k}`).innerText()).match(/(\d+)\s*$/)[1]);
+    const all = await n('all');
+    expect(all).toBeGreaterThan(0);
+    expect((await n('pending')) + (await n('preparing')) + (await n('completed'))).toBe(all);
+    for (const [k, label] of [['pending', 'Pending'], ['preparing', 'Preparing'], ['completed', 'Completed']]) {
+        await page.getByTestId(`kitchen-filter-${k}`).click();
+        const rows = board.locator('tbody tr');
+        const c = await n(k);
+        if (c === 0) { await expect(page.getByTestId('kitchen-empty')).toBeVisible(); continue; }
+        await expect(rows).toHaveCount(c);
+        for (const t of await rows.allInnerTexts()) expect(t).toContain(label);
+    }
+    await page.getByTestId('kitchen-filter-all').click();
+    await expect(board.locator('tbody tr')).toHaveCount(all);
+});
