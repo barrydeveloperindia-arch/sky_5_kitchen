@@ -23,7 +23,7 @@ test('check-in a guest for 3 nights: folio, receipt and Finance agree', async ({
     await expect(page.getByText('TOTAL BILLED:').locator('..')).toContainText('₹6,048');
     await page.getByRole('button', { name: 'AUTHORIZE & SAVE' }).click();
 
-    await expect(room2).toContainText('OCCUPIED');
+    await expect(room2).toContainText('GUEST STAYING');
     await expect(room2).toContainText(/Balance due:\s*₹6,048/);
     await expect(page.getByTestId('stat-occupied')).toContainText('4');
 
@@ -70,7 +70,7 @@ test('cleaning a dirty room frees it and the next guest starts with no food bill
     page.once('dialog', d => { msg = d.message(); d.accept(); });
     await page.getByRole('button', { name: 'SAVE CHECKOUT' }).click();
     expect(msg).toContain('is still due');
-    await expect(room5).toContainText('DIRTY');
+    await expect(room5).toContainText('TO CLEAN');
     await adminTab(page, 'finance');
     await expect(page.getByTestId('finance-settlements')).toContainText('Mr. Raj Sharma');
     await adminTab(page, 'reception');
@@ -82,7 +82,7 @@ test('cleaning a dirty room frees it and the next guest starts with no food bill
     await page.getByRole('button', { name: 'COMPLETE CLEANING' }).click();
 
     await adminTab(page, 'reception');
-    await expect(room5).toContainText('CLEAN');
+    await expect(room5).toContainText('READY');
     await room5.getByRole('button', { name: 'CHECK-IN' }).click();
     await expect(page.getByText('Sky Kitchen (Dining):').locator('..')).toContainText('₹0');
     expect(errors).toEqual([]);

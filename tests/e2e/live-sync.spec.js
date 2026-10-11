@@ -42,7 +42,7 @@ test('reception on one computer, the other computer sees it live (no refresh)', 
     await expect(other.page.getByTestId('admin-live')).toContainText('Live');
 
     await page.getByTestId('room-card-3').getByRole('button', { name: 'MARK CLEANED' }).click();
-    await expect(other.page.getByTestId('room-card-3')).toContainText('CLEAN', { timeout: 10000 });
+    await expect(other.page.getByTestId('room-card-3')).toContainText('READY', { timeout: 10000 });
     await expect(other.page.getByTestId('stat-dirty')).toContainText('2');
 
     // and back the other way
@@ -91,7 +91,7 @@ test('kitchen status, logs, attendance, settlements and staff edits are all save
     await page.locator('label', { hasText: 'Inspected By' }).locator('..').locator('select').selectOption({ index: 1 });
     page.once('dialog', d => d.accept());
     await page.getByRole('button', { name: 'SAVE CHECKOUT' }).click();
-    await expect(page.getByTestId('room-card-12')).toContainText('DIRTY');
+    await expect(page.getByTestId('room-card-12')).toContainText('TO CLEAN');
     await waitSaved(page);
 
     await page.reload();
@@ -107,7 +107,7 @@ test('kitchen status, logs, attendance, settlements and staff edits are all save
     await adminTab(page, 'finance');
     await expect(page.getByTestId('finance-settlements')).toContainText('Vikram Singh');
     await adminTab(page, 'reception');
-    await expect(page.getByTestId('room-card-12')).toContainText('DIRTY');
+    await expect(page.getByTestId('room-card-12')).toContainText('TO CLEAN');
 });
 
 test('menu price / hidden item is saved and reaches the shop after refresh', async ({ page }) => {

@@ -70,10 +70,10 @@ export default function TodayView({ rooms, orders, settlements, attendanceLogs, 
     return (
         <div className="ui space-y-6" data-testid="today-view">
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                <Kpi id="occupancy" icon={BedDouble} label="Occupancy" value={`${occPct}%`} caption={`${occupied.length} of ${rooms.length} rooms`} onClick={() => onGo('Reception', 'Occupied')} />
-                <Kpi id="available" icon={DoorOpen} label="Ready to sell" value={clean.length} caption="Clean & free rooms" tone="success" onClick={() => onGo('Reception', 'Clean')} />
-                <Kpi id="dirty" icon={Sparkles} label="To clean" value={dirty.length} caption="Checked out, not cleaned" tone={dirty.length ? 'danger' : 'success'} onClick={() => onGo('Reception', 'Dirty')} />
-                <Kpi id="due" icon={Wallet} label="Balance due" value={inr(due)} caption="In-house guests, incl. GST" tone="warning" />
+                <Kpi id="occupancy" icon={BedDouble} label="Rooms filled" value={`${occPct}%`} caption={`${occupied.length} of ${rooms.length} rooms`} onClick={() => onGo('Reception', 'Occupied')} />
+                <Kpi id="available" icon={DoorOpen} label="Ready for new guest" value={clean.length} caption="Clean and empty rooms" tone="success" onClick={() => onGo('Reception', 'Clean')} />
+                <Kpi id="dirty" icon={Sparkles} label="To clean" value={dirty.length} caption="Guest left, cleaning pending" tone={dirty.length ? 'danger' : 'success'} onClick={() => onGo('Reception', 'Dirty')} />
+                <Kpi id="due" icon={Wallet} label="Balance due" value={inr(due)} caption="Guests staying now, incl. GST" tone="warning" />
                 <Kpi id="collected" icon={IndianRupee} label="Collected today" value={inr(collectedToday)} caption="Settled at checkout" tone="success" onClick={() => onGo('Finance')} />
                 <Kpi id="kitchen" icon={ChefHat} label="Kitchen queue" value={kitchenOpen.length} caption="Pending + preparing orders" tone={kitchenOpen.length ? 'gold' : 'primary'} onClick={() => onGo('Kitchen')} />
                 <Kpi id="staff" icon={Users} label="Staff present" value={present.length} caption={`Marked on ${todayKey}`} onClick={() => onGo('Attendance')} />
@@ -83,7 +83,7 @@ export default function TodayView({ rooms, orders, settlements, attendanceLogs, 
             <Card className="gap-3 py-4">
                 <CardContent className="space-y-2 px-4">
                     <div className="flex justify-between text-sm"><span className="font-medium">Room status</span><span className="text-muted-foreground">{occupied.length} occupied · {clean.length} ready · {dirty.length} to clean</span></div>
-                    <Progress value={occPct} aria-label="Occupancy" />
+                    <Progress value={occPct} aria-label="Rooms filled" />
                 </CardContent>
             </Card>
 
@@ -98,7 +98,7 @@ export default function TodayView({ rooms, orders, settlements, attendanceLogs, 
                     ))}
                 </ListCard>
 
-                <ListCard id="inhouse" title="In-house guests" description="Nights so far and balance" empty="No guests checked in.">
+                <ListCard id="inhouse" title="Guests staying now" description="Nights so far and balance" empty="No guests checked in.">
                     {folios.map(({ r, f }) => (
                         <div key={r.id} className="flex items-center justify-between rounded-lg border p-2.5 text-sm">
                             <span><b>Room {r.id}</b> · {r.guest.name} <span className="text-muted-foreground">· {f.nights} night{f.nights > 1 ? 's' : ''}</span></span>

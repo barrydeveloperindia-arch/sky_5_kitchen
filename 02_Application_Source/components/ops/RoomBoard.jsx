@@ -13,13 +13,13 @@ const inr = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
 const when = (v) => { const d = parseStayDate(v); return d ? d.toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : (v || ''); };
 
 const STATUS_STYLE = {
-    Clean: { label: 'CLEAN', badge: 'bg-success/10 text-success border-success/20', stripe: 'bg-success' },
-    Occupied: { label: 'OCCUPIED', badge: 'bg-primary/10 text-primary border-primary/20', stripe: 'bg-primary' },
-    Dirty: { label: 'DIRTY', badge: 'bg-destructive/10 text-destructive border-destructive/20', stripe: 'bg-destructive' },
+    Clean: { label: 'READY', badge: 'bg-success/10 text-success border-success/20', stripe: 'bg-success' },
+    Occupied: { label: 'GUEST STAYING', badge: 'bg-primary/10 text-primary border-primary/20', stripe: 'bg-primary' },
+    Dirty: { label: 'TO CLEAN', badge: 'bg-destructive/10 text-destructive border-destructive/20', stripe: 'bg-destructive' },
 };
 // Any other / missing status is shown as it is (neutral), never disguised as a green CLEAN room
 const styleOf = (status) => STATUS_STYLE[status] || { label: String(status || 'UNKNOWN').toUpperCase(), badge: 'bg-muted text-muted-foreground border-border', stripe: 'bg-muted-foreground' };
-const FILTERS = [['All', 'All rooms'], ['Clean', 'Available'], ['Occupied', 'Occupied'], ['Dirty', 'To clean']];
+const FILTERS = [['All', 'All rooms'], ['Clean', 'Ready for guest'], ['Occupied', 'Guest staying'], ['Dirty', 'To clean']];
 const TYPES = ['Super Deluxe Room', 'Deluxe Room', 'Standard Room'];
 
 function RoomActions({ room, onCheckIn, onPrintReceipt, onCheckout, onMarkCleaned, size = 'sm' }) {

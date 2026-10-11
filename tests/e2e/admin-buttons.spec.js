@@ -49,7 +49,7 @@ test('reception: CCTV CONFIG saves camera links and marks a dead stream offline'
 
 test('reception: MARK CLEANED frees a dirty room', async ({ page }) => {
     await page.getByTestId('room-card-3').getByRole('button', { name: 'MARK CLEANED' }).click();
-    await expect(page.getByTestId('room-card-3')).toContainText('CLEAN');
+    await expect(page.getByTestId('room-card-3')).toContainText('READY');
     await expect(page.getByTestId('room-card-3').getByRole('button', { name: 'CHECK-IN' })).toBeVisible();
     await expect(page.getByTestId('stat-dirty')).toContainText('2');
     await expect(page.getByTestId('stat-available')).toContainText('12');
@@ -172,7 +172,7 @@ test('cleaning: cannot clean an occupied room or a room that does not exist; CAN
     await page.getByRole('button', { name: 'CANCEL' }).click();
     await expect(page.getByRole('heading', { name: 'CLEANING LOG' })).toHaveCount(0);
     await adminTab(page, 'reception');
-    await expect(page.getByTestId('room-card-7')).toContainText('OCCUPIED');
+    await expect(page.getByTestId('room-card-7')).toContainText('GUEST STAYING');
 });
 
 // ---------------- Laundry ----------------
@@ -261,7 +261,7 @@ test('checkouts: INSPECT & CHECKOUT with checklist toggles settles the bill and 
     await page.getByRole('button', { name: 'SAVE CHECKOUT' }).click();
     expect(await msg).toContain('Room 7 (Anita Desai)');
     await adminTab(page, 'reception');
-    await expect(page.getByTestId('room-card-7')).toContainText('DIRTY');
+    await expect(page.getByTestId('room-card-7')).toContainText('TO CLEAN');
     await adminTab(page, 'finance');
     await expect(page.getByTestId('finance-settlements')).toContainText('Anita Desai');
 });
@@ -449,7 +449,7 @@ test('checkouts: early departure bills the nights actually stayed and asks to re
     expect(text).toContain('Room 2 (Early Leaver): 1 night,');
     expect(text).toContain('REFUND ₹');
     await adminTab(page, 'reception');
-    await expect(page.getByTestId('room-card-2')).toContainText('DIRTY');
+    await expect(page.getByTestId('room-card-2')).toContainText('TO CLEAN');
     // a guest who has left no longer shows a running bill
     await expect(page.getByTestId('room-card-2')).not.toContainText('Balance');
     await adminTab(page, 'finance');
