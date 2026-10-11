@@ -9,6 +9,9 @@ import CleaningBoard from './ops/CleaningBoard';
 import LaundryBoard from './ops/LaundryBoard';
 import CheckoutBoard from './ops/CheckoutBoard';
 import ShiftTimeline from './ops/ShiftTimeline';
+import FinanceBoard from './ops/FinanceBoard';
+import MenuConfigBoard from './ops/MenuConfigBoard';
+import AttendanceLedger from './ops/AttendanceLedger';
 import TodayView from './ops/TodayView';
 import { roomFolio, checkoutFolio, toLocalDateTime, computeRoomBill, parseStayDate, toDateTimeInput, ROOM_GST_RATE, GST_RATE } from '../lib/billing';
 import { IS_TEST_ENV } from '../lib/firebase';
@@ -42,28 +45,6 @@ const sample = (rows) => (IS_TEST_ENV ? rows : []);
 
 // Unique across devices (two phones saving in the same second never collide)
 const newRecordId = (prefix) => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
-
-// Menu price: typed locally, saved on blur / Enter; an empty or invalid entry keeps the old price
-function PriceInput({ item, onCommit }) {
-    const [draft, setDraft] = useState(String(item.price));
-    const [editing, setEditing] = useState(false);
-    const commit = () => {
-        setEditing(false);
-        if (draft.trim() === '' || !Number.isFinite(Number(draft))) { setDraft(String(item.price)); return; }
-        const price = Math.max(0, Math.round(Number(draft)));
-        setDraft(String(price));
-        if (price !== item.price) onCommit(price);
-    };
-    return (
-        <input type="number" min="0" aria-label={`Price of ${item.name}`}
-            value={editing ? draft : String(item.price)}
-            onFocus={() => { setDraft(String(item.price)); setEditing(true); }}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={commit}
-            onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-            style={{ padding: '8px', width: '80px', borderRadius: '8px', border: '1px solid #ccc', outline: 'none' }} />
-    );
-}
 
 function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems, rooms, setRooms, liveReady = true }) {
     // Everything below is live: saved in the database and shared by every device
@@ -283,7 +264,6 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
     const ledgerLogs = ledgerScope === 'day' ? attendanceLogs.filter(l => l.date === activeAttendanceDate) : attendanceLogs;
 
     const liveFoodBill = editingRoom ? (rooms.find(r => r.id === editingRoom.id)?.foodBill || 0) : 0;
-    const occupiedFolios = rooms.filter(r => r.status === 'Occupied' && r.guest).map(r => ({ r, f: roomFolio(r) }));
 
     const stats = useMemo(() => {
         const occupied = rooms.filter(r => r.status === 'Occupied').length;
@@ -2112,176 +2092,16 @@ _Generated via Sky-Ops Center_`;
 
                 {activeTab === 'Attendance' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-                        {/* Attendance Header Summary */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '20px' }}>
-                            <div style={{ background: 'white', padding: '25px', borderRadius: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.05)', borderLeft: '6px solid #2ecc71' }}>
-                                <h4 style={{ margin: 0, color: '#6b6b6b', fontSize: '0.8rem', textTransform: 'uppercase' }}>Present Today</h4>
-                                <div data-testid="att-present-today" style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-navy)' }}>{attendanceLogs.filter(l => l.date === dayKey() && l.status === 'Present').length} STAFF</div>
-                            </div>
-                            <div style={{ background: 'white', padding: '25px', borderRadius: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.05)', borderLeft: '6px solid #f1c40f' }}>
-                                <h4 style={{ margin: 0, color: '#6b6b6b', fontSize: '0.8rem', textTransform: 'uppercase' }}>On Leave</h4>
-                                <div data-testid="att-leave-today" style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-navy)' }}>{attendanceLogs.filter(l => l.date === dayKey() && /leave/i.test(l.status)).length} STAFF</div>
-                            </div>
-                            <div style={{ background: 'white', padding: '25px', borderRadius: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.05)', borderLeft: '6px solid #3498db' }}>
-                                <h4 style={{ margin: 0, color: '#6b6b6b', fontSize: '0.8rem', textTransform: 'uppercase' }}>Upcoming Holiday</h4>
-                                <div style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--primary-navy)', marginTop: '5px' }}>{upcomingHoliday.event} ({upcomingHoliday.date})</div>
-                            </div>
-                        </div>
-
-                        {/* Professional Daily Attendance Ledger */}
-                        <div style={{ background: 'white', borderRadius: '25px', padding: '30px', boxShadow: '0 10px 40px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
-                                <div>
-                                    <h3 style={{ margin: 0, color: 'var(--primary-navy)', fontSize: '1.4rem', fontFamily: 'Cinzel, serif' }}>FORENSIC ATTENDANCE REGISTER</h3>
-                                    <div style={{ fontSize: '0.85rem', color: '#6b6b6b', marginTop: '5px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                                        <span data-testid="att-audit-date">Audit Date: <b style={{ color: 'var(--primary-navy)' }}>{activeAttendanceDate}-{calMonth.getFullYear()}</b></span>
-                                        <button data-testid="att-scope-day" onClick={() => setLedgerScope('day')} style={{ border: '1px solid #e0e0e0', borderRadius: '8px', padding: '3px 10px', fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer', background: ledgerScope === 'day' ? 'var(--primary-navy)' : 'white', color: ledgerScope === 'day' ? 'white' : 'var(--primary-navy)' }}>THIS DAY</button>
-                                        <button data-testid="att-scope-all" onClick={() => setLedgerScope('all')} style={{ border: '1px solid #e0e0e0', borderRadius: '8px', padding: '3px 10px', fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer', background: ledgerScope === 'all' ? 'var(--primary-navy)' : 'white', color: ledgerScope === 'all' ? 'white' : 'var(--primary-navy)' }}>ALL RECORDS</button>
-                                    </div>
-                                </div>
-                                <div style={{ display: 'flex', gap: '10px' }}>
-                                    <div style={{ position: 'relative', display: 'flex', gap: '8px' }}>
-                                        <button 
-                                            onClick={() => handleExportAttendance('daily')}
-                                            style={{ background: '#f8f9fa', color: 'var(--primary-navy)', border: '1px solid #e0e0e0', padding: '10px 15px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.75rem' }}
-                                        >
-                                            📅 DAILY
-                                        </button>
-                                        <button 
-                                            onClick={() => handleExportAttendance('monthly')}
-                                            style={{ background: '#f8f9fa', color: 'var(--primary-navy)', border: '1px solid #e0e0e0', padding: '10px 15px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.75rem' }}
-                                        >
-                                            📊 MONTHLY
-                                        </button>
-                                        <button 
-                                            onClick={() => handleExportAttendance('yearly')}
-                                            style={{ background: '#f8f9fa', color: 'var(--primary-navy)', border: '1px solid #e0e0e0', padding: '10px 15px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.75rem' }}
-                                        >
-                                            📁 YEARLY
-                                        </button>
-                                        <button
-                                            onClick={handleShareAttendanceWhatsApp}
-                                            style={{ background: '#0f7a40', color: 'white', border: 'none', padding: '10px 15px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.75rem' }}
-                                        >
-                                            💬 SHARE
-                                        </button>
-                                    </div>
-                                    <button 
-                                        onClick={() => setShowStaffModal(true)}
-                                        style={{ background: '#2471a3', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.85rem', boxShadow: '0 4px 15px rgba(52,152,219,0.2)' }}
-                                    >
-                                        + ENROLL STAFF
-                                    </button>
-                                    <button 
-                                        onClick={() => setShowAttendanceModal(true)}
-                                        style={{ background: 'var(--primary-navy)', color: 'var(--accent)', border: 'none', padding: '10px 20px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.85rem', boxShadow: '0 4px 15px rgba(0,33,71,0.2)' }}
-                                    >
-                                        + MANUAL LOG
-                                    </button>
-                                </div>
-                            </div>
-
-                        <div style={{ overflowX: 'auto' }}>
-                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                    <thead>
-                                        <tr style={{ textAlign: 'left', borderBottom: '2px solid #f0f0f0' }}>
-                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#6b6b6b', textTransform: 'uppercase', letterSpacing: '1px' }}>Staff Identity</th>
-                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#6b6b6b', textTransform: 'uppercase', letterSpacing: '1px' }}>Department</th>
-                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#6b6b6b', textTransform: 'uppercase', letterSpacing: '1px' }}>Scheduled Shift</th>
-                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#6b6b6b', textTransform: 'uppercase', letterSpacing: '1px' }}>Actual Check-In</th>
-                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#6b6b6b', textTransform: 'uppercase', letterSpacing: '1px' }}>Check-Out</th>
-                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#6b6b6b', textTransform: 'uppercase', letterSpacing: '1px' }}>Performance</th>
-                                            <th style={{ padding: '20px 15px', fontSize: '0.75rem', color: '#6b6b6b', textTransform: 'uppercase', letterSpacing: '1px' }}>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {ledgerLogs.length === 0 && (
-                                            <tr><td colSpan={8} data-testid="att-empty" style={{ padding: '30px', textAlign: 'center', color: '#6b6b6b' }}>No attendance recorded for {activeAttendanceDate}.</td></tr>
-                                        )}
-                                        {ledgerLogs.map(log => {
-                                            const staffInfo = [...staffRegistry.reception, ...staffRegistry.kitchen, ...staffRegistry.housekeeping].find(s => s.name === log.staffName);
-                                            const dept = staffRegistry.reception.find(s => s.name === log.staffName) ? 'Reception' : 
-                                                         staffRegistry.kitchen.find(s => s.name === log.staffName) ? 'Kitchen' : 'Housekeeping';
-                                            
-                                            // Punctuality: more than 10 min after shift start = LATE
-                                            let performance = "ON TIME";
-                                            let perfColor = "#1e7b34";
-                                            const inMin = toMinutes(log.checkIn);
-                                            const shiftMin = toMinutes(staffInfo?.shift);
-                                            if (inMin !== null && shiftMin !== null && inMin - shiftMin > 10) {
-                                                performance = "LATE";
-                                                perfColor = "#c0392b";
-                                            }
-
-                                            return (
-                                                <tr key={log.id} style={{ borderBottom: '1px solid #f9f9f9', transition: 'background 0.3s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#fcfcfc'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
-                                                    <td style={{ padding: '18px 15px' }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#eee', overflow: 'hidden', border: '1px solid #ddd' }}>
-                                                                <img src={staffInfo?.photo || `https://ui-avatars.com/api/?name=${log.staffName}&background=random`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="staff" />
-                                                            </div>
-                                                            <div>
-                                                                <div style={{ fontWeight: 'bold', color: 'var(--primary-navy)', fontSize: '1rem' }}>{log.staffName}</div>
-                                                                <div style={{ fontSize: '0.7rem', color: '#6b6b6b' }}>Log #{String(log.id).padStart(3, '0')}</div>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td style={{ padding: '18px 15px' }}>
-                                                        <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#555', background: '#f0f2f5', padding: '4px 10px', borderRadius: '6px' }}>{dept.toUpperCase()}</span>
-                                                    </td>
-                                                    <td style={{ padding: '18px 15px', fontSize: '0.85rem', color: '#666' }}>{staffInfo?.shift || 'Flexible'}</td>
-                                                    <td style={{ padding: '18px 15px' }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                            <span style={{ fontWeight: '800', color: log.checkIn === '--' ? '#ccc' : '#1e7b34', fontSize: '0.95rem' }}>{log.checkIn}</span>
-                                                            {log.checkIn === '--' && (
-                                                                <button onClick={() => handleQuickCheckIn(log.id)} style={{ background: '#e8f5e9', color: '#2e7d32', border: 'none', padding: '5px 10px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 'bold', cursor: 'pointer' }}>CHECK-IN</button>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                    <td style={{ padding: '18px 15px' }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                            <span style={{ fontWeight: '800', color: log.checkOut === '--' ? '#ccc' : '#a35207', fontSize: '0.95rem' }}>{log.checkOut}</span>
-                                                            {log.checkIn !== '--' && log.checkOut === '--' && (
-                                                                <button onClick={() => handleQuickCheckOut(log.id)} style={{ background: '#fff3e0', color: '#b23c00', border: 'none', padding: '5px 10px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 'bold', cursor: 'pointer' }}>CHECK-OUT</button>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                    <td style={{ padding: '18px 15px' }}>
-                                                        {log.status === 'Present' ? (
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: perfColor }}></div>
-                                                                <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: perfColor }}>{log.checkIn === '--' ? 'NOT IN' : performance}</span>
-                                                            </div>
-                                                        ) : log.status === 'Half-Day Leave' ? (
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#a35207' }}></div>
-                                                                <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#a35207' }}>PLANNED</span>
-                                                            </div>
-                                                        ) : (
-                                                            <span style={{ fontSize: '0.8rem', color: '#ccc' }}>--</span>
-                                                        )}
-                                                    </td>
-                                                    <td style={{ padding: '18px 15px' }}>
-                                                        <span style={{ 
-                                                            fontSize: '0.7rem', 
-                                                            padding: '6px 12px', 
-                                                            borderRadius: '20px', 
-                                                            background: log.status === 'Present' ? '#e8f5e9' : log.status === 'Half-Day Leave' ? '#fff3e0' : '#f5f5f5', 
-                                                            color: log.status === 'Present' ? '#2e7d32' : log.status === 'Half-Day Leave' ? '#a84300' : '#757575', 
-                                                            fontWeight: '900',
-                                                            border: `1px solid ${log.status === 'Present' ? '#c8e6c9' : log.status === 'Half-Day Leave' ? '#ffe0b2' : '#e0e0e0'}`,
-                                                            letterSpacing: '0.5px'
-                                                        }}>
-                                                            {log.status.toUpperCase()}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+                        <AttendanceLedger
+                            logs={ledgerLogs} registry={staffRegistry}
+                            presentToday={attendanceLogs.filter(l => l.date === dayKey() && l.status === 'Present').length}
+                            leaveToday={attendanceLogs.filter(l => l.date === dayKey() && /leave/i.test(l.status)).length}
+                            upcomingHoliday={upcomingHoliday}
+                            auditDate={`${activeAttendanceDate}-${calMonth.getFullYear()}`} selectedDay={activeAttendanceDate}
+                            scope={ledgerScope} onScope={setLedgerScope}
+                            onExport={handleExportAttendance} onShare={handleShareAttendanceWhatsApp}
+                            onEnroll={() => setShowStaffModal(true)} onManual={() => setShowAttendanceModal(true)}
+                            onQuickIn={handleQuickCheckIn} onQuickOut={handleQuickCheckOut} toMinutes={toMinutes} />
 
                         {/* Leaves & Holidays Grid */}
                         <div className="ops-split-12-1" style={{ display: 'grid', gap: '30px' }}>
@@ -2334,7 +2154,7 @@ _Generated via Sky-Ops Center_`;
                             {/* Holiday & Attendance Calendar */}
                             <div style={{ background: '#0a192f', borderRadius: '25px', padding: '30px', color: 'white', minHeight: '400px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                                    <h3 style={{ margin: 0, color: 'var(--accent)', fontSize: '1.1rem' }}>🗓️ Sky-Ops Interactive Calendar</h3>
+                                    <h3 style={{ margin: 0, color: 'var(--accent)', fontSize: '1.1rem' }}>🗓️ Holiday & Attendance Calendar</h3>
                                     <div style={{ display: 'flex', gap: '5px', background: 'rgba(255,255,255,0.1)', padding: '5px', borderRadius: '8px' }}>
                                         <button onClick={() => setCalendarView('grid')} style={{ background: calendarView === 'grid' ? 'var(--accent)' : 'transparent', border: 'none', color: calendarView === 'grid' ? 'var(--primary-navy)' : 'white', padding: '5px 12px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer' }}>GRID</button>
                                         <button onClick={() => setCalendarView('list')} style={{ background: calendarView === 'list' ? 'var(--accent)' : 'transparent', border: 'none', color: calendarView === 'list' ? 'var(--primary-navy)' : 'white', padding: '5px 12px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer' }}>LIST</button>
@@ -2404,185 +2224,14 @@ _Generated via Sky-Ops Center_`;
                     </div>
                 )}
 
-                {activeTab === 'Finance' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-                        {/* Financial Summary Cards */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '20px' }}>
-                            <div style={{ background: 'white', padding: '25px', borderRadius: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.05)', borderBottom: '5px solid #2ecc71' }}>
-                                <h4 style={{ margin: 0, color: '#6b6b6b', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Total Revenue</h4>
-                                <div style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-navy)', marginTop: '5px' }}>
-                                    ₹{occupiedFolios.reduce((acc, { f }) => acc + f.subtotal, 0).toLocaleString('en-IN')}
-                                </div>
-                                <div style={{ fontSize: '0.75rem', color: '#1e7b34', fontWeight: 'bold', marginTop: '5px' }}>Occupied rooms, before GST</div>
-                            </div>
-                            <div style={{ background: 'white', padding: '25px', borderRadius: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.05)', borderBottom: '5px solid #3498db' }}>
-                                <h4 style={{ margin: 0, color: '#6b6b6b', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Occupancy Rate</h4>
-                                <div style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-navy)', marginTop: '5px' }}>
-                                    {Math.round((rooms.filter(r => r.status === 'Occupied').length / rooms.length) * 100)}%
-                                </div>
-                                <div style={{ fontSize: '0.75rem', color: '#1f618d', fontWeight: 'bold', marginTop: '5px' }}>{rooms.filter(r => r.status === 'Occupied').length} / {rooms.length} Rooms Active</div>
-                            </div>
-                            <div style={{ background: 'white', padding: '25px', borderRadius: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.05)', borderBottom: '5px solid #f1c40f' }}>
-                                <h4 style={{ margin: 0, color: '#6b6b6b', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Food Revenue</h4>
-                                <div style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-navy)', marginTop: '5px' }}>
-                                    ₹{occupiedFolios.reduce((acc, { f }) => acc + f.foodTotal, 0).toLocaleString('en-IN')}
-                                </div>
-                                <div style={{ fontSize: '0.75rem', color: '#8a6d1a', fontWeight: 'bold', marginTop: '5px' }}>Sky Kitchen Integration</div>
-                            </div>
-                            <div style={{ background: 'white', padding: '25px', borderRadius: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.05)', borderBottom: '5px solid #e74c3c' }}>
-                                <h4 style={{ margin: 0, color: '#6b6b6b', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Pending Balances</h4>
-                                <div style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-navy)', marginTop: '5px' }}>
-                                    ₹{occupiedFolios.reduce((acc, { f }) => acc + f.due, 0).toLocaleString('en-IN')}
-                                </div>
-                                <div style={{ fontSize: '0.75rem', color: '#c0392b', fontWeight: 'bold', marginTop: '5px' }}>Estimated Receivables</div>
-                            </div>
-                        </div>
-
-                        {/* Bills settled at checkout */}
-                        <div data-testid="finance-settlements" style={{ background: 'white', borderRadius: '25px', padding: '30px', boxShadow: '0 10px 40px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '20px' }}>
-                                <h3 style={{ margin: 0, color: 'var(--primary-navy)', fontSize: '1.1rem' }}>✅ SETTLED AT CHECKOUT</h3>
-                                <div style={{ fontWeight: 'bold', color: '#1e7b34' }}>Collected: ₹{settlements.reduce((a, x) => a + x.collected, 0).toLocaleString('en-IN')}</div>
-                            </div>
-                            {settlements.length === 0 ? (
-                                <div style={{ color: '#6b6b6b', fontSize: '0.9rem' }}>No checkouts settled yet.</div>
-                            ) : (
-                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                    <thead>
-                                        <tr style={{ textAlign: 'left', borderBottom: '2px solid #f0f0f0', fontSize: '0.75rem', color: '#6b6b6b' }}>
-                                            <th style={{ padding: '10px' }}>ROOM</th><th style={{ padding: '10px' }}>GUEST</th><th style={{ padding: '10px' }}>NIGHTS</th><th style={{ padding: '10px' }}>BILL (INCL. GST)</th><th style={{ padding: '10px' }}>ADVANCE</th><th style={{ padding: '10px' }}>COLLECTED</th><th style={{ padding: '10px' }}>TIME</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {settlements.map(x => (
-                                            <tr key={x.id} style={{ borderBottom: '1px solid #f9f9f9' }}>
-                                                <td style={{ padding: '10px', fontWeight: 'bold' }}>{x.roomId}</td>
-                                                <td style={{ padding: '10px' }}>{x.guest}</td>
-                                                <td style={{ padding: '10px' }}>{x.nights}</td>
-                                                <td style={{ padding: '10px' }}>₹{x.total.toLocaleString('en-IN')}</td>
-                                                <td style={{ padding: '10px' }}>₹{x.advance.toLocaleString('en-IN')}</td>
-                                                <td style={{ padding: '10px', fontWeight: 'bold', color: '#1e7b34' }}>₹{x.collected.toLocaleString('en-IN')}</td>
-                                                <td style={{ padding: '10px', color: '#6b6b6b' }}>{x.date}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            )}
-                        </div>
-
-                        {/* Visual Charts & Logs Section */}
-                        <div className="ops-split-15-1" style={{ display: 'grid', gap: '30px' }}>
-                            {/* Transaction Log */}
-                            <div style={{ background: 'white', borderRadius: '25px', padding: '30px', boxShadow: '0 10px 40px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>
-                                <h3 style={{ margin: '0 0 25px 0', color: 'var(--primary-navy)', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    📄 RECENT TRANSACTION AUDIT
-                                </h3>
-                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                    <thead>
-                                        <tr style={{ textAlign: 'left', borderBottom: '2px solid #f0f0f0' }}>
-                                            <th style={{ padding: '15px 10px', fontSize: '0.75rem', color: '#6b6b6b' }}>ROOM</th>
-                                            <th style={{ padding: '15px 10px', fontSize: '0.75rem', color: '#6b6b6b' }}>GUEST</th>
-                                            <th style={{ padding: '15px 10px', fontSize: '0.75rem', color: '#6b6b6b' }}>BILL SO FAR (BEFORE GST)</th>
-                                            <th style={{ padding: '15px 10px', fontSize: '0.75rem', color: '#6b6b6b' }}>PAYMENT</th>
-                                            <th style={{ padding: '15px 10px', fontSize: '0.75rem', color: '#6b6b6b' }}>STATUS</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {rooms.filter(r => r.status === 'Occupied').map(r => (
-                                            <tr key={r.id} style={{ borderBottom: '1px solid #f9f9f9' }}>
-                                                <td style={{ padding: '15px 10px', fontWeight: 'bold', color: 'var(--primary-navy)' }}>{r.id}</td>
-                                                <td style={{ padding: '15px 10px', fontSize: '0.9rem' }}>{r.guest?.name}</td>
-                                                <td style={{ padding: '15px 10px', fontWeight: 'bold' }}>₹{roomFolio(r).subtotal.toLocaleString('en-IN')}</td>
-                                                <td style={{ padding: '15px 10px' }}>
-                                                    <span style={{ fontSize: '0.7rem', padding: '3px 8px', borderRadius: '5px', background: '#f0f2f5', color: '#555' }}>{Number(r.guest?.advance) > 0 ? `${r.guest?.advanceType || 'Cash'} advance ₹${Number(r.guest.advance).toLocaleString('en-IN')}` : 'No advance yet'}</span>
-                                                </td>
-                                                <td style={{ padding: '15px 10px' }}>
-                                                    <span style={{ fontSize: '0.7rem', color: '#1e7b34', fontWeight: 'bold' }}>STAYING</span>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            {/* Revenue Breakdown */}
-                            <div style={{ background: '#0a192f', borderRadius: '25px', padding: '30px', color: 'white', boxShadow: '0 10px 40px rgba(0,0,0,0.1)' }}>
-                                <h3 style={{ margin: '0 0 25px 0', color: 'var(--accent)', fontSize: '1.1rem' }}>📊 Revenue Breakdown</h3>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                                    {[
-                                        { label: 'Room Stays', amount: occupiedFolios.reduce((acc, { f }) => acc + f.roomTotal, 0), color: '#1f618d' },
-                                        { label: 'Food & Dining', amount: occupiedFolios.reduce((acc, { f }) => acc + f.foodTotal, 0), color: '#f1c40f' },
-                                        { label: 'GST Payable', amount: occupiedFolios.reduce((acc, { f }) => acc + f.gst, 0), color: '#1e7b34' }
-                                    ].map((item, idx) => {
-                                        const total = occupiedFolios.reduce((acc, { f }) => acc + f.grandTotal, 0);
-                                        const percent = total > 0 ? (item.amount / total) * 100 : 0;
-                                        return (
-                                            <div key={idx}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '8px' }}>
-                                                    <span>{item.label}</span>
-                                                    <span style={{ fontWeight: 'bold' }}>₹{item.amount.toLocaleString('en-IN')}</span>
-                                                </div>
-                                                <div style={{ height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
-                                                    <div style={{ width: `${percent}%`, height: '100%', background: item.color }} />
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                                <div style={{ marginTop: '40px', padding: '20px', background: 'rgba(255,255,255,0.05)', borderRadius: '15px', border: '1px dashed rgba(255,255,255,0.2)' }}>
-                                    <div style={{ fontSize: '0.8rem', color: '#b8c2d1' }}>TOTAL BILLED (INCL. GST)</div>
-                                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--accent)', marginTop: '5px' }}>₹{occupiedFolios.reduce((acc, { f }) => acc + f.grandTotal, 0).toLocaleString('en-IN')}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                {activeTab === 'Finance' && <FinanceBoard rooms={rooms} settlements={settlements} />}
 
                 {activeTab === 'Inventory' && <InventoryView />}
 
                 {activeTab === 'Menu Config' && (
-                    <div style={{ background: 'white', borderRadius: '25px', padding: '40px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
-                        <h2 style={{ marginBottom: '20px', color: 'var(--primary-navy)' }}>Menu Configuration</h2>
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead>
-                                <tr style={{ textAlign: 'left', borderBottom: '2px solid #eee' }}>
-                                    <th style={{ padding: '20px' }}>Item ID</th>
-                                    <th>Name</th>
-                                    <th>Category</th>
-                                    <th>Price (₹)</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {menuItems?.map(item => (
-                                    <tr key={item.id} style={{ borderBottom: '1px solid #f9f9f9' }}>
-                                        <td style={{ padding: '20px', color: '#666' }}>{item.id}</td>
-                                        <td style={{ fontWeight: 'bold', color: 'var(--primary-navy)' }}>{item.name}</td>
-                                        <td>{item.category}</td>
-                                        <td>
-                                                                                        <PriceInput item={item} onCommit={(price) => setMenuItems(prev => prev.map(m => m.id === item.id ? {...m, price} : m))} />
-                                        </td>
-                                        <td>
-                                            <button 
-                                                onClick={() => setMenuItems(prev => prev.map(m => m.id === item.id ? {...m, isActive: !m.isActive} : m))}
-                                                style={{ 
-                                                    padding: '8px 15px', 
-                                                    borderRadius: '8px', 
-                                                    border: 'none', 
-                                                    background: item.isActive ? '#1e8449' : '#c0392b', 
-                                                    color: 'white', 
-                                                    fontWeight: 'bold',
-                                                    cursor: 'pointer'
-                                                }}
-                                            >
-                                                {item.isActive ? 'ACTIVE' : 'HIDDEN'}
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                    <MenuConfigBoard items={menuItems || []}
+                        onSetPrice={(id, price) => setMenuItems(prev => prev.map(m => m.id === id ? { ...m, price } : m))}
+                        onToggle={(id) => setMenuItems(prev => prev.map(m => m.id === id ? { ...m, isActive: !m.isActive } : m))} />
                 )}
 
             </main>

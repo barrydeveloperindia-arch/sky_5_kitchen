@@ -549,3 +549,29 @@ test('workforce: coverage bars follow the saved shift time (edit moves the bar),
     expect(style).toMatch(/left: 25%/);
     expect(style).toMatch(/width: 50%/);
 });
+
+test('menu config: search and category filter; hidden count follows ACTIVE / HIDDEN', async ({ page }) => {
+    await adminTab(page, 'menu-config');
+    const board = page.getByTestId('menu-config-board');
+    await expect(board.locator('tbody tr')).toHaveCount(55);
+    await page.getByTestId('menu-search').fill('lassi');
+    await expect(board.locator('tbody tr')).toHaveCount(2);
+    await page.getByTestId('menu-search').fill('');
+    await page.getByTestId('menu-cat-beverages').click();
+    await expect(board.locator('tbody tr')).toHaveCount(11);
+    const before = Number((await page.getByTestId('menu-count-hidden').innerText()).match(/\d+/)[0]);
+    await board.locator('tr', { has: page.getByText('Coke', { exact: true }) }).getByRole('button', { name: /ACTIVE/ }).click();
+    await expect(page.getByTestId('menu-count-hidden')).toContainText(String(before + 1));
+});
+
+// Staff photos came from ui-avatars.com with the staff name in the URL (names sent outside, broken offline)
+test('attendance: no staff names are sent to outside avatar sites; initials shown instead', async ({ page }) => {
+    const outside = [];
+    page.on('request', r => { if (/ui-avatars|pravatar|randomuser/.test(r.url())) outside.push(r.url()); });
+    await adminTab(page, 'attendance');
+    await page.getByTestId('att-scope-all').click();
+    const row = page.locator('tr', { hasText: 'Gaurav Panchal' }).first();
+    await expect(row).toContainText('GP');
+    await expect(row).toContainText('RECEPTION');
+    expect(outside).toEqual([]);
+});
