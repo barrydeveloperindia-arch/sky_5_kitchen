@@ -39,3 +39,6 @@ playwright-report
 
 # Firebase deploy cache
 .firebase/
+
+# Vercel CLI link/build output
+.vercel
