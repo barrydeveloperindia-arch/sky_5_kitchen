@@ -50,7 +50,7 @@ test('every category chip filters to its own items', async ({ page }) => {
         if (name === 'Ambiance') { await expect(page.locator('.room-card').first()).toBeVisible(); continue; }
         const count = await page.locator('.modern-item-card').count();
         expect(count, name).toBeGreaterThan(0);
-        await expect(page.locator('.see-all')).toHaveText(`See all (${count})`);
+        await expect(page.locator('.see-all')).toHaveText(`${count} items`);
     }
 });
 

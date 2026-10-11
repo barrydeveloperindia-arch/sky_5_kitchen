@@ -871,11 +871,11 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems, liveRooms }) {
             {/* 4. Menu Grid (Featured Store) */}
             <div className="section-title-modern">
                 <span>Featured Items</span>
-                <span className="see-all">See all ({
+                <span className="see-all" data-testid="item-count">{
                     activeCategory === 'Stays' ? rooms.length : 
                     activeCategory === 'Ambiance' ? ambiance.length : 
                     filteredCombos.length
-                })</span>
+                } items</span>
             </div>
 
             <div className="modern-menu-list">

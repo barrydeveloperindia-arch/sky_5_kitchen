@@ -12,7 +12,7 @@ test('shop home loads with brand, categories and every menu item', async ({ page
     await expect(page).toHaveTitle('Hotel Sky 5');
     await expect(page.locator('.app-title-nav')).toContainText('Hotel Sky 5');
     await expect(page.locator('.modern-item-card')).toHaveCount(combos.length);
-    await expect(page.locator('.see-all')).toHaveText(`See all (${combos.length})`);
+    await expect(page.locator('.see-all')).toHaveText(`${combos.length} items`);
     for (const cat of ['Breakfast', 'Snacks', 'Main Course', 'Thalis', 'Beverages', 'Stays', 'Ambiance']) {
         await expect(page.locator('.filter-chip', { hasText: cat })).toBeVisible();
     }
