@@ -36,7 +36,7 @@ export default function LaundryBoard({ rooms, items, logs, onPrintBlank, onStart
                     ))}
                     {occupied.length === 0 && (
                         <p className="col-span-full rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-                            No occupied rooms. Use RECORD NEW LAUNDRY PICKUP for any other laundry.
+                            No guest is staying right now. Use RECORD NEW LAUNDRY PICKUP for any other laundry.
                         </p>
                     )}
                 </div>

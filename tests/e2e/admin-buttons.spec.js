@@ -530,3 +530,22 @@ test('kitchen: status filters show only that status and their counts add up', as
     await page.getByTestId('kitchen-filter-all').click();
     await expect(board.locator('tbody tr')).toHaveCount(all);
 });
+
+// Workforce timeline used hard-coded bar positions per name; now it is drawn from the saved shift
+test('workforce: coverage bars follow the saved shift time (edit moves the bar), flexible shift says so', async ({ page }) => {
+    await adminTab(page, 'workforce');
+    const varun = page.getByTestId('shift-row-Varun');
+    await expect(varun.getByTestId('shift-bar')).toHaveCount(1);
+    // Ratnesh works overnight -> two bars (evening + early morning)
+    await expect(page.getByTestId('shift-row-Ratnesh').getByTestId('shift-bar')).toHaveCount(2);
+    await expect(page.getByTestId('shift-row-Amresh Kumar')).toContainText('shift time not set');
+    await expect(page.getByTestId('shift-now-line')).toHaveCount(1);
+
+    const varunCard = page.locator('div').filter({ hasText: /^Varun/ }).filter({ has: page.getByText('EDIT', { exact: true }) }).last();
+    await varunCard.getByText('EDIT', { exact: true }).click();
+    await field(page, 'Duty Shift').fill('06:00 AM – 06:00 PM');
+    await page.getByRole('button', { name: 'UPDATE' }).click();
+    const style = await varun.getByTestId('shift-bar').getAttribute('style');
+    expect(style).toMatch(/left: 25%/);
+    expect(style).toMatch(/width: 50%/);
+});

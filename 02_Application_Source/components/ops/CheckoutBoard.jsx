@@ -51,7 +51,7 @@ export default function CheckoutBoard({ rooms, checklist, logs, onPrintBlank, on
                         );
                     })}
                     {occupied.length === 0 && (
-                        <p className="col-span-full rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">No rooms are currently occupied.</p>
+                        <p className="col-span-full rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">No guest is staying right now, so there is nothing to check out.</p>
                     )}
                 </div>
             </section>

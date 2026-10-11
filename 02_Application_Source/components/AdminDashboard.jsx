@@ -8,6 +8,7 @@ import KitchenBoard from './ops/KitchenBoard';
 import CleaningBoard from './ops/CleaningBoard';
 import LaundryBoard from './ops/LaundryBoard';
 import CheckoutBoard from './ops/CheckoutBoard';
+import ShiftTimeline from './ops/ShiftTimeline';
 import TodayView from './ops/TodayView';
 import { roomFolio, checkoutFolio, toLocalDateTime, computeRoomBill, parseStayDate, toDateTimeInput, ROOM_GST_RATE, GST_RATE } from '../lib/billing';
 import { IS_TEST_ENV } from '../lib/firebase';
@@ -1946,89 +1947,8 @@ _Generated via Sky-Ops Center_`;
                             </div>
                         </div>
 
-                        {/* 24-Hour Duty Timeline (Per Day Wise Details) */}
-                        <div style={{ background: 'white', borderRadius: '30px', padding: '30px', boxShadow: '0 15px 50px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-                                <h2 style={{ fontSize: '1.3rem', color: 'var(--primary-navy)', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>🕒 Daily Coverage Timeline (24h)</h2>
-                                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                                    <button 
-                                        onClick={handleShareWorkforce}
-                                        style={{ background: '#0f7a40', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 5px 15px rgba(37, 211, 102, 0.3)' }}
-                                    >
-                                        💬 SHARE ON WHATSAPP
-                                    </button>
-                                    <span style={{ fontSize: '0.8rem', background: '#f0f2f5', padding: '5px 15px', borderRadius: '20px', color: '#555', fontWeight: 'bold' }}>LIVE TRACKING ACTIVE</span>
-                                </div>
-                            </div>
-
-                            {/* Daily Schedule Row */}
-                            <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '15px', marginBottom: '30px', border: '1px solid #eee' }}>
-                                <h3 style={{ margin: '0 0 15px 0', fontSize: '0.9rem', color: 'var(--primary-navy)', fontWeight: '800' }}>🥗 OFFICIAL STAFF BREAK SCHEDULE</h3>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
-                                    {staffRegistry.dailySchedule.map((s, idx) => (
-                                        <div key={idx} style={{ flex: 1, background: 'white', padding: '12px', borderRadius: '10px', boxShadow: '0 4px 10px rgba(0,0,0,0.03)', textAlign: 'center' }}>
-                                            <div style={{ fontSize: '0.65rem', color: '#6b6b6b', fontWeight: 'bold' }}>{s.event}</div>
-                                            <div style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--primary-navy)' }}>{s.time}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div style={{ position: 'relative', paddingLeft: '120px' }}>
-                                {/* Time Labels (06:00 to 22:00) */}
-                                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #eee', paddingBottom: '10px', marginBottom: '20px' }}>
-                                    {['6AM', '8AM', '10AM', '12PM', '2PM', '4PM', '6PM', '8PM', '10PM'].map(time => (
-                                        <span key={time} style={{ fontSize: '0.65rem', color: '#6b6b6b', fontWeight: 'bold' }}>{time}</span>
-                                    ))}
-                                </div>
-
-                                {/* Timeline Grid Bars */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                                    {[...staffRegistry.reception, ...staffRegistry.kitchen, ...staffRegistry.housekeeping].map(staff => {
-                                        // Calculate bar position (mocking based on shift string for UI demo)
-                                        let left = '0%';
-                                        let width = '0%';
-                                        
-                                        if (staff.name === 'Gaurav Panchal') { left = '15.6%'; width = '41.6%'; }
-                                        if (staff.name === 'Arjun Tiwari') { left = '18.75%'; width = '41.6%'; }
-                                        if (staff.name === 'Ratnesh') { left = '81.25%'; width = '18.75%'; } // Wraps visually for night
-                                        if (staff.name === 'Varun') { left = '6.25%'; width = '16.6%'; }
-                                        if (staff.name === 'Karan') { left = '12.5%'; width = '54.1%'; }
-                                        if (staff.name === 'Amar Singh') { left = '12.5%'; width = '50%'; }
-                                        if (staff.name === 'Veerwati') { left = '25%'; width = '37.5%'; }
-                                        if (staff.name === 'Bhawna') { left = '15.6%'; width = '35.4%'; }
-
-                                        let color = '#2471a3'; // Kitchen default
-                                        if (staffRegistry.reception.includes(staff)) color = '#a35207'; // Reception
-                                        if (staffRegistry.housekeeping.includes(staff)) color = '#1e7b34'; // Housekeeping
-
-                                        return (
-                                            <div key={staff.name} style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                                                <div style={{ width: '100px', textAlign: 'right', fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--primary-navy)', position: 'absolute', left: 0 }}>
-                                                    {staff.name}
-                                                </div>
-                                                <div style={{ flex: 1, height: '12px', background: '#f0f2f5', borderRadius: '6px', position: 'relative', overflow: 'hidden' }}>
-                                                    <div style={{ 
-                                                        position: 'absolute', 
-                                                        left: left, 
-                                                        width: width, 
-                                                        height: '100%', 
-                                                        background: color, 
-                                                        borderRadius: '6px',
-                                                        boxShadow: `0 0 10px ${color}44`
-                                                    }} />
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-
-                                {/* Current Time Indicator Mock */}
-                                <div style={{ position: 'absolute', top: '25px', bottom: 0, left: '35%', width: '2px', background: 'var(--accent)', zIndex: 10 }}>
-                                    <div style={{ position: 'absolute', top: '-5px', left: '-4px', width: '10px', height: '10px', borderRadius: '50%', background: 'var(--accent)' }} />
-                                </div>
-                            </div>
-                        </div>
+                        {/* 24-hour coverage, drawn from each person's saved shift time */}
+                        <ShiftTimeline registry={staffRegistry} onShare={handleShareWorkforce} />
 
                         {/* Edit Staff Modal */}
                         {editingStaff && (
@@ -2562,7 +2482,7 @@ _Generated via Sky-Ops Center_`;
                                         <tr style={{ textAlign: 'left', borderBottom: '2px solid #f0f0f0' }}>
                                             <th style={{ padding: '15px 10px', fontSize: '0.75rem', color: '#6b6b6b' }}>ROOM</th>
                                             <th style={{ padding: '15px 10px', fontSize: '0.75rem', color: '#6b6b6b' }}>GUEST</th>
-                                            <th style={{ padding: '15px 10px', fontSize: '0.75rem', color: '#6b6b6b' }}>REVENUE</th>
+                                            <th style={{ padding: '15px 10px', fontSize: '0.75rem', color: '#6b6b6b' }}>BILL SO FAR (BEFORE GST)</th>
                                             <th style={{ padding: '15px 10px', fontSize: '0.75rem', color: '#6b6b6b' }}>PAYMENT</th>
                                             <th style={{ padding: '15px 10px', fontSize: '0.75rem', color: '#6b6b6b' }}>STATUS</th>
                                         </tr>
@@ -2574,10 +2494,10 @@ _Generated via Sky-Ops Center_`;
                                                 <td style={{ padding: '15px 10px', fontSize: '0.9rem' }}>{r.guest?.name}</td>
                                                 <td style={{ padding: '15px 10px', fontWeight: 'bold' }}>₹{roomFolio(r).subtotal.toLocaleString('en-IN')}</td>
                                                 <td style={{ padding: '15px 10px' }}>
-                                                    <span style={{ fontSize: '0.7rem', padding: '3px 8px', borderRadius: '5px', background: '#f0f2f5', color: '#555' }}>{r.guest?.advanceType || 'CASH'}</span>
+                                                    <span style={{ fontSize: '0.7rem', padding: '3px 8px', borderRadius: '5px', background: '#f0f2f5', color: '#555' }}>{Number(r.guest?.advance) > 0 ? `${r.guest?.advanceType || 'Cash'} advance ₹${Number(r.guest.advance).toLocaleString('en-IN')}` : 'No advance yet'}</span>
                                                 </td>
                                                 <td style={{ padding: '15px 10px' }}>
-                                                    <span style={{ fontSize: '0.7rem', color: '#1e7b34', fontWeight: 'bold' }}>ACTIVE</span>
+                                                    <span style={{ fontSize: '0.7rem', color: '#1e7b34', fontWeight: 'bold' }}>STAYING</span>
                                                 </td>
                                             </tr>
                                         ))}
