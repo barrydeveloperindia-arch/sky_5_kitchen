@@ -7,6 +7,7 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 export default defineConfig([
   globalIgnores([
     '05_Production_Builds',
+    '.vercel',
     '07_System_Snapshots',
     '10_Engineering_Config',
     '**/_archive',

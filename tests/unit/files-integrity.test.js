@@ -8,7 +8,7 @@ const rel = (...p) => path.join(ROOT, ...p);
 
 function walk(dir, out = []) {
     for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-        if (['node_modules', '.git', '05_Production_Builds', 'test-results', 'playwright-report', '07_System_Snapshots'].includes(e.name)) continue;
+        if (['node_modules', '.git', '05_Production_Builds', 'test-results', 'playwright-report', '07_System_Snapshots', '.vercel'].includes(e.name)) continue;
         const p = path.join(dir, e.name);
         if (e.isDirectory()) walk(p, out); else out.push(p);
     }
@@ -127,5 +127,13 @@ describe('project files', () => {
             }
         }
         expect(bad).toEqual([]);
+    });
+    test('the public web folder only holds website files (no internal docs published to the internet)', () => {
+        const pub = rel('04_Digital_Assets');
+        const all = walk(pub).map(f => path.relative(pub, f).split(path.sep).join('/'));
+        const allowed = /\.(png|jpe?g|webp|svg|ico|gif|woff2?|ttf)$/i;
+        const intended = ['menu.html', 'menu.pdf'];
+        const extra = all.filter(f => !allowed.test(f) && !intended.includes(f));
+        expect(extra).toEqual([]);
     });
 });
