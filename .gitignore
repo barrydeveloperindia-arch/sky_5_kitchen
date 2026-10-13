@@ -43,3 +43,6 @@ playwright-report
 # Vercel CLI link/build output
 .vercel
 .env*
+
+# local backups of live data (staff phones etc.), never commit
+07_System_Snapshots/
