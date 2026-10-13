@@ -57,6 +57,9 @@ describe('staff self check-in / check-out', () => {
         expect(workedHours({ inAt: '2026-10-13T05:00:00Z', outAt: '2026-10-13T04:00:00Z' })).toBeNull();
         expect(formatHours(9.25)).toBe('9h 15m');
         expect(formatHours(null)).toBe('--');
+        expect(formatHours(8.999)).toBe('9h 00m'); // never "8h 60m"
+        expect(formatHours(0.01)).toBe('0h 01m');
+        expect(formatHours(NaN)).toBe('--');
     });
 
     test('one record id per person per day, safe characters only', () => {

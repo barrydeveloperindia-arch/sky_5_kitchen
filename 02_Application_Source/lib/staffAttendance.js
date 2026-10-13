@@ -73,7 +73,12 @@ export function workedHours(log) {
     return Math.round(((b - a) / 3600000) * 100) / 100;
 }
 
-export const formatHours = (h) => (h == null ? '--' : `${Math.floor(h)}h ${String(Math.round((h % 1) * 60)).padStart(2, '0')}m`);
+// 8.5 -> "8h 30m" (whole minutes, so it can never show "8h 60m")
+export function formatHours(h) {
+    if (h == null || !Number.isFinite(h)) return '--';
+    const m = Math.round(h * 60);
+    return `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m`;
+}
 
 // Stable record id for a self check-in: one row per person per day, even if two phones tap at once
 export const logIdFor = (name, iso = isoDate()) => `self-${iso}-${String(name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;

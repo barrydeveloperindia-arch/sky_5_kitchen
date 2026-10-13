@@ -120,6 +120,17 @@ test('night shift: next morning the tap is the CHECK OUT of last night, on the s
     await expect(page.getByTestId('att-done')).toContainText('13h 00m');
 });
 
+test('name list is grouped by department and the search finds a name', async ({ page }) => {
+    for (const h of ['Front Desk & Management', 'Kitchen', 'Housekeeping']) await expect(page.getByRole('heading', { name: h, exact: true })).toBeVisible();
+    await page.getByTestId('att-search').fill('bhaw');
+    await expect(page.getByTestId('att-pick-Bhawna')).toBeVisible();
+    await expect(page.getByTestId('att-pick-Varun')).toHaveCount(0);
+    await page.getByTestId('att-search').fill('zzz');
+    await expect(page.getByTestId('att-no-match')).toBeVisible();
+    await page.getByTestId('att-search').fill('');
+    await expect(page.getByTestId('att-pick-Varun')).toBeVisible();
+});
+
 test('every button: Not you? changes the name, Cancel closes the camera without saving', async ({ page }) => {
     await page.getByTestId('att-pick-Bhawna').click();
     await expect(page.getByTestId('att-me')).toHaveText('Bhawna');
