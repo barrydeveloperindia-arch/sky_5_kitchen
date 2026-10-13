@@ -136,4 +136,9 @@ describe('project files', () => {
         const extra = all.filter(f => !allowed.test(f) && !intended.includes(f));
         expect(extra).toEqual([]);
     });
+    test('hosting never lets a phone keep an old copy of the app page (no-cache on / and /inventory)', () => {
+        const fb = JSON.parse(fs.readFileSync(rel('firebase.json'), 'utf8'));
+        const rule = (src) => (fb.hosting.headers || []).find(h => h.source === src)?.headers.find(x => x.key === 'Cache-Control')?.value;
+        for (const src of ['/', '/index.html', '/inventory']) expect(rule(src), src).toBe('no-cache');
+    });
 });
