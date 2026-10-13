@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'vitest';
 import {
-    dayKey, isoDate, staffNames, findTodayLog, findActiveLog, nextAction, tapUpdate, workedHours, formatHours, logIdFor, toLoc, mapLink, DUPLICATE_GUARD_MS,
+    dayKey, isoDate, staffNames, findTodayLog, findActiveLog, nextAction, waitRemainingMs, formatWait, tapUpdate, workedHours, formatHours, logIdFor, toLoc, mapLink, DUPLICATE_GUARD_MS,
 } from '../../02_Application_Source/lib/staffAttendance';
 
 const at = new Date(2026, 9, 13, 9, 5); // 13 Oct 2026, 09:05 local
@@ -48,6 +48,7 @@ describe('staff self check-in / check-out', () => {
         const later = new Date(at.getTime() + (8 * 60 + 30) * 60_000);
         const outF = tapUpdate({ ...inF }, 'out', { at: later, photoId: 'p2', loc: null });
         expect(outF).toMatchObject({ checkOut: '05:35 PM', outPhotoId: 'p2', outLoc: null, hours: 8.5 });
+        expect(formatHours(workedHours({ inAt: '2026-10-13T11:17:00Z', outAt: '2026-10-13T11:19:10Z' }))).toBe('0h 02m'); // 2 min 10 s, not 3m
         expect(tapUpdate({ checkIn: '09:00 AM' }, 'out', { at: later }).hours).toBeUndefined(); // no check-in timestamp, no made-up hours
     });
 
@@ -102,5 +103,19 @@ describe('night shift (check-in last night, check-out this morning)', () => {
     test('day staff: yesterday morning check-in does not carry over to today', () => {
         const day = { ...night, staffName: 'Varun', checkIn: '07:00 AM', inAt: new Date(2026, 9, 12, 7, 0).toISOString() };
         expect(findActiveLog([day], 'Varun', new Date(2026, 9, 13, 7, 0))).toBeNull();
+    });
+});
+
+describe('2-minute guard countdown', () => {
+    test('counts down from 2:00 and reaches 0 exactly when CHECK OUT switches on', () => {
+        const t = Date.parse('2026-10-13T11:15:47Z');
+        const log = { checkIn: '04:45 PM', inAt: new Date(t).toISOString() };
+        expect(formatWait(waitRemainingMs(log, t))).toBe('2:00');
+        expect(formatWait(waitRemainingMs(log, t + 28_500))).toBe('1:32');
+        expect(waitRemainingMs(log, t + 120_000)).toBe(0);
+        expect(nextAction(log, t + 119_999)).toBe('wait');
+        expect(nextAction(log, t + 120_000)).toBe('out');
+        expect(waitRemainingMs(null, t)).toBe(0);
+        expect(waitRemainingMs({ checkIn: '09:00 AM' }, t)).toBe(0); // typed by the manager: no guard
     });
 });

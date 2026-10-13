@@ -66,11 +66,20 @@ export function nextAction(log, now = Date.now()) {
     return 'out';
 }
 
+// How long until the 2-minute guard ends (0 = a tap works now)
+export function waitRemainingMs(log, now = Date.now()) {
+    if (!log || !has(log.checkIn)) return 0;
+    const last = Date.parse(log.outAt || log.inAt || '');
+    if (!Number.isFinite(last)) return 0;
+    return Math.max(0, DUPLICATE_GUARD_MS - (now - last));
+}
+export const formatWait = (ms) => { const sec = Math.ceil(ms / 1000); return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`; };
+
 // Hours between check-in and check-out, from the saved timestamps (null if either is missing)
 export function workedHours(log) {
     const a = Date.parse(log?.inAt || ''), b = Date.parse(log?.outAt || '');
     if (!Number.isFinite(a) || !Number.isFinite(b) || b <= a) return null;
-    return Math.round(((b - a) / 3600000) * 100) / 100;
+    return Math.round(((b - a) / 3600000) * 10000) / 10000; // 4 decimals (0.36 s), so the shown minutes are exact
 }
 
 // 8.5 -> "8h 30m" (whole minutes, so it can never show "8h 60m")

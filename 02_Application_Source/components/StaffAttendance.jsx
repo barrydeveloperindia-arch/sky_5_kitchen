@@ -7,7 +7,7 @@ import { getServices, whenSignedIn } from '../lib/firebase';
 import { normalizeRegistry } from '../lib/staff';
 import { toFirestore, trackWrite, useOnline } from '../lib/syncedState';
 import {
-    dayKey, isoDate, staffNames, findActiveLog, nextAction, tapUpdate, logIdFor, toLoc, workedHours, formatHours,
+    dayKey, isoDate, staffNames, findActiveLog, nextAction, waitRemainingMs, formatWait, tapUpdate, logIdFor, toLoc, workedHours, formatHours,
     STAFF_KEY, MAX_PHOTO_CHARS,
 } from '../lib/staffAttendance';
 
@@ -93,6 +93,7 @@ export default function StaffAttendance() {
     const log = findActiveLog(logs, me, new Date(now));
     const nightShift = !!log && log.date !== today;
     const action = nextAction(log, now);
+    const waitLeft = waitRemainingMs(log, now);
     const inT = log?.checkIn && log.checkIn !== '--' ? log.checkIn : '--';
     const outT = log?.checkOut && log.checkOut !== '--' ? log.checkOut : '--';
     const hint = action === 'out' && outT !== '--' ? 'Leaving later? Tap CHECK OUT again, the last tap counts.'
@@ -100,6 +101,12 @@ export default function StaffAttendance() {
     const clock = new Date(now);
 
     const closeDone = () => { setResult(null); setStep('home'); };
+    // every new screen starts at the top (a long name list leaves the page scrolled down)
+    useEffect(() => {
+        // camera: bring the photo button on screen (a phone held sideways is short); otherwise start at the top
+        if (step === 'camera') requestAnimationFrame(() => document.querySelector('[data-testid="att-capture"]')?.scrollIntoView({ block: 'end' }));
+        else window.scrollTo(0, 0);
+    }, [step, me]);
     useEffect(() => {
         if (step !== 'done') return undefined;
         const t = setTimeout(closeDone, DONE_SECONDS * 1000);
@@ -155,13 +162,16 @@ export default function StaffAttendance() {
 
     const stamp = (iso) => new Date(iso).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
     const tapButton = (kind) => {
+        // during the 2-minute guard the CHECK OUT button shows a countdown, then switches on by itself
         const active = ready && action === kind;
+        const counting = ready && action === 'wait' && kind === 'out';
         const Icon = kind === 'in' ? LogIn : LogOut;
         return (
             <button type="button" data-testid={active ? 'att-tap' : `att-tap-off-${kind}`} disabled={!active} onClick={openCamera}
                 className={cn('flex flex-col items-center gap-1 rounded-2xl px-4 py-3.5 text-xs font-black tracking-wider uppercase transition-all active:scale-95 disabled:opacity-35',
                     kind === 'in' ? 'bg-gradient-to-r from-[#d4af37] to-[#e6c65c] text-[#0a192f] shadow-lg shadow-[#d4af37]/25' : 'border border-[#d4af37]/50 bg-[#112240] text-white')}>
                 <Icon className="size-5" />{kind === 'in' ? 'CHECK IN' : 'CHECK OUT'}
+                {counting && <span data-testid="att-wait-count" className="text-[10px] font-bold tracking-normal normal-case">in {formatWait(waitLeft)}</span>}
             </button>
         );
     };
@@ -171,7 +181,8 @@ export default function StaffAttendance() {
             <style>{'@keyframes att-scan{0%,100%{top:12%}50%{top:86%}}'}</style>
             <div className="mx-auto max-w-md space-y-4 p-3 min-[360px]:p-4">
                 {/* top bar, like the AuraLock terminal */}
-                <header className="flex items-center justify-between gap-3">
+                {/* a div, not <header>: the shop's global header style (sticky, white) must not apply here */}
+                <div role="banner" className="flex items-center justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
                         <div aria-hidden className="shrink-0 rounded-xl border-l-4 border-[#d4af37] bg-[#0a192f] px-2.5 py-1.5 text-center font-serif leading-none text-[#d4af37]">
                             <div className="text-[7px] font-semibold tracking-[0.25em] text-white">HOTEL</div><div className="text-base font-black">SKY 5</div>
@@ -184,7 +195,7 @@ export default function StaffAttendance() {
                     <span data-testid="att-online" className={cn('flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-1 text-[9px] min-[360px]:px-2.5 min-[360px]:text-[10px] font-black tracking-widest uppercase', online ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-red-200 bg-red-50 text-red-700')}>
                         <span className={cn('size-1.5 rounded-full', online ? 'animate-pulse bg-emerald-500' : 'bg-red-500')} />{online ? 'Online' : 'Offline'}
                     </span>
-                </header>
+                </div>
 
                 {error && <div role="alert" data-testid="att-error" className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</div>}
 
@@ -240,15 +251,15 @@ export default function StaffAttendance() {
                         </div>
 
                         <div className="text-center">
-                            <div className="text-[2.5rem] leading-none font-black tracking-tight text-[#0a192f] tabular-nums min-[360px]:text-5xl" data-testid="att-clock">{clock.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\s?(AM|PM)$/, '')}<span className="ml-1.5 text-xl font-black text-[#8a6d10]">{clock.getHours() < 12 ? 'AM' : 'PM'}</span></div>
+                            <div className="text-[2.5rem] leading-none font-black tracking-tight text-[#0a192f] tabular-nums min-[360px]:text-5xl [@media(max-height:520px)]:text-4xl" data-testid="att-clock">{clock.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\s?(AM|PM)$/, '')}<span className="ml-1.5 text-xl font-black text-[#8a6d10]">{clock.getHours() < 12 ? 'AM' : 'PM'}</span></div>
                             <div className="mt-1 text-[10px] font-black tracking-[0.2em] text-slate-600 uppercase">{clock.toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}</div>
                         </div>
 
                         {/* main panel: standby with the two buttons, or the live camera */}
-                        <div className="relative h-[44vh] min-h-72 overflow-hidden rounded-[2rem] border-b-4 border-[#d4af37] bg-[#0a192f] shadow-xl">
+                        <div className="relative h-[44vh] min-h-72 overflow-hidden rounded-[2rem] [@media(max-height:520px)]:h-auto [@media(max-height:520px)]:min-h-0 border-b-4 border-[#d4af37] bg-[#0a192f] shadow-xl">
                             {step === 'camera' ? (
                                 <>
-                                    <video ref={videoRef} data-testid="att-video" playsInline muted className="size-full -scale-x-100 object-cover" />
+                                    <video ref={videoRef} data-testid="att-video" playsInline muted className="size-full -scale-x-100 object-cover [@media(max-height:520px)]:h-[52vh]" />
                                     <div className="absolute top-4 left-4 flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3 py-1 backdrop-blur-md">
                                         <span className="size-1.5 animate-pulse rounded-full bg-[#d4af37]" />
                                         <span className="text-[9px] font-black tracking-widest text-white uppercase">Camera active</span>
@@ -272,13 +283,13 @@ export default function StaffAttendance() {
                                     <span className="text-xs font-black tracking-widest uppercase">Saving…</span>
                                 </div>
                             ) : (
-                                <div className="flex size-full flex-col items-center justify-center bg-gradient-to-br from-[#0a192f] via-[#112240] to-[#0a192f] p-6 text-white">
-                                    <div className="mb-3 rounded-xl border border-[#d4af37]/60 px-3 py-1 text-center font-serif leading-none text-[#d4af37]">
+                                <div className="flex size-full flex-col items-center justify-center bg-gradient-to-br from-[#0a192f] via-[#112240] to-[#0a192f] p-6 text-white [@media(max-height:520px)]:p-4">
+                                    <div className="mb-3 rounded-xl border border-[#d4af37]/60 px-3 py-1 text-center font-serif leading-none text-[#d4af37] [@media(max-height:520px)]:hidden">
                                         <div className="text-[8px] tracking-[0.3em]">HOTEL</div><div className="text-xl font-black">SKY 5</div>
                                     </div>
                                     <h2 data-testid={action === 'wait' ? 'att-wait' : undefined} className="mb-1 text-lg font-black tracking-tight">{!ready ? 'Loading…' : action === 'wait' ? 'Saved ✓' : 'Ready to scan'}</h2>
                                     <p className="mb-5 text-center text-[10px] font-bold tracking-[0.15em] text-slate-300 uppercase">
-                                        {action === 'wait' ? 'You can tap again after 2 minutes' : 'Camera off · tap below to scan'}
+                                        {action === 'wait' ? `Check-out opens in ${formatWait(waitLeft)}` : 'Camera off · tap below to scan'}
                                     </p>
                                     {nightShift && <div data-testid="att-night" className="mb-3 rounded-lg bg-white/10 px-3 py-1.5 text-center text-[11px] font-semibold text-amber-200">Night shift from {log.date} is still open: CHECK OUT closes it.</div>}
                                     <div className="grid w-full max-w-xs grid-cols-2 gap-3">{tapButton('in')}{tapButton('out')}</div>

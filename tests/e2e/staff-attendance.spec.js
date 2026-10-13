@@ -52,6 +52,8 @@ test('check in, 2-minute guard, rolling check out; the register shows the selfie
     await page.getByRole('button', { name: 'Done' }).click();
     await expect(page.getByTestId('att-in-time')).toHaveText(inTime);
     await expect(page.getByTestId('att-wait')).toBeVisible(); // a second tap right away does nothing
+    await expect(page.getByTestId('att-wait-count')).toHaveText(/in [12]:\d\d/); // the countdown is on the CHECK OUT button
+    await expect(page.getByTestId('att-tap-off-out')).toBeDisabled();
 
     // the phone remembers who this is
     await page.reload();
@@ -186,8 +188,7 @@ for (const [w, h, label] of [[320, 568, 'small phone'], [360, 740, 'normal phone
         await page.getByTestId('att-tap').scrollIntoViewIfNeeded();
         await page.getByTestId('att-tap').click();
         await expect(page.getByTestId('att-video')).toBeVisible();
-        await page.getByTestId('att-capture').scrollIntoViewIfNeeded();
-        await expect(page.getByTestId('att-capture')).toBeInViewport();
+        await expect(page.getByTestId('att-capture')).toBeInViewport(); // on screen without scrolling, also sideways
         await noOverflow();
         await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
         await page.getByTestId('att-capture').click();
@@ -197,6 +198,16 @@ for (const [w, h, label] of [[320, 568, 'small phone'], [360, 740, 'normal phone
         await expect(page.getByRole('button', { name: 'Done' })).toBeInViewport();
     });
 }
+
+test('after choosing a name the screen starts at the top and the title bar does not cover the panel', async ({ page }) => {
+    await page.setViewportSize({ width: 740, height: 360 }); // phone sideways: the name list is long
+    await page.getByTestId('att-pick-Amresh Kumar').scrollIntoViewIfNeeded();
+    await page.getByTestId('att-pick-Amresh Kumar').click();
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+    const pos = await page.getByRole('banner').evaluate(el => getComputedStyle(el).position);
+    expect(pos).not.toBe('sticky');
+    expect(pos).not.toBe('fixed');
+});
 
 test('camera refused: clear message, nothing saved', async ({ page, context }) => {
     await context.clearPermissions();
