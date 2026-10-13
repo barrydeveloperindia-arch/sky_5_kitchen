@@ -25,6 +25,18 @@ service cloud.firestore {
       allow read, write: if signedIn();
     }
 
+    // Selfie proof for staff self check-in / check-out (/attendance). Create once, never changed or deleted.
+    match /hotel_attendance_photos/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['logId', 'kind', 'staffName', 'at', 'data'])
+        && request.resource.data.kind in ['in', 'out']
+        && request.resource.data.logId is string && request.resource.data.staffName is string
+        && request.resource.data.data is string && request.resource.data.data.matches('data:image/jpeg;base64,.*')
+        && request.resource.data.data.size() <= 150000;
+      allow update, delete: if false;
+    }
+
     // Money fields must be real, non-negative numbers when present
     function okMoney(d, k) { return !(k in d) || (d[k] is number && d[k] >= 0); }
     // Basic shape checks so a bad or garbled save can never corrupt a room bill or a settlement

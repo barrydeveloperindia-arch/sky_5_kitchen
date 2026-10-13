@@ -1,0 +1,103 @@
+import { describe, test, expect } from 'vitest';
+import {
+    dayKey, isoDate, staffNames, findTodayLog, findActiveLog, nextAction, tapUpdate, workedHours, formatHours, logIdFor, toLoc, mapLink, DUPLICATE_GUARD_MS,
+} from '../../02_Application_Source/lib/staffAttendance';
+
+const at = new Date(2026, 9, 13, 9, 5); // 13 Oct 2026, 09:05 local
+
+describe('staff self check-in / check-out', () => {
+    test('date keys match the register ("13-Oct") and keep the year beside it', () => {
+        expect(dayKey(at)).toBe('13-Oct');
+        expect(isoDate(at)).toBe('2026-10-13');
+    });
+
+    test('staff list: every registry name once, in register order, blanks skipped', () => {
+        const reg = { reception: [{ name: 'Ganga', role: 'Front Desk' }], kitchen: [{ name: 'Varun' }, { name: ' ' }], housekeeping: [{ name: 'Varun' }, { name: 'Veervati' }] };
+        expect(staffNames(reg).map(s => s.name)).toEqual(['Ganga', 'Varun', 'Veervati']);
+        expect(staffNames(null)).toEqual([]);
+    });
+
+    test("today's row: same name + date; last year's 13-Oct and deleted rows do not count", () => {
+        const logs = [
+            { id: 1, staffName: 'Varun', date: '13-Oct', dateISO: '2025-10-13', checkIn: '09:00 AM' },
+            { id: 2, staffName: 'Varun', date: '13-Oct', checkIn: '--', deleted: true },
+            { id: 3, staffName: 'Ganga', date: '13-Oct', checkIn: '--' },
+        ];
+        expect(findTodayLog(logs, 'Varun', at)).toBeNull();
+        expect(findTodayLog(logs, 'Ganga', at).id).toBe(3); // a manager-made row is reused, not duplicated
+        expect(findTodayLog([...logs, { id: 4, staffName: 'Varun', date: '13-Oct', dateISO: '2026-10-13' }], 'Varun', at).id).toBe(4);
+    });
+
+    test('first tap = check-in, later taps = check-out, a tap inside 2 minutes is ignored', () => {
+        const t = at.getTime();
+        expect(nextAction(null, t)).toBe('in');
+        expect(nextAction({ checkIn: '--' }, t)).toBe('in');
+        const inLog = { checkIn: '09:05 AM', inAt: at.toISOString() };
+        expect(nextAction(inLog, t + 60_000)).toBe('wait');
+        expect(nextAction(inLog, t + DUPLICATE_GUARD_MS)).toBe('out');
+        const outLog = { ...inLog, outAt: new Date(t + 8 * 3600_000).toISOString() };
+        expect(nextAction(outLog, t + 8 * 3600_000 + 30_000)).toBe('wait');
+        expect(nextAction(outLog, t + 9 * 3600_000)).toBe('out'); // rolling check-out: the last tap counts
+        expect(nextAction({ checkIn: '09:00 AM' }, t)).toBe('out'); // manager typed the check-in (no timestamp)
+    });
+
+    test('tap fields: check-in sets Present + proof; check-out sets the time, hours and proof', () => {
+        const loc = { lat: 30.69, lng: 76.85, acc: 12 };
+        const inF = tapUpdate(null, 'in', { at, photoId: 'p1', loc });
+        expect(inF).toMatchObject({ checkIn: '09:05 AM', inAt: at.toISOString(), inPhotoId: 'p1', inLoc: loc, status: 'Present', source: 'staff-web' });
+        const later = new Date(at.getTime() + (8 * 60 + 30) * 60_000);
+        const outF = tapUpdate({ ...inF }, 'out', { at: later, photoId: 'p2', loc: null });
+        expect(outF).toMatchObject({ checkOut: '05:35 PM', outPhotoId: 'p2', outLoc: null, hours: 8.5 });
+        expect(tapUpdate({ checkIn: '09:00 AM' }, 'out', { at: later }).hours).toBeUndefined(); // no check-in timestamp, no made-up hours
+    });
+
+    test('hours and labels', () => {
+        expect(workedHours({ inAt: '2026-10-13T03:30:00Z', outAt: '2026-10-13T12:45:00Z' })).toBe(9.25);
+        expect(workedHours({ inAt: '2026-10-13T03:30:00Z' })).toBeNull();
+        expect(workedHours({ inAt: '2026-10-13T05:00:00Z', outAt: '2026-10-13T04:00:00Z' })).toBeNull();
+        expect(formatHours(9.25)).toBe('9h 15m');
+        expect(formatHours(null)).toBe('--');
+    });
+
+    test('one record id per person per day, safe characters only', () => {
+        expect(logIdFor('Mohammad Hafeez', '2026-10-13')).toBe('self-2026-10-13-mohammad-hafeez');
+        expect(logIdFor('  A/B ', '2026-10-13')).toBe('self-2026-10-13-a-b');
+    });
+
+    test('location rounded, bad readings dropped, map link', () => {
+        expect(toLoc({ coords: { latitude: 30.6942123, longitude: 76.8606789, accuracy: 14.6 } })).toEqual({ lat: 30.69421, lng: 76.86068, acc: 15 });
+        expect(toLoc({ coords: { latitude: NaN, longitude: 1 } })).toBeNull();
+        expect(toLoc(null)).toBeNull();
+        expect(mapLink({ lat: 1, lng: 2 })).toBe('https://www.google.com/maps?q=1,2');
+    });
+});
+
+describe('night shift (check-in last night, check-out this morning)', () => {
+    const inAt = new Date(2026, 9, 12, 19, 0); // 12 Oct 19:00
+    const night = { id: 'n1', staffName: 'Ratnesh', date: '12-Oct', dateISO: '2026-10-12', checkIn: '07:00 PM', inAt: inAt.toISOString(), checkOut: '--' };
+
+    test("next morning's tap closes last night's row", () => {
+        const morning = new Date(2026, 9, 13, 8, 30);
+        expect(findActiveLog([night], 'Ratnesh', morning)?.id).toBe('n1');
+        expect(nextAction(findActiveLog([night], 'Ratnesh', morning), morning.getTime())).toBe('out');
+    });
+
+    test('after the morning check-out, later taps still move that check-out (rolling)', () => {
+        const out = { ...night, checkOut: '08:30 AM', outAt: new Date(2026, 9, 13, 8, 30).toISOString() };
+        expect(findActiveLog([out], 'Ratnesh', new Date(2026, 9, 13, 8, 45))?.id).toBe('n1');
+    });
+
+    test('a new day starts fresh: checked out before midnight, older than 16 h, or a day row already exists', () => {
+        const wentHome = { ...night, checkOut: '11:30 PM', outAt: new Date(2026, 9, 12, 23, 30).toISOString() };
+        expect(findActiveLog([wentHome], 'Ratnesh', new Date(2026, 9, 13, 8, 30))).toBeNull();
+        expect(findActiveLog([night], 'Ratnesh', new Date(2026, 9, 13, 11, 1))).toBeNull(); // 16 h 01 m later
+        const today = { id: 't1', staffName: 'Ratnesh', date: '13-Oct', dateISO: '2026-10-13', checkIn: '--' };
+        expect(findActiveLog([night, today], 'Ratnesh', new Date(2026, 9, 13, 8, 30)).id).toBe('t1');
+        expect(findActiveLog([{ ...night, inAt: undefined }], 'Ratnesh', new Date(2026, 9, 13, 8, 30))).toBeNull(); // typed by hand, no timestamp
+    });
+
+    test('day staff: yesterday morning check-in does not carry over to today', () => {
+        const day = { ...night, staffName: 'Varun', checkIn: '07:00 AM', inAt: new Date(2026, 9, 12, 7, 0).toISOString() };
+        expect(findActiveLog([day], 'Varun', new Date(2026, 9, 13, 7, 0))).toBeNull();
+    });
+});

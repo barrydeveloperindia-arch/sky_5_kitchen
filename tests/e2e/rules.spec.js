@@ -41,3 +41,14 @@ test('inventory: an entry cannot be edited, only soft-deleted', async ({ request
     expect((await request.patch(`${base}/inventory_transactions/t1?updateMask.fieldPaths=qty`, { headers: { Authorization: `Bearer ${user}` }, data: { fields: { qty: v(200) } } })).status()).toBe(403);
     expect((await request.patch(`${base}/inventory_transactions/t1?updateMask.fieldPaths=deleted`, { headers: { Authorization: `Bearer ${user}` }, data: { fields: { deleted: { booleanValue: true } } } })).status()).toBe(200);
 });
+
+test('attendance selfies: a JPEG under the size limit is saved once, never changed or deleted', async ({ request }) => {
+    const photo = { logId: 'self-x', kind: 'in', staffName: 'QA', at: '2026-10-13T03:30:00Z', data: 'data:image/jpeg;base64,AAAA' };
+    expect((await put(request, 'hotel_attendance_photos/p1', photo)).status()).toBe(200);
+    expect((await put(request, 'hotel_attendance_photos/p1', { ...photo, staffName: 'Someone else' })).status()).toBe(403);
+    expect((await request.delete(`${base}/hotel_attendance_photos/p1`, { headers: { Authorization: `Bearer ${user}` } })).status()).toBe(403);
+    expect((await put(request, 'hotel_attendance_photos/p2', { ...photo, data: 'data:text/html;base64,AAAA' })).status()).toBe(403);
+    expect((await put(request, 'hotel_attendance_photos/p3', { ...photo, data: 'data:image/jpeg;base64,' + 'A'.repeat(150001) })).status()).toBe(403);
+    expect((await put(request, 'hotel_attendance_photos/p4', { ...photo, kind: 'x' })).status()).toBe(403);
+    expect((await put(request, 'hotel_attendance_photos/p5', photo, null)).status()).toBe(403);
+});

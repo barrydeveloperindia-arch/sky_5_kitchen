@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from 'react';
 import ShopView from './components/ShopView';
 import AdminDashboard from './components/AdminDashboard';
 import StaffInventory from './components/StaffInventory';
+import StaffAttendance from './components/StaffAttendance';
 import { combos } from './data/combos';
 import { rooms as roomData, liveSeedRooms } from './data/rooms';
 import { parseRoomNumber, addFoodBillToRoom } from './lib/billing';
@@ -9,7 +10,10 @@ import { IS_TEST_ENV } from './lib/firebase';
 import { useSyncedCollection, useSyncedDoc } from './lib/syncedState';
 
 // Staff get a direct link to /inventory (vercel.json rewrites every path to index.html)
-const isStaffInventory = window.location.pathname.replace(/\/+$/, '') === '/inventory';
+const staffPath = window.location.pathname.replace(/\/+$/, '');
+const isStaffInventory = staffPath === '/inventory';
+// Staff check-in / check-out on their own phone (share link: /attendance)
+const isStaffAttendance = staffPath === '/attendance';
 
 // Live data starts clean: every room free, no guests, no orders. The sample guests/orders
 // exist only in the test environment (E2E fixtures), never in the live hotel data.
@@ -83,7 +87,7 @@ function HotelApp() {
 
 function App() {
   // .legacy keeps the existing screens on browser defaults (see styles/ui.css); new shadcn screens use .ui
-  return <div className="legacy">{isStaffInventory ? <StaffInventory /> : <HotelApp />}</div>;
+  return <div className="legacy">{isStaffAttendance ? <StaffAttendance /> : isStaffInventory ? <StaffInventory /> : <HotelApp />}</div>;
 }
 
 export default App;
