@@ -11,12 +11,12 @@ test.beforeEach(async ({ page, context, request }, testInfo) => {
     EMU_PROJECT = await setupInventoryTest({ page, context, request }, testInfo);
 });
 
-test('opens straight away (no PIN) with 70 items, default Min. Level 1 and known alerts', async ({ page }) => {
+test('opens straight away (no PIN) with 83 items, default Min. Level 1 and known alerts', async ({ page }) => {
     const errors = trackErrors(page);
     await openInventory(page);
     await expect(page.getByTestId('pin-gate')).toHaveCount(0);
-    await expect(page.locator('[data-testid^="inv-row-"]')).toHaveCount(70);
-    await expect(page.getByTestId('inv-kpi-total')).toContainText('70');
+    await expect(page.locator('[data-testid^="inv-row-"]')).toHaveCount(83);
+    await expect(page.getByTestId('inv-kpi-total')).toContainText('83');
     await expect(page.getByTestId('inv-kpi-alerts')).toContainText('2');
     await expect(page.getByTestId('inv-kpi-today')).toContainText('0');
     await expect(row(page, SOAP).getByTestId('inv-current')).toHaveText('120');
@@ -137,9 +137,9 @@ test('share: PDF report and WhatsApp carry full per-item detail', async ({ page 
     const viewer = page.getByTestId('inv-viewer');
     await expect(viewer).toBeVisible();
     const frame = page.frameLocator('[data-testid="inv-report-frame"]');
-    await expect(frame.getByText('Full stock (70 items)')).toBeVisible();
+    await expect(frame.getByText('Full stock (83 items)')).toBeVisible();
     await expect(frame.getByText('Room 5, 7')).toBeVisible();
-    await expect(frame.locator('td.mono')).toHaveCount(70);
+    await expect(frame.locator('td.mono')).toHaveCount(83);
     const [pdfDl] = await Promise.all([page.waitForEvent('download'), page.getByTestId('inv-pdf-download').click()]);
     expect(pdfDl.suggestedFilename()).toMatch(/^HotelSky5_Inventory_\d{4}-\d{2}-\d{2}\.pdf$/);
     const pdf = fs.readFileSync(await pdfDl.path());
@@ -160,7 +160,7 @@ test('share: PDF report and WhatsApp carry full per-item detail', async ({ page 
     const text = decodeURIComponent(wa.split('text=')[1]);
     expect(text).toContain('*HOTEL SKY 5 - INVENTORY REPORT*');
     expect(text).toContain(`${SOAP} Hotel Soap: 110 Pcs`);
-    expect(text.match(/^SKY-[A-Z]{2}-\d{3} /gm)).toHaveLength(70);
+    expect(text.match(/^SKY-[A-Z]{2}-\d{3} /gm)).toHaveLength(83);
     expect(text).toContain('/inventory');
 });
 
@@ -168,8 +168,9 @@ test('KPI tiles open their full list', async ({ page }) => {
     await openInventory(page);
     await page.getByTestId('inv-kpi-reorder').click();
     const viewer = page.getByTestId('inv-viewer');
-    await expect(viewer).toContainText('Reorder now (7)');
-    await expect(viewer.locator('[data-testid^="inv-viewer-row-"]')).toHaveCount(7);
+    // 7 from the first count + Bed Sheet (blank on the 13-10 register = 0) + Glass Duster (1, Min 1)
+    await expect(viewer).toContainText('Reorder now (9)');
+    await expect(viewer.locator('[data-testid^="inv-viewer-row-"]')).toHaveCount(9);
     await expect(viewer).toContainText('Duster Towel');
     await page.getByTestId('inv-viewer-close').click();
 
@@ -184,7 +185,7 @@ test('KPI tiles open their full list', async ({ page }) => {
     await expect(viewer).toHaveCount(0);
 
     await page.getByTestId('inv-kpi-total').click();
-    await expect(viewer.locator('[data-testid^="inv-viewer-row-"]')).toHaveCount(70);
+    await expect(viewer.locator('[data-testid^="inv-viewer-row-"]')).toHaveCount(83);
     await page.getByTestId('inv-viewer-close').click();
 
     await page.getByTestId('inv-kpi-today').click();
@@ -213,8 +214,8 @@ test('filters, Excel export, and save button not sticky', async ({ page }) => {
     await expect(row(page, SOAP).getByTestId('inv-current')).toHaveText('110');
     const [stockDl] = await Promise.all([page.waitForEvent('download'), page.getByTestId('inv-export-stock').click()]);
     const stock = fs.readFileSync(await stockDl.path(), 'utf8');
-    expect(stock.split('\r\n')).toHaveLength(71);
-    expect(stock).toContain(`${SOAP},Hotel Soap,Guest Amenities,Pcs,70,40,120,0,10,110,1,Good,OK`); // OUT 10 from Basement
+    expect(stock.split('\r\n')).toHaveLength(84);
+    expect(stock).toContain(`${SOAP},Hotel Soap,Guest Amenities,Pcs,70,40,0,120,0,10,110,1,Good,OK`); // OUT 10 from Basement
     const [regDl] = await Promise.all([page.waitForEvent('download'), page.getByTestId('inv-export-register').click()]);
     expect(fs.readFileSync(await regDl.path(), 'utf8')).toContain('"Room 5, 7"');
 

@@ -6,7 +6,8 @@
 
 export const COUNT_DATES = {
     "Kitchen (Upar)": "23-09-2026",
-    "Basement Store": "29-09-2026"
+    "Basement Store": "29-09-2026",
+    "Laundry & Housekeeping": "13-10-2026"
 };
 
 export const LOCATIONS = Object.keys(COUNT_DATES);
@@ -517,6 +518,148 @@ export const registerLists = [
         "note": "Empty cylinders - book refill"
       }
     ]
+  },
+  {
+    "location": "Laundry & Housekeeping",
+    "title": "Laundry stock (13-10-2026)",
+    "lines": [
+      {
+        "sr": 1,
+        "code": "SKY-LN-001",
+        "qty": 12,
+        "asWritten": "Towel 6+6"
+      },
+      {
+        "sr": 2,
+        "code": "SKY-LN-002",
+        "qty": 7,
+        "asWritten": "Hand Towel"
+      },
+      {
+        "sr": 3,
+        "code": "SKY-LN-003",
+        "qty": 5,
+        "asWritten": "Pillow"
+      },
+      {
+        "sr": 4,
+        "code": "SKY-LN-004",
+        "qty": 0,
+        "asWritten": "Bed Sheet —",
+        "note": "Quantity left blank on the 13-10 register - please count and confirm"
+      },
+      {
+        "sr": 5,
+        "code": "SKY-LN-005",
+        "qty": 8,
+        "asWritten": "Runner",
+        "note": "A second \"Runner - 8\" line is struck out on the register and not counted"
+      },
+      {
+        "sr": 6,
+        "code": "SKY-LN-006",
+        "qty": 30,
+        "asWritten": "Pillow Cover"
+      },
+      {
+        "sr": 7,
+        "code": "SKY-LN-007",
+        "qty": 3,
+        "asWritten": "Cushion"
+      },
+      {
+        "sr": 8,
+        "code": "SKY-LN-008",
+        "qty": 5,
+        "asWritten": "Rajai Cover"
+      },
+      {
+        "sr": 9,
+        "code": "SKY-LN-009",
+        "qty": 7,
+        "asWritten": "Cushion Cover"
+      },
+      {
+        "sr": 10,
+        "code": "SKY-LN-010",
+        "qty": 2,
+        "asWritten": "Curtion"
+      },
+      {
+        "sr": 11,
+        "code": "SKY-LN-011",
+        "qty": 4,
+        "asWritten": "folding Mattres"
+      }
+    ]
+  },
+  {
+    "location": "Laundry & Housekeeping",
+    "title": "Housekeeping (13-10-2026)",
+    "lines": [
+      {
+        "sr": 1,
+        "code": "SKY-GA-005",
+        "qty": 10,
+        "asWritten": "Toilet Roll - 10 Pc"
+      },
+      {
+        "sr": 2,
+        "code": "SKY-CC-009",
+        "qty": 2.5,
+        "asWritten": "tile Cleaner - 2.5 Ltr"
+      },
+      {
+        "sr": 3,
+        "code": "SKY-CC-007",
+        "qty": 1,
+        "asWritten": "Phynyel - 1 Ltr"
+      },
+      {
+        "sr": 4,
+        "code": "SKY-GA-004",
+        "qty": 2.5,
+        "asWritten": "Shower gel - 2.5 Ltr"
+      },
+      {
+        "sr": 5,
+        "code": "SKY-CC-002",
+        "qty": 1.5,
+        "asWritten": "Colinc - 1.5 Ltr"
+      },
+      {
+        "sr": 6,
+        "code": "SKY-GA-001",
+        "qty": 4.5,
+        "asWritten": "Hand wash - 4.5 Ltr"
+      },
+      {
+        "sr": 7,
+        "code": "SKY-CC-010",
+        "qty": 12,
+        "asWritten": "Room freshner - 12 Ltr",
+        "note": "Earlier figure crossed out on the register; 12 Ltr written beside it"
+      },
+      {
+        "sr": 8,
+        "code": "SKY-HK-018",
+        "qty": 1,
+        "asWritten": "Glass duster - 1 Pc"
+      },
+      {
+        "sr": 9,
+        "code": "SKY-HK-005",
+        "qty": 17,
+        "asWritten": "Garbage Bag Big - 17 Pc"
+      },
+      {
+        "sr": 10,
+        "code": "SKY-CC-004",
+        "qty": 2.5,
+        "asWritten": "dishwasher - 2.5 Ltr",
+        "note": "Read as Dish Wash liquid (same Ltr unit) - confirm"
+      }
+    ]
   }
 ];
 
@@ -529,7 +672,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 1,
-      "Basement Store": 5
+      "Basement Store": 5,
+      "Laundry & Housekeeping": 4.5
     }
   },
   {
@@ -540,7 +684,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 70,
-      "Basement Store": 50
+      "Basement Store": 50,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -551,7 +696,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 4,
-      "Basement Store": 0
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -562,7 +708,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 5,
-      "Basement Store": 15
+      "Basement Store": 15,
+      "Laundry & Housekeeping": 2.5
     }
   },
   {
@@ -573,7 +720,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 11,
-      "Basement Store": 10
+      "Basement Store": 10,
+      "Laundry & Housekeeping": 10
     }
   },
   {
@@ -584,7 +732,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 0,
-      "Basement Store": 3
+      "Basement Store": 3,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -595,7 +744,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 0,
-      "Basement Store": 14
+      "Basement Store": 14,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -606,7 +756,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 0,
-      "Basement Store": 1
+      "Basement Store": 1,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -617,7 +768,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 0,
-      "Basement Store": 11
+      "Basement Store": 11,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -628,7 +780,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 29,
-      "Basement Store": 20
+      "Basement Store": 20,
+      "Laundry & Housekeeping": 17
     }
   },
   {
@@ -639,7 +792,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 2,
-      "Basement Store": 0
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -651,7 +805,8 @@ export const inventoryItems = [
     "note": "Basement Store: Figure overwritten in register (14 or 4) - please confirm",
     "opening": {
       "Kitchen (Upar)": 0,
-      "Basement Store": 14
+      "Basement Store": 14,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -662,7 +817,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 0,
-      "Basement Store": 1
+      "Basement Store": 1,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -674,7 +830,8 @@ export const inventoryItems = [
     "note": "Inventory Stock: Read as phenyl goli = naphthalene balls",
     "opening": {
       "Kitchen (Upar)": 2,
-      "Basement Store": 13
+      "Basement Store": 13,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -685,7 +842,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 0,
-      "Basement Store": 1
+      "Basement Store": 1,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -696,7 +854,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 0,
-      "Basement Store": 5
+      "Basement Store": 5,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -707,7 +866,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 0,
-      "Basement Store": 5
+      "Basement Store": 5,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -718,7 +878,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 0,
-      "Basement Store": 12
+      "Basement Store": 12,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -729,7 +890,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 0,
-      "Basement Store": 3
+      "Basement Store": 3,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -740,7 +902,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 0,
-      "Basement Store": 5
+      "Basement Store": 5,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -751,7 +914,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 0,
-      "Basement Store": 6
+      "Basement Store": 6,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -763,7 +927,8 @@ export const inventoryItems = [
     "note": "Basement Store: Qty column in register sits slightly above the item lines; matched row by row",
     "opening": {
       "Kitchen (Upar)": 0,
-      "Basement Store": 1
+      "Basement Store": 1,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -774,7 +939,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 0,
-      "Basement Store": 5
+      "Basement Store": 5,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -785,7 +951,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 5,
-      "Basement Store": 0
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 1.5
     }
   },
   {
@@ -796,7 +963,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 0,
-      "Basement Store": 4
+      "Basement Store": 4,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -807,7 +975,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 0,
-      "Basement Store": 5
+      "Basement Store": 5,
+      "Laundry & Housekeeping": 2.5
     }
   },
   {
@@ -818,7 +987,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 2,
-      "Basement Store": 5
+      "Basement Store": 5,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -829,7 +999,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 0,
-      "Basement Store": 9
+      "Basement Store": 9,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -840,7 +1011,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 4.5,
-      "Basement Store": 0
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 1
     }
   },
   {
@@ -851,7 +1023,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 0,
-      "Basement Store": 5
+      "Basement Store": 5,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -862,7 +1035,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 3,
-      "Basement Store": 5
+      "Basement Store": 5,
+      "Laundry & Housekeeping": 2.5
     }
   },
   {
@@ -873,7 +1047,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 103,
-      "Basement Store": 100
+      "Basement Store": 100,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -884,7 +1059,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 25,
-      "Basement Store": 0
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -895,7 +1071,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 0,
-      "Basement Store": 50
+      "Basement Store": 50,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -906,7 +1083,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 27,
-      "Basement Store": 0
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -917,7 +1095,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 0,
-      "Basement Store": 300
+      "Basement Store": 300,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -928,7 +1107,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 70,
-      "Basement Store": 0
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -939,7 +1119,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 0,
-      "Basement Store": 3
+      "Basement Store": 3,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -951,7 +1132,8 @@ export const inventoryItems = [
     "note": "Inventory Stock: Figure read as 96 (could be 36) - please confirm",
     "opening": {
       "Kitchen (Upar)": 96,
-      "Basement Store": 0
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -962,7 +1144,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 0,
-      "Basement Store": 300
+      "Basement Store": 300,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -973,7 +1156,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 0,
-      "Basement Store": 6
+      "Basement Store": 6,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -984,7 +1168,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 0,
-      "Basement Store": 28
+      "Basement Store": 28,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -995,7 +1180,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 0,
-      "Basement Store": 56
+      "Basement Store": 56,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -1006,7 +1192,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 12,
-      "Basement Store": 0
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -1017,7 +1204,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 0,
-      "Basement Store": 14
+      "Basement Store": 14,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -1029,7 +1217,8 @@ export const inventoryItems = [
     "note": "Basement Store: EXPIRED as per register - do not serve; arrange return/disposal",
     "opening": {
       "Kitchen (Upar)": 0,
-      "Basement Store": 83
+      "Basement Store": 83,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -1040,7 +1229,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 17,
-      "Basement Store": 0
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -1051,7 +1241,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 12,
-      "Basement Store": 0
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -1063,7 +1254,8 @@ export const inventoryItems = [
     "note": "Crockery & Serveware: Figure read as 10",
     "opening": {
       "Kitchen (Upar)": 10,
-      "Basement Store": 0
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -1074,7 +1266,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 26,
-      "Basement Store": 0
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -1085,7 +1278,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 17,
-      "Basement Store": 0
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -1096,7 +1290,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 17,
-      "Basement Store": 0
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -1107,7 +1302,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 4,
-      "Basement Store": 0
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -1118,7 +1314,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 15,
-      "Basement Store": 0
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -1129,7 +1326,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 12,
-      "Basement Store": 0
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -1140,7 +1338,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 6,
-      "Basement Store": 0
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -1151,7 +1350,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 12,
-      "Basement Store": 0
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -1162,7 +1362,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 11,
-      "Basement Store": 0
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -1173,7 +1374,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 21,
-      "Basement Store": 0
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -1184,7 +1386,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 32,
-      "Basement Store": 0
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -1195,7 +1398,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 2,
-      "Basement Store": 0
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -1206,7 +1410,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 1,
-      "Basement Store": 0
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -1217,7 +1422,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 2,
-      "Basement Store": 0
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -1229,7 +1435,8 @@ export const inventoryItems = [
     "note": "Crockery & Serveware: Read as \"Ice Pack\" - please confirm item",
     "opening": {
       "Kitchen (Upar)": 4,
-      "Basement Store": 0
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -1240,7 +1447,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 7,
-      "Basement Store": 0
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -1251,7 +1459,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 4,
-      "Basement Store": 0
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -1262,7 +1471,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 0,
-      "Basement Store": 5
+      "Basement Store": 5,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -1274,7 +1484,8 @@ export const inventoryItems = [
     "note": "Basement Store: Empty cylinders - book refill",
     "opening": {
       "Kitchen (Upar)": 0,
-      "Basement Store": 2
+      "Basement Store": 2,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -1285,7 +1496,8 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 0,
-      "Basement Store": 1
+      "Basement Store": 1,
+      "Laundry & Housekeeping": 0
     }
   },
   {
@@ -1296,7 +1508,164 @@ export const inventoryItems = [
     "condition": "Good",
     "opening": {
       "Kitchen (Upar)": 0,
-      "Basement Store": 1
+      "Basement Store": 1,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-LN-001",
+    "name": "Towel",
+    "category": "Linen & Laundry",
+    "unit": "Pcs",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 0,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 12
+    }
+  },
+  {
+    "code": "SKY-LN-002",
+    "name": "Hand Towel",
+    "category": "Linen & Laundry",
+    "unit": "Pcs",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 0,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 7
+    }
+  },
+  {
+    "code": "SKY-LN-003",
+    "name": "Pillow",
+    "category": "Linen & Laundry",
+    "unit": "Pcs",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 0,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 5
+    }
+  },
+  {
+    "code": "SKY-LN-004",
+    "name": "Bed Sheet",
+    "category": "Linen & Laundry",
+    "unit": "Pcs",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 0,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-LN-005",
+    "name": "Runner",
+    "category": "Linen & Laundry",
+    "unit": "Pcs",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 0,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 8
+    }
+  },
+  {
+    "code": "SKY-LN-006",
+    "name": "Pillow Cover",
+    "category": "Linen & Laundry",
+    "unit": "Pcs",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 0,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 30
+    }
+  },
+  {
+    "code": "SKY-LN-007",
+    "name": "Cushion",
+    "category": "Linen & Laundry",
+    "unit": "Pcs",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 0,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 3
+    }
+  },
+  {
+    "code": "SKY-LN-008",
+    "name": "Rajai Cover",
+    "category": "Linen & Laundry",
+    "unit": "Pcs",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 0,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 5
+    }
+  },
+  {
+    "code": "SKY-LN-009",
+    "name": "Cushion Cover",
+    "category": "Linen & Laundry",
+    "unit": "Pcs",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 0,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 7
+    }
+  },
+  {
+    "code": "SKY-LN-010",
+    "name": "Curtain",
+    "category": "Linen & Laundry",
+    "unit": "Pcs",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 0,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 2
+    }
+  },
+  {
+    "code": "SKY-LN-011",
+    "name": "Folding Mattress",
+    "category": "Linen & Laundry",
+    "unit": "Pcs",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 0,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 4
+    }
+  },
+  {
+    "code": "SKY-CC-010",
+    "name": "Room Freshener",
+    "category": "Cleaning Chemicals",
+    "unit": "Ltr",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 0,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 12
+    }
+  },
+  {
+    "code": "SKY-HK-018",
+    "name": "Glass Duster",
+    "category": "Housekeeping Supplies",
+    "unit": "Pcs",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 0,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 1
     }
   }
 ];

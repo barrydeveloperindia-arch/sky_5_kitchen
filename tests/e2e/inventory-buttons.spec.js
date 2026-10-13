@@ -168,7 +168,7 @@ test('location lists: Kitchen and Basement registers in Sr. No. order with count
     await expect(list.getByTestId('inv-list-row-2-12').getByTestId('inv-list-now')).toHaveText('50'); // Hotel Soap basement
 
     await page.getByTestId('inv-loc-all').click();
-    await expect(page.locator('[data-testid^="inv-row-"]')).toHaveCount(70);
+    await expect(page.locator('[data-testid^="inv-row-"]')).toHaveCount(83);
 });
 
 test('PDF report and WhatsApp include both location lists', async ({ page }) => {
@@ -176,7 +176,7 @@ test('PDF report and WhatsApp include both location lists', async ({ page }) => 
     const frame = page.frameLocator('[data-testid="inv-report-frame"]');
     await expect(frame.getByText('Kitchen (Upar) - register list')).toBeVisible();
     await expect(frame.getByText('Basement Store - register list')).toBeVisible();
-    await expect(frame.locator('tr.loc-row')).toHaveCount(79);
+    await expect(frame.locator('tr.loc-row')).toHaveCount(100);
     await page.getByTestId('inv-viewer-close').click();
     await page.getByTestId('inv-share-whatsapp').click();
     const wa = (await page.evaluate(() => window.__opened)).find(u => typeof u === 'string' && u.startsWith('https://wa.me/'));
@@ -185,4 +185,24 @@ test('PDF report and WhatsApp include both location lists', async ({ page }) => 
     expect(text).toContain('*BASEMENT STORE - REGISTER LIST (counted / now)*');
     expect(text).toContain('3. Hotel Soap: 70 / 70 Pcs');
     expect(text).toContain('12. Hotel Soap: 50 / 50 Pcs');
+});
+
+// 13-10-2026 page: Laundry stock + Housekeeping, its own location list
+test('location list: Laundry & Housekeeping (13-10) in Sr. No. order, linen items and the shared housekeeping items', async ({ page }) => {
+    await page.getByTestId('inv-loc-laundry').click();
+    const list = page.getByTestId('inv-location-list');
+    await expect(list).toContainText('Laundry & Housekeeping');
+    await expect(list).toContainText('counted 13-10-2026');
+    await expect(list.locator('tbody tr')).toHaveCount(21);
+    await expect(list.getByTestId('inv-list-row-3-1')).toContainText('Towel');
+    await expect(list.getByTestId('inv-list-row-3-1').getByTestId('inv-list-now')).toHaveText('12');
+    await expect(list.getByTestId('inv-list-row-3-6')).toContainText('Pillow Cover');
+    await expect(list.getByTestId('inv-list-row-3-6').getByTestId('inv-list-now')).toHaveText('30');
+    await expect(list.getByTestId('inv-list-row-4-9')).toContainText('Garbage Bag (Big)');
+    await expect(list.getByTestId('inv-list-row-4-9').getByTestId('inv-list-now')).toHaveText('17');
+    // a housekeeping item that already existed keeps ONE code; its total adds the new store
+    await page.getByTestId('inv-loc-all').click();
+    const hw = page.getByTestId('inv-row-SKY-GA-001');
+    await expect(hw.getByTestId('inv-at-laundry')).toHaveText('4.5');
+    await expect(hw.getByTestId('inv-current')).toHaveText('10.5');
 });

@@ -20,7 +20,7 @@ test('fits the screen: no sideways scrolling', async ({ page }) => {
 test('tabs: Entry / Stock / History each show their screen', async ({ page }) => {
     await expect(page.getByTestId('inv-save')).toBeVisible();
     await page.getByTestId('inv-tab-stock').click();
-    await expect(page.locator('[data-testid^="inv-row-"]')).toHaveCount(70);
+    await expect(page.locator('[data-testid^="inv-row-"]')).toHaveCount(83);
     await page.getByTestId('inv-tab-history').click();
     await expect(page.getByText('No entries yet.')).toBeVisible();
     await page.getByTestId('inv-tab-entry').click();
@@ -52,7 +52,7 @@ test('history: staff can delete their own wrong entry', async ({ page }) => {
 
 test('KPI tiles open their lists on the phone too', async ({ page }) => {
     await page.getByTestId('inv-kpi-total').click();
-    await expect(page.getByTestId('inv-viewer').locator('[data-testid^="inv-viewer-row-"]')).toHaveCount(70);
+    await expect(page.getByTestId('inv-viewer').locator('[data-testid^="inv-viewer-row-"]')).toHaveCount(83);
     await page.getByTestId('inv-viewer-close').click();
     await page.getByTestId('inv-share-pdf').click();
     await expect(page.getByTestId('inv-pdf-download')).toBeVisible();

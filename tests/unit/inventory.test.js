@@ -6,14 +6,15 @@ import { inventoryItems, LOCATIONS, COUNT_DATES, registerLists } from '../../02_
 
 const KITCHEN = 'Kitchen (Upar)';
 const BASEMENT = 'Basement Store';
+const LAUNDRY = 'Laundry & Housekeeping';
 
 const soap = inventoryItems.find(i => i.name === 'Hotel Soap');
 
 describe('inventory data (generated from the Excel Item Master)', () => {
-    test('70 unique item codes in SKY-XX-NNN format', () => {
-        expect(inventoryItems).toHaveLength(70);
+    test('83 unique item codes in SKY-XX-NNN format', () => {
+        expect(inventoryItems).toHaveLength(83);
         const codes = inventoryItems.map(i => i.code);
-        expect(new Set(codes).size).toBe(70);
+        expect(new Set(codes).size).toBe(83);
         for (const c of codes) expect(c).toMatch(/^SKY-[A-Z]{2}-\d{3}$/);
     });
 
@@ -23,23 +24,29 @@ describe('inventory data (generated from the Excel Item Master)', () => {
     });
 
     test('opening stock matches the handwritten registers (spot checks)', () => {
-        expect(soap.opening).toEqual({ [KITCHEN]: 70, [BASEMENT]: 50 });
-        expect(inventoryItems.find(i => i.name === 'Thali').opening).toEqual({ [KITCHEN]: 12, [BASEMENT]: 0 });
-        expect(openingTotal(inventoryItems.find(i => i.name === 'Phenyl'))).toBe(4.5);
+        expect(soap.opening).toEqual({ [KITCHEN]: 70, [BASEMENT]: 50, [LAUNDRY]: 0 });
+        expect(inventoryItems.find(i => i.name === 'Thali').opening).toEqual({ [KITCHEN]: 12, [BASEMENT]: 0, [LAUNDRY]: 0 });
+        expect(openingTotal(inventoryItems.find(i => i.name === 'Phenyl'))).toBe(5.5); // 4.5 kitchen + 1 laundry (13-10)
         expect(openingTotal(inventoryItems.find(i => i.name === 'Quarter Plate'))).toBe(17);
         expect(openingTotal(inventoryItems.find(i => i.name === 'Water Bottle (250 ml)'))).toBe(83);
     });
 
-    test('two locations: Kitchen (Upar) counted 23-09, Basement Store counted 29-09', () => {
-        expect(LOCATIONS).toEqual([KITCHEN, BASEMENT]);
-        expect(COUNT_DATES).toEqual({ [KITCHEN]: '23-09-2026', [BASEMENT]: '29-09-2026' });
+    test('three locations: Kitchen (Upar) 23-09, Basement Store 29-09, Laundry & Housekeeping 13-10', () => {
+        expect(LOCATIONS).toEqual([KITCHEN, BASEMENT, LAUNDRY]);
+        expect(COUNT_DATES).toEqual({ [KITCHEN]: '23-09-2026', [BASEMENT]: '29-09-2026', [LAUNDRY]: '13-10-2026' });
     });
 
-    test('register lists keep every line in Sr. No. order: kitchen 18 + 20, basement 41', () => {
-        expect(registerLists.map(l => [l.location, l.lines.length])).toEqual([[KITCHEN, 18], [KITCHEN, 20], [BASEMENT, 41]]);
+    test('register lists keep every line in Sr. No. order: kitchen 18 + 20, basement 41, laundry 11 + housekeeping 10', () => {
+        expect(registerLists.map(l => [l.location, l.lines.length])).toEqual([[KITCHEN, 18], [KITCHEN, 20], [BASEMENT, 41], [LAUNDRY, 11], [LAUNDRY, 10]]);
         for (const l of registerLists) expect(l.lines.map(x => x.sr)).toEqual(l.lines.map((_, i) => i + 1));
         expect(registerLists[0].lines[0]).toMatchObject({ sr: 1, qty: 4, asWritten: 'Nepkin' });
         expect(registerLists[2].lines[40]).toMatchObject({ sr: 41, qty: 2 }); // Bharat Gas Cylinder (Empty)
+        // 13-10 page, read line by line from the photo
+        expect(registerLists[3].lines.map(x => [x.asWritten, x.qty])).toEqual([
+            ['Towel 6+6', 12], ['Hand Towel', 7], ['Pillow', 5], ['Bed Sheet —', 0], ['Runner', 8], ['Pillow Cover', 30],
+            ['Cushion', 3], ['Rajai Cover', 5], ['Cushion Cover', 7], ['Curtion', 2], ['folding Mattres', 4]]);
+        expect(registerLists[4].lines.map(x => x.qty)).toEqual([10, 2.5, 1, 2.5, 1.5, 4.5, 12, 1, 17, 2.5]);
+        expect(registerLists[3].lines[3].note).toMatch(/blank/i); // Bed Sheet count not filled in
     });
 
     test('opening per location = sum of that location register lines', () => {
@@ -88,10 +95,10 @@ describe('computeStock', () => {
         expect(cleared.status).toBe('OK');
     });
 
-    test('decimal litres do not drift (4.5 - 0.3 = 4.2)', () => {
+    test('decimal litres do not drift (5.5 - 0.3 = 5.2)', () => {
         const phenyl = inventoryItems.find(i => i.name === 'Phenyl');
         const row = computeStock(inventoryItems, [{ code: phenyl.code, type: 'OUT', qty: 0.3 }]).find(r => r.code === phenyl.code);
-        expect(row.current).toBe(4.2);
+        expect(row.current).toBe(5.2);
     });
 });
 
@@ -145,13 +152,13 @@ describe('loadInventoryState', () => {
 });
 
 describe('CSV export (opens in Excel)', () => {
-    test('stock CSV has header + 70 rows and quotes commas', () => {
+    test('stock CSV has header + 83 rows and quotes commas', () => {
         const csv = stockCSV(computeStock(inventoryItems), LOCATIONS);
         const lines = csv.split('\r\n');
-        expect(lines).toHaveLength(71);
+        expect(lines).toHaveLength(84);
         expect(lines[0]).toContain('Current Stock');
-        expect(lines[0]).toContain('Kitchen (Upar) (now),Basement Store (now)');
-        expect(csv).toContain(`${soap.code},Hotel Soap,Guest Amenities,Pcs,70,50,120`);
+        expect(lines[0]).toContain('Kitchen (Upar) (now),Basement Store (now),Laundry & Housekeeping (now)');
+        expect(csv).toContain(`${soap.code},Hotel Soap,Guest Amenities,Pcs,70,50,0,120`);
     });
     test('register CSV escapes quotes and commas in remarks', () => {
         const rows = computeStock(inventoryItems);
@@ -170,7 +177,7 @@ describe('per-location stock', () => {
             { code: soap.code, type: 'TRANSFER', qty: 30, location: BASEMENT, toLocation: KITCHEN },
         ];
         const r = computeStock(inventoryItems, tx).find(x => x.code === soap.code);
-        expect(r.atLocation).toEqual({ [KITCHEN]: 90, [BASEMENT]: 44 });
+        expect(r.atLocation).toEqual({ [KITCHEN]: 90, [BASEMENT]: 44, [LAUNDRY]: 0 });
         expect(r.current).toBe(134);
         expect(r.stockIn).toBe(24);
         expect(r.stockOut).toBe(10);

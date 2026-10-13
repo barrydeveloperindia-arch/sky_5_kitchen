@@ -1,5 +1,5 @@
 {
-  "_about": "Physical stock counts copied from the handwritten registers (photos shared 29-09-2026). Source of truth for opening stock. Do not edit quantities without a new count.",
+  "_about": "Physical stock counts copied from the handwritten registers (photos shared 29-09-2026 and 13-10-2026). Source of truth for opening stock. Do not edit quantities without a new count.",
   "locations": [
     {
       "id": "kitchen",
@@ -679,6 +679,195 @@
           ]
         }
       ]
+    },
+    {
+      "id": "laundry",
+      "name": "Laundry & Housekeeping",
+      "countDate": "13-10-2026",
+      "lists": [
+        {
+          "title": "Laundry stock (13-10-2026)",
+          "lines": [
+            {
+              "sr": 1,
+              "code": "SKY-LN-001",
+              "item": "Towel",
+              "qty": 12,
+              "unit": "Pcs",
+              "asWritten": "Towel 6+6"
+            },
+            {
+              "sr": 2,
+              "code": "SKY-LN-002",
+              "item": "Hand Towel",
+              "qty": 7,
+              "unit": "Pcs",
+              "asWritten": "Hand Towel"
+            },
+            {
+              "sr": 3,
+              "code": "SKY-LN-003",
+              "item": "Pillow",
+              "qty": 5,
+              "unit": "Pcs",
+              "asWritten": "Pillow"
+            },
+            {
+              "sr": 4,
+              "code": "SKY-LN-004",
+              "item": "Bed Sheet",
+              "qty": 0,
+              "unit": "Pcs",
+              "asWritten": "Bed Sheet —",
+              "note": "Quantity left blank on the 13-10 register - please count and confirm"
+            },
+            {
+              "sr": 5,
+              "code": "SKY-LN-005",
+              "item": "Runner",
+              "qty": 8,
+              "unit": "Pcs",
+              "asWritten": "Runner",
+              "note": "A second \"Runner - 8\" line is struck out on the register and not counted"
+            },
+            {
+              "sr": 6,
+              "code": "SKY-LN-006",
+              "item": "Pillow Cover",
+              "qty": 30,
+              "unit": "Pcs",
+              "asWritten": "Pillow Cover"
+            },
+            {
+              "sr": 7,
+              "code": "SKY-LN-007",
+              "item": "Cushion",
+              "qty": 3,
+              "unit": "Pcs",
+              "asWritten": "Cushion"
+            },
+            {
+              "sr": 8,
+              "code": "SKY-LN-008",
+              "item": "Rajai Cover",
+              "qty": 5,
+              "unit": "Pcs",
+              "asWritten": "Rajai Cover"
+            },
+            {
+              "sr": 9,
+              "code": "SKY-LN-009",
+              "item": "Cushion Cover",
+              "qty": 7,
+              "unit": "Pcs",
+              "asWritten": "Cushion Cover"
+            },
+            {
+              "sr": 10,
+              "code": "SKY-LN-010",
+              "item": "Curtain",
+              "qty": 2,
+              "unit": "Pcs",
+              "asWritten": "Curtion"
+            },
+            {
+              "sr": 11,
+              "code": "SKY-LN-011",
+              "item": "Folding Mattress",
+              "qty": 4,
+              "unit": "Pcs",
+              "asWritten": "folding Mattres"
+            }
+          ]
+        },
+        {
+          "title": "Housekeeping (13-10-2026)",
+          "lines": [
+            {
+              "sr": 1,
+              "code": "SKY-GA-005",
+              "item": "Toilet Roll",
+              "qty": 10,
+              "unit": "Pcs",
+              "asWritten": "Toilet Roll - 10 Pc"
+            },
+            {
+              "sr": 2,
+              "code": "SKY-CC-009",
+              "item": "Tile Cleaner",
+              "qty": 2.5,
+              "unit": "Ltr",
+              "asWritten": "tile Cleaner - 2.5 Ltr"
+            },
+            {
+              "sr": 3,
+              "code": "SKY-CC-007",
+              "item": "Phenyl",
+              "qty": 1,
+              "unit": "Ltr",
+              "asWritten": "Phynyel - 1 Ltr"
+            },
+            {
+              "sr": 4,
+              "code": "SKY-GA-004",
+              "item": "Shower Gel",
+              "qty": 2.5,
+              "unit": "Ltr",
+              "asWritten": "Shower gel - 2.5 Ltr"
+            },
+            {
+              "sr": 5,
+              "code": "SKY-CC-002",
+              "item": "Colin",
+              "qty": 1.5,
+              "unit": "Ltr",
+              "asWritten": "Colinc - 1.5 Ltr"
+            },
+            {
+              "sr": 6,
+              "code": "SKY-GA-001",
+              "item": "Hand Wash",
+              "qty": 4.5,
+              "unit": "Ltr",
+              "asWritten": "Hand wash - 4.5 Ltr"
+            },
+            {
+              "sr": 7,
+              "code": "SKY-CC-010",
+              "item": "Room Freshener",
+              "qty": 12,
+              "unit": "Ltr",
+              "asWritten": "Room freshner - 12 Ltr",
+              "note": "Earlier figure crossed out on the register; 12 Ltr written beside it"
+            },
+            {
+              "sr": 8,
+              "code": "SKY-HK-018",
+              "item": "Glass Duster",
+              "qty": 1,
+              "unit": "Pcs",
+              "asWritten": "Glass duster - 1 Pc"
+            },
+            {
+              "sr": 9,
+              "code": "SKY-HK-005",
+              "item": "Garbage Bag (Big)",
+              "qty": 17,
+              "unit": "Pcs",
+              "asWritten": "Garbage Bag Big - 17 Pc"
+            },
+            {
+              "sr": 10,
+              "code": "SKY-CC-004",
+              "item": "Dish Wash",
+              "qty": 2.5,
+              "unit": "Ltr",
+              "asWritten": "dishwasher - 2.5 Ltr",
+              "note": "Read as Dish Wash liquid (same Ltr unit) - confirm"
+            }
+          ]
+        }
+      ]
     }
   ],
   "items": [
@@ -1177,6 +1366,97 @@
       "code": "SKY-PC-001",
       "name": "Black HIT (Insect Spray)",
       "category": "Pest Control",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-LN-001",
+      "name": "Towel",
+      "category": "Linen & Laundry",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-LN-002",
+      "name": "Hand Towel",
+      "category": "Linen & Laundry",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-LN-003",
+      "name": "Pillow",
+      "category": "Linen & Laundry",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-LN-004",
+      "name": "Bed Sheet",
+      "category": "Linen & Laundry",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-LN-005",
+      "name": "Runner",
+      "category": "Linen & Laundry",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-LN-006",
+      "name": "Pillow Cover",
+      "category": "Linen & Laundry",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-LN-007",
+      "name": "Cushion",
+      "category": "Linen & Laundry",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-LN-008",
+      "name": "Rajai Cover",
+      "category": "Linen & Laundry",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-LN-009",
+      "name": "Cushion Cover",
+      "category": "Linen & Laundry",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-LN-010",
+      "name": "Curtain",
+      "category": "Linen & Laundry",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-LN-011",
+      "name": "Folding Mattress",
+      "category": "Linen & Laundry",
+      "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-CC-010",
+      "name": "Room Freshener",
+      "category": "Cleaning Chemicals",
+      "unit": "Ltr",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-HK-018",
+      "name": "Glass Duster",
+      "category": "Housekeeping Supplies",
       "unit": "Pcs",
       "condition": "Good"
     }
