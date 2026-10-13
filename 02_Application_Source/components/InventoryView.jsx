@@ -4,7 +4,7 @@ import {
     FileText, Share2, FileSpreadsheet, Trash2, CheckCircle2, XCircle, PenLine, Boxes, History, X, Download, Printer, ArrowRightLeft, MapPin,
 } from 'lucide-react';
 import { inventoryItems, LOCATIONS, COUNT_DATES, registerLists } from '../data/inventory';
-import { computeStock, validateTransaction, stockCSV, registerCSV, normalizeLocation } from '../lib/inventory';
+import { computeStock, validateTransaction, stockCSV, registerCSV, normalizeLocation, shortLocation } from '../lib/inventory';
 import { useInventoryStore } from '../lib/inventoryStore';
 import { useOnline } from '../lib/syncedState';
 import { reportHTML, whatsappSummary } from '../lib/inventoryReport';
@@ -18,7 +18,7 @@ const todayISO = () => {
 const fmtDate = (iso) => String(iso || '').split('-').reverse().join('-');
 const stClass = (s) => `inv-pill st-${s.replace(/ /g, '-')}`;
 const NAME_KEY = 'sky5_inventory_name';
-const shortLoc = (l) => l.replace(' Store', '').replace(' (Upar)', '');
+const shortLoc = shortLocation;
 const locSplit = (r) => LOCATIONS.map(l => `${shortLoc(l)} ${r.atLocation?.[l] ?? 0}`).join(' · ');
 const TypeIcon = ({ type }) => (type === 'IN' ? <ArrowDownToLine /> : type === 'TRANSFER' ? <ArrowRightLeft /> : <ArrowUpFromLine />);
 const whereLabel = (t) => (t.type === 'TRANSFER' ? `${normalizeLocation(t.location)} → ${normalizeLocation(t.toLocation)}` : normalizeLocation(t.location));

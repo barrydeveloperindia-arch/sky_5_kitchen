@@ -45,3 +45,18 @@ describe('HTML report + WhatsApp text', () => {
         expect(text).toContain('https://x/inventory');
     });
 });
+
+describe('PDF full-stock columns follow the number of locations', () => {
+    test('In / Out / Status sit right after the location columns (2, 3 or more stores)', async () => {
+        const { stockColumns, shortLocation } = await import('../../02_Application_Source/lib/inventoryPdf');
+        for (const n of [2, 3, 4]) {
+            const c = stockColumns(n);
+            expect([c.in, c.out, c.total, c.min, c.status]).toEqual([4 + n, 5 + n, 6 + n, 7 + n, 8 + n]);
+            expect(c.styles[c.in].textColor).toEqual([18, 107, 51]);   // IN green
+            expect(c.styles[c.out].textColor).toEqual([194, 65, 12]);  // OUT orange
+            for (let i = 0; i < n; i++) expect(c.styles[4 + i].textColor).toBeUndefined(); // stock columns stay plain
+        }
+        expect(shortLocation('Laundry & Housekeeping')).toBe('Laundry/HK');
+        expect(shortLocation('Kitchen (Upar)')).toBe('Kitchen');
+    });
+});

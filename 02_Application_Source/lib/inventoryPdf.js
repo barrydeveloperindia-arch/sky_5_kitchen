@@ -7,7 +7,8 @@ import { jsPDF } from 'jspdf';
 import { autoTable } from 'jspdf-autotable';
 import { reportSummary } from './inventoryReport';
 import { LOCATIONS, registerLists } from '../data/inventory';
-import { normalizeLocation } from './inventory';
+import { normalizeLocation, shortLocation } from './inventory';
+export { shortLocation };
 import { STATUS_COLORS, ENTRY_COLORS, statusInk, hexToRgb } from './statusColors';
 
 const NAVY = [10, 25, 47];
@@ -15,6 +16,25 @@ const GOLD = [201, 162, 39];
 const MUTED = [107, 114, 128];
 // same colours as the app and the printable report
 const STATUS_COLOR = Object.fromEntries(Object.keys(STATUS_COLORS).map(s => [s, hexToRgb(statusInk(s))]));
+
+/**
+ * Column layout of the full-stock table: #, Code, Item, Unit, one column per location, In, Out, Total, Min, Status.
+ * The In / Out / Status colours and widths are placed by position, so they must move when a location is added.
+ */
+export function stockColumns(nLocations) {
+    const loc0 = 4, inI = loc0 + nLocations, outI = inI + 1, totalI = inI + 2, minI = inI + 3, statusI = inI + 4;
+    const styles = {
+        0: { cellWidth: 8, halign: 'center' }, 1: { cellWidth: 20, textColor: MUTED }, 3: { cellWidth: 11, halign: 'center' },
+        [inI]: { halign: 'right', cellWidth: 9, textColor: hexToRgb(ENTRY_COLORS.IN) },
+        [outI]: { halign: 'right', cellWidth: 9, textColor: hexToRgb(ENTRY_COLORS.OUT) },
+        [totalI]: { halign: 'right', cellWidth: 12, fontStyle: 'bold' },
+        [minI]: { halign: 'right', cellWidth: 9 },
+        [statusI]: { cellWidth: 21 },
+    };
+    for (let i = 0; i < nLocations; i++) styles[loc0 + i] = { halign: 'right', cellWidth: 19 };
+    return { styles, in: inI, out: outI, total: totalI, min: minI, status: statusI };
+}
+
 const fmtDate = (iso) => String(iso || '').split('-').reverse().join('-');
 // Built-in PDF fonts are Latin-1 only; keep text in that range
 const safe = (v) => String(v ?? '').replace(/[–—]/g, '-').replace(/[^\x20-\x7E\xA0-\xFF]/g, '');
@@ -74,7 +94,8 @@ export function buildInventoryPdf(rows, transactions, { generatedAt, countDates 
         didParseCell: d => statusCell(d, 3),
     });
 
-    // Full stock, grouped by category
+    // Full stock, grouped by category (columns follow the number of locations)
+    const stock = stockColumns(LOCATIONS.length);
     y = heading(`Full stock (${rows.length} items)`, doc.lastAutoTable.finalY + 9);
     const body = [];
     let n = 0;
@@ -90,15 +111,10 @@ export function buildInventoryPdf(rows, transactions, { generatedAt, countDates 
     autoTable(doc, {
         ...tableBase,
         startY: y,
-        head: [['#', 'Code', 'Item', 'Unit', ...LOCATIONS.map(l => l.replace(' Store', '').replace(' (Upar)', '')), 'In', 'Out', 'Total', 'Min', 'Status']],
+        head: [['#', 'Code', 'Item', 'Unit', ...LOCATIONS.map(shortLocation), 'In', 'Out', 'Total', 'Min', 'Status']],
         body,
-        columnStyles: {
-            0: { cellWidth: 8, halign: 'center' }, 1: { cellWidth: 20, textColor: MUTED }, 3: { cellWidth: 11, halign: 'center' },
-            4: { halign: 'right', cellWidth: 15 }, 5: { halign: 'right', cellWidth: 16 },
-            6: { halign: 'right', cellWidth: 9, textColor: [21, 128, 61] }, 7: { halign: 'right', cellWidth: 9, textColor: [194, 65, 12] },
-            8: { halign: 'right', cellWidth: 12, fontStyle: 'bold' }, 9: { halign: 'right', cellWidth: 9 }, 10: { cellWidth: 21 },
-        },
-        didParseCell: d => statusCell(d, 10),
+        columnStyles: stock.styles,
+        didParseCell: d => statusCell(d, stock.status),
     });
 
     // Each location's register pages exactly as written, with live quantity there

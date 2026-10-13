@@ -4,7 +4,7 @@
  */
 
 import { LOCATIONS, registerLists } from '../data/inventory';
-import { normalizeLocation } from './inventory';
+import { normalizeLocation, shortLocation } from './inventory';
 import { statusCSS, ENTRY_COLORS } from './statusColors';
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -128,7 +128,7 @@ ${embedded ? '' : '<div class="noprint"><button onclick="window.print()">Print /
 <h2>Action required (${s.alerts.length})</h2>
 ${s.alerts.length ? `<table><thead><tr><th>#</th><th>Item</th><th>Current</th><th>Status</th><th>Note</th></tr></thead><tbody>${alertRows.join('')}</tbody></table>` : '<p>None.</p>'}
 <h2>Full stock (${rows.length} items)</h2>
-<table><thead><tr><th>#</th><th>Code</th><th>Item</th><th>Unit</th>${LOCATIONS.map(l => `<th style="text-align:right">${esc(l)}</th>`).join('')}<th style="text-align:right">In</th><th style="text-align:right">Out</th><th style="text-align:right">Current</th><th style="text-align:right">Min</th><th>Status</th></tr></thead><tbody>${stockRows.join('')}</tbody></table>
+<table><thead><tr><th>#</th><th>Code</th><th>Item</th><th>Unit</th>${LOCATIONS.map(l => `<th style="text-align:right" title="${esc(l)}">${esc(shortLocation(l))}</th>`).join('')}<th style="text-align:right">In</th><th style="text-align:right">Out</th><th style="text-align:right">Current</th><th style="text-align:right">Min</th><th>Status</th></tr></thead><tbody>${stockRows.join('')}</tbody></table>
 ${locationSections}
 <h2>Stock register (${transactions.length} entries)</h2>
 ${transactions.length ? `<table><thead><tr><th>#</th><th>Date</th><th>Item</th><th>Type</th><th style="text-align:right">Qty</th><th>Location</th><th>Supplier / Issued to</th><th>By</th><th>Remarks</th></tr></thead><tbody>${regRows.join('')}</tbody></table>` : '<p>No entries yet.</p>'}

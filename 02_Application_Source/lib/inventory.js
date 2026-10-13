@@ -104,6 +104,9 @@ export function loadInventoryState(raw) {
     }
 }
 
+// Short column titles for the locations: "Kitchen", "Basement", "Laundry/HK"
+export const shortLocation = (l) => String(l).replace(' Store', '').replace(' (Upar)', '').replace(' & Housekeeping', '/HK');
+
 // CSV rules (formula-injection safe) live in one place for every export
 export { toCSV };
 
