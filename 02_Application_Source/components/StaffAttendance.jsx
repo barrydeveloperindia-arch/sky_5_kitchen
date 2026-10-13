@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { collection, doc, onSnapshot, query, setDoc, where } from 'firebase/firestore';
-import { Camera, CheckCircle2, ChevronRight, LogIn, LogOut, MapPin, RefreshCw, Search } from 'lucide-react';
-import Logo from './Logo';
+import { Camera, CheckCircle2, ChevronRight, Clock, LogIn, LogOut, MapPin, RefreshCw, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getServices, whenSignedIn } from '../lib/firebase';
 import { normalizeRegistry } from '../lib/staff';
-import { toFirestore, trackWrite } from '../lib/syncedState';
+import { toFirestore, trackWrite, useOnline } from '../lib/syncedState';
 import {
     dayKey, isoDate, staffNames, findActiveLog, nextAction, tapUpdate, logIdFor, toLoc, workedHours, formatHours,
     STAFF_KEY, MAX_PHOTO_CHARS,
@@ -17,6 +16,7 @@ const writeSaved = (v) => { try { if (v) localStorage.setItem(STAFF_KEY, v); els
 const initials = (n) => String(n || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
 const DEPTS = [['reception', 'Front Desk & Management'], ['kitchen', 'Kitchen'], ['housekeeping', 'Housekeeping']];
 const NO_NET = 'No internet. Connect and open the link again.';
+const DONE_SECONDS = 10; // the success screen goes back to the start by itself, like the AuraLock terminal
 
 // Front camera frame -> small JPEG (data URL) that fits the database limit
 function snap(video) {
@@ -54,6 +54,7 @@ export default function StaffAttendance() {
     const [result, setResult] = useState(null);
     const [search, setSearch] = useState('');
     const [now, setNow] = useState(() => Date.now());
+    const online = useOnline();
     const videoRef = useRef(null);
     const streamRef = useRef(null);
     const locRef = useRef(null);
@@ -77,7 +78,7 @@ export default function StaffAttendance() {
         return () => { alive = false; unsubs.forEach(u => u()); };
     }, [today, yesterday]);
 
-    useEffect(() => { const t = setInterval(() => setNow(Date.now()), 5000); return () => clearInterval(t); }, []);
+    useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
 
     const stopCamera = () => {
         streamRef.current?.getTracks().forEach(t => t.stop());
@@ -97,6 +98,13 @@ export default function StaffAttendance() {
     const hint = action === 'out' && outT !== '--' ? 'Leaving later? Tap CHECK OUT again, the last tap counts.'
         : 'A selfie and your location are saved with every tap.';
     const clock = new Date(now);
+
+    const closeDone = () => { setResult(null); setStep('home'); };
+    useEffect(() => {
+        if (step !== 'done') return undefined;
+        const t = setTimeout(closeDone, DONE_SECONDS * 1000);
+        return () => clearTimeout(t);
+    }, [step]);
 
     const choose = (name) => { setMe(name); writeSaved(name); setError(''); setSearch(''); setStep('home'); };
     const changeName = () => { setMe(''); writeSaved(''); setResult(null); setStep('home'); };
@@ -137,7 +145,7 @@ export default function StaffAttendance() {
             await trackWrite(setDoc(doc(db, 'hotel_attendance_photos', photoId), { logId: id, kind, staffName: me, at: at.toISOString(), data: photo }));
             await trackWrite(setDoc(doc(db, 'hotel_attendance', id), toFirestore(row), { merge: true }));
             const saved = { ...(row0 || {}), ...row };
-            setResult({ kind, photo, loc, locError, time: kind === 'in' ? saved.checkIn : saved.checkOut, checkIn: saved.checkIn, hours: workedHours(saved) });
+            setResult({ kind, photo, loc, locError, at: at.toISOString(), time: kind === 'in' ? saved.checkIn : saved.checkOut, checkIn: saved.checkIn, hours: workedHours(saved) });
             setStep('done');
         } catch {
             setError('Could not save. Check internet and try again.');
@@ -145,53 +153,73 @@ export default function StaffAttendance() {
         }
     };
 
+    const stamp = (iso) => new Date(iso).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+    const tapButton = (kind) => {
+        const active = ready && action === kind;
+        const Icon = kind === 'in' ? LogIn : LogOut;
+        return (
+            <button type="button" data-testid={active ? 'att-tap' : `att-tap-off-${kind}`} disabled={!active} onClick={openCamera}
+                className={cn('flex flex-col items-center gap-1 rounded-2xl px-4 py-3.5 text-xs font-black tracking-wider uppercase transition-all active:scale-95 disabled:opacity-35',
+                    kind === 'in' ? 'bg-gradient-to-r from-[#d4af37] to-[#e6c65c] text-[#0a192f] shadow-lg shadow-[#d4af37]/25' : 'border border-[#d4af37]/50 bg-[#112240] text-white')}>
+                <Icon className="size-5" />{kind === 'in' ? 'CHECK IN' : 'CHECK OUT'}
+            </button>
+        );
+    };
+
     return (
-        <div className="ui min-h-dvh bg-[#f0f2f5]" data-testid="staff-attendance">
-            <header className="bg-[var(--primary-navy)] px-4 py-3">
-                <div className="mx-auto flex max-w-md items-center gap-3">
-                    <Logo size={34} noBorder />
-                    <div className="min-w-0">
-                        <div className="text-base font-extrabold tracking-wide text-[var(--accent)]">STAFF ATTENDANCE</div>
-                        <div className="truncate text-[11px] text-[#aab4cf]">Hotel Sky 5 · Staff check-in / check-out</div>
+        <div className="ui min-h-dvh bg-[#f4f6fa] text-[#0a192f]" data-testid="staff-attendance">
+            <style>{'@keyframes att-scan{0%,100%{top:12%}50%{top:86%}}'}</style>
+            <div className="mx-auto max-w-md space-y-4 p-3 min-[360px]:p-4">
+                {/* top bar, like the AuraLock terminal */}
+                <header className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                        <div aria-hidden className="shrink-0 rounded-xl border-l-4 border-[#d4af37] bg-[#0a192f] px-2.5 py-1.5 text-center font-serif leading-none text-[#d4af37]">
+                            <div className="text-[7px] font-semibold tracking-[0.25em] text-white">HOTEL</div><div className="text-base font-black">SKY 5</div>
+                        </div>
+                        <div className="min-w-0">
+                            <div className="text-[13px] leading-tight font-black tracking-wide text-[#0a192f] min-[360px]:text-sm">STAFF ATTENDANCE</div>
+                            <div className="text-[11px] leading-tight text-slate-600">Hotel Sky 5 · Staff check-in / check-out</div>
+                        </div>
                     </div>
-                </div>
-            </header>
+                    <span data-testid="att-online" className={cn('flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-1 text-[9px] min-[360px]:px-2.5 min-[360px]:text-[10px] font-black tracking-widest uppercase', online ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-red-200 bg-red-50 text-red-700')}>
+                        <span className={cn('size-1.5 rounded-full', online ? 'animate-pulse bg-emerald-500' : 'bg-red-500')} />{online ? 'Online' : 'Offline'}
+                    </span>
+                </header>
 
-            <main className="mx-auto max-w-md space-y-3 p-4">
-                {error && <div role="alert" data-testid="att-error" className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm font-medium text-destructive">{error}</div>}
+                {error && <div role="alert" data-testid="att-error" className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</div>}
 
-                {!registry && !error && <p className="p-10 text-center text-sm text-muted-foreground">Loading…</p>}
+                {!registry && !error && <p className="p-10 text-center text-sm text-slate-600">Loading…</p>}
 
                 {registry && !known && (
                     <section className="space-y-3">
                         <div className="px-1">
-                            <h2 className="text-lg font-bold text-primary">Apna naam chuniye</h2>
-                            <p className="text-sm text-muted-foreground">Only once. This phone will remember you.</p>
+                            <h2 className="text-lg font-black text-slate-900">Apna naam chuniye</h2>
+                            <p className="text-sm text-slate-600">Only once. This phone will remember you.</p>
                         </div>
                         {names.length > 8 && (
                             <div className="relative">
-                                <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                                <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-600" />
                                 <input data-testid="att-search" type="search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name"
-                                    aria-label="Search your name" className="h-11 w-full rounded-xl border bg-card pr-3 pl-9 text-sm shadow-xs outline-none focus:border-primary" />
+                                    aria-label="Search your name" className="h-11 w-full rounded-2xl border border-slate-200 bg-white pr-3 pl-9 text-sm shadow-sm outline-none focus:border-[#d4af37]" />
                             </div>
                         )}
-                        {names.length === 0 && <p data-testid="att-no-staff" className="rounded-xl border bg-card p-4 text-sm text-muted-foreground">No staff in the register yet. Ask the manager to add you in OPS Center → Workforce.</p>}
-                        {names.length > 0 && shown.length === 0 && <p data-testid="att-no-match" className="rounded-xl border bg-card p-4 text-center text-sm text-muted-foreground">No name matches “{search.trim()}”.</p>}
+                        {names.length === 0 && <p data-testid="att-no-staff" className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">No staff in the register yet. Ask the manager to add you in OPS Center → Workforce.</p>}
+                        {names.length > 0 && shown.length === 0 && <p data-testid="att-no-match" className="rounded-2xl border border-slate-200 bg-white p-4 text-center text-sm text-slate-600">No name matches “{search.trim()}”.</p>}
                         {DEPTS.map(([dept, label]) => {
                             const list = shown.filter(n => n.dept === dept);
                             if (!list.length) return null;
                             return (
-                                <div key={dept} className="overflow-hidden rounded-xl border bg-card shadow-xs">
-                                    <h3 className="border-b bg-muted/40 px-4 py-2 text-[11px] font-bold tracking-wider text-muted-foreground uppercase">{label}</h3>
+                                <div key={dept} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                                    <h3 className="border-b border-slate-100 bg-slate-50 px-4 py-2 text-[10px] font-black tracking-[0.15em] text-slate-600 uppercase">{label}</h3>
                                     {list.map(n => (
                                         <button key={n.name} type="button" data-testid={`att-pick-${n.name}`} onClick={() => choose(n.name)}
-                                            className="flex w-full items-center gap-3 border-b px-4 py-3 text-left last:border-b-0 hover:bg-muted/40 active:bg-muted">
-                                            <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-bold text-primary">{initials(n.name)}</span>
+                                            className="flex w-full items-center gap-3 border-b border-slate-100 px-4 py-3 text-left last:border-b-0 hover:bg-[#d4af37]/10 active:bg-[#d4af37]/20">
+                                            <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-full bg-[#0a192f] text-xs font-black text-[#d4af37]">{initials(n.name)}</span>
                                             <span className="min-w-0 flex-1">
-                                                <span className="block truncate font-semibold text-foreground">{n.name}</span>
-                                                <span className="block truncate text-xs text-muted-foreground">{n.role || label}</span>
+                                                <span className="block truncate font-bold text-slate-900">{n.name}</span>
+                                                <span className="block truncate text-xs text-slate-600">{n.role || label}</span>
                                             </span>
-                                            <ChevronRight aria-hidden className="size-4 text-muted-foreground" />
+                                            <ChevronRight aria-hidden className="size-4 text-slate-600" />
                                         </button>
                                     ))}
                                 </div>
@@ -200,67 +228,118 @@ export default function StaffAttendance() {
                     </section>
                 )}
 
-                {registry && known && step === 'home' && (
-                    <section className="overflow-hidden rounded-2xl border bg-card shadow-xs">
-                        <div className="flex items-center gap-3 border-b px-4 py-3">
-                            <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-full bg-primary/10 text-sm font-bold text-primary">{initials(me)}</span>
+                {registry && known && step !== 'done' && (
+                    <>
+                        <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+                            <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-full bg-[#0a192f] text-sm font-black text-[#d4af37]">{initials(me)}</span>
                             <div className="min-w-0 flex-1">
-                                <div className="truncate text-base font-bold text-primary" data-testid="att-me">{me}</div>
-                                {myRole && <div className="truncate text-xs text-muted-foreground">{myRole}</div>}
+                                <div className="truncate font-black text-slate-900" data-testid="att-me">{me}</div>
+                                {myRole && <div className="truncate text-xs text-slate-600">{myRole}</div>}
                             </div>
-                            <Button variant="ghost" size="sm" onClick={changeName} data-testid="att-change">Not you?</Button>
+                            {step === 'home' && <Button variant="ghost" size="sm" onClick={changeName} data-testid="att-change">Not you?</Button>}
                         </div>
-                        <div className="space-y-4 p-5">
-                            <div className="text-center">
-                                <div className="text-4xl font-black tracking-tight text-primary tabular-nums" data-testid="att-clock">{clock.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</div>
-                                <div className="text-xs text-muted-foreground">{clock.toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' })}</div>
-                            </div>
-                            {nightShift && <div data-testid="att-night" className="rounded-lg bg-accent/40 p-2 text-center text-xs font-medium">Night shift from {log.date} is still open: CHECK OUT closes it.</div>}
-                            <div className="grid grid-cols-3 divide-x rounded-xl border text-center">
-                                <div className="py-2"><div className="text-[10px] font-semibold text-muted-foreground uppercase">In</div><div className={cn('font-bold tabular-nums', inT === '--' ? 'text-muted-foreground' : 'text-success')} data-testid="att-in-time">{inT}</div></div>
-                                <div className="py-2"><div className="text-[10px] font-semibold text-muted-foreground uppercase">Out</div><div className={cn('font-bold tabular-nums', outT === '--' ? 'text-muted-foreground' : 'text-warning')} data-testid="att-out-time">{outT}</div></div>
-                                <div className="py-2"><div className="text-[10px] font-semibold text-muted-foreground uppercase">Hours</div><div className="font-bold text-primary tabular-nums" data-testid="att-hours">{formatHours(workedHours(log))}</div></div>
-                            </div>
-                            {!ready ? <p className="text-center text-sm text-muted-foreground">Loading today’s record…</p>
-                                : action === 'wait' ? (
-                                    <p data-testid="att-wait" className="rounded-xl bg-muted p-4 text-center text-sm font-medium">Saved ✓ You can tap again after 2 minutes.</p>
-                                ) : (
-                                    <Button data-testid="att-tap" onClick={openCamera}
-                                        className={cn('h-16 w-full rounded-xl text-lg font-extrabold tracking-wide text-white shadow-sm', action === 'in' ? 'bg-success hover:bg-success/90' : 'bg-[var(--primary-navy)] hover:bg-[var(--primary-navy)]/90')}>
-                                        {action === 'in' ? <><LogIn className="size-6" />CHECK IN</> : <><LogOut className="size-6" />CHECK OUT</>}
-                                    </Button>
-                                )}
-                            <p className="flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground"><Camera aria-hidden className="size-3.5 shrink-0" />{hint}</p>
+
+                        <div className="text-center">
+                            <div className="text-[2.5rem] leading-none font-black tracking-tight text-[#0a192f] tabular-nums min-[360px]:text-5xl" data-testid="att-clock">{clock.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\s?(AM|PM)$/, '')}<span className="ml-1.5 text-xl font-black text-[#8a6d10]">{clock.getHours() < 12 ? 'AM' : 'PM'}</span></div>
+                            <div className="mt-1 text-[10px] font-black tracking-[0.2em] text-slate-600 uppercase">{clock.toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}</div>
                         </div>
-                    </section>
-                )}
 
-                {step === 'camera' && (
-                    <section className="space-y-3 rounded-2xl border bg-card p-4 shadow-xs">
-                        <h2 className="text-center text-base font-bold text-primary">{action === 'in' ? 'Check-in selfie' : 'Check-out selfie'}</h2>
-                        <video ref={videoRef} data-testid="att-video" playsInline muted className="aspect-[3/4] w-full -scale-x-100 rounded-xl bg-black object-cover" />
-                        <Button data-testid="att-capture" onClick={capture} className="h-14 w-full rounded-xl bg-[var(--accent)] text-lg font-extrabold text-[var(--primary-navy)] hover:bg-[var(--accent)]/90"><Camera className="size-6" />TAKE PHOTO &amp; SAVE</Button>
-                        <Button variant="ghost" className="w-full" onClick={() => { stopCamera(); setStep('home'); }}>Cancel</Button>
-                    </section>
-                )}
+                        {/* main panel: standby with the two buttons, or the live camera */}
+                        <div className="relative h-[44vh] min-h-72 overflow-hidden rounded-[2rem] border-b-4 border-[#d4af37] bg-[#0a192f] shadow-xl">
+                            {step === 'camera' ? (
+                                <>
+                                    <video ref={videoRef} data-testid="att-video" playsInline muted className="size-full -scale-x-100 object-cover" />
+                                    <div className="absolute top-4 left-4 flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3 py-1 backdrop-blur-md">
+                                        <span className="size-1.5 animate-pulse rounded-full bg-[#d4af37]" />
+                                        <span className="text-[9px] font-black tracking-widest text-white uppercase">Camera active</span>
+                                    </div>
+                                    <div aria-hidden className="pointer-events-none absolute inset-0 grid place-items-center">
+                                        <div className="relative h-60 w-52">
+                                            {['top-0 left-0 border-t-2 border-l-2 rounded-tl-2xl', 'top-0 right-0 border-t-2 border-r-2 rounded-tr-2xl', 'bottom-0 left-0 border-b-2 border-l-2 rounded-bl-2xl', 'bottom-0 right-0 border-b-2 border-r-2 rounded-br-2xl'].map(c => (
+                                                <div key={c} className={cn('absolute size-10 border-[#d4af37]', c)} />
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div aria-hidden className="absolute inset-x-0 h-px bg-[#d4af37] shadow-[0_0_8px_rgba(212,175,55,0.9)]" style={{ animation: 'att-scan 2.5s linear infinite' }} />
+                                    <div className="absolute inset-x-0 bottom-4 text-center drop-shadow-md">
+                                        <div className="text-[9px] font-black tracking-[0.2em] text-[#e6c65c] uppercase">Position your face in the frame</div>
+                                        <div className="text-sm font-bold text-white">{action === 'in' ? 'Check-in selfie' : 'Check-out selfie'}</div>
+                                    </div>
+                                </>
+                            ) : step === 'saving' ? (
+                                <div data-testid="att-saving" className="flex size-full flex-col items-center justify-center gap-3 text-white">
+                                    <RefreshCw className="size-8 animate-spin text-[#d4af37]" />
+                                    <span className="text-xs font-black tracking-widest uppercase">Saving…</span>
+                                </div>
+                            ) : (
+                                <div className="flex size-full flex-col items-center justify-center bg-gradient-to-br from-[#0a192f] via-[#112240] to-[#0a192f] p-6 text-white">
+                                    <div className="mb-3 rounded-xl border border-[#d4af37]/60 px-3 py-1 text-center font-serif leading-none text-[#d4af37]">
+                                        <div className="text-[8px] tracking-[0.3em]">HOTEL</div><div className="text-xl font-black">SKY 5</div>
+                                    </div>
+                                    <h2 data-testid={action === 'wait' ? 'att-wait' : undefined} className="mb-1 text-lg font-black tracking-tight">{!ready ? 'Loading…' : action === 'wait' ? 'Saved ✓' : 'Ready to scan'}</h2>
+                                    <p className="mb-5 text-center text-[10px] font-bold tracking-[0.15em] text-slate-300 uppercase">
+                                        {action === 'wait' ? 'You can tap again after 2 minutes' : 'Camera off · tap below to scan'}
+                                    </p>
+                                    {nightShift && <div data-testid="att-night" className="mb-3 rounded-lg bg-white/10 px-3 py-1.5 text-center text-[11px] font-semibold text-amber-200">Night shift from {log.date} is still open: CHECK OUT closes it.</div>}
+                                    <div className="grid w-full max-w-xs grid-cols-2 gap-3">{tapButton('in')}{tapButton('out')}</div>
+                                </div>
+                            )}
+                        </div>
 
-                {step === 'saving' && <p data-testid="att-saving" className="flex items-center justify-center gap-2 rounded-2xl border bg-card p-10 text-sm text-muted-foreground"><RefreshCw className="size-4 animate-spin" />Saving…</p>}
+                        {step === 'camera' && (
+                            <div className="grid gap-2">
+                                <Button data-testid="att-capture" onClick={capture} className="h-14 w-full rounded-2xl bg-gradient-to-r from-[#d4af37] to-[#e6c65c] text-base font-black tracking-wider text-[#0a192f] uppercase shadow-lg shadow-[#d4af37]/25 hover:opacity-95"><Camera className="size-5" />Take photo &amp; save</Button>
+                                <Button variant="ghost" className="h-11 w-full rounded-2xl text-xs font-bold tracking-widest uppercase" onClick={() => { stopCamera(); setStep('home'); }}>Cancel</Button>
+                            </div>
+                        )}
+
+                        {step === 'home' && (
+                            <>
+                                <div className="grid grid-cols-3 divide-x divide-slate-100 rounded-2xl border border-slate-200 bg-white text-center shadow-sm">
+                                    <div className="py-2.5"><div className="text-[9px] font-black tracking-widest text-slate-600 uppercase">In</div><div className={cn('font-black tabular-nums', inT === '--' ? 'text-slate-600' : 'text-emerald-700')} data-testid="att-in-time">{inT}</div></div>
+                                    <div className="py-2.5"><div className="text-[9px] font-black tracking-widest text-slate-600 uppercase">Out</div><div className={cn('font-black tabular-nums', outT === '--' ? 'text-slate-600' : 'text-[#0a192f]')} data-testid="att-out-time">{outT}</div></div>
+                                    <div className="py-2.5"><div className="text-[9px] font-black tracking-widest text-slate-600 uppercase">Hours</div><div className="font-black text-slate-900 tabular-nums" data-testid="att-hours">{formatHours(workedHours(log))}</div></div>
+                                </div>
+                                <p className="flex items-center justify-center gap-1.5 text-center text-xs text-slate-600"><Camera aria-hidden className="size-3.5 shrink-0" />{hint}</p>
+                            </>
+                        )}
+                    </>
+                )}
 
                 {step === 'done' && result && (
-                    <section data-testid="att-done" className={cn('space-y-3 rounded-2xl border p-6 text-center shadow-xs', result.kind === 'in' ? 'border-success/30 bg-success/10' : 'bg-card')}>
-                        <CheckCircle2 className={cn('mx-auto size-10', result.kind === 'in' ? 'text-success' : 'text-primary')} />
-                        <h2 className="text-lg font-extrabold text-primary">{result.kind === 'in' ? 'Check In Successful' : 'Check Out Successful'}</h2>
-                        <img src={result.photo} alt="Your selfie" className="mx-auto size-24 -scale-x-100 rounded-full border-4 border-white object-cover shadow" />
-                        <div className="font-semibold">{me}</div>
-                        <div className="text-3xl font-black text-primary tabular-nums" data-testid="att-done-time">{result.time}</div>
-                        {result.kind === 'out' && <div className="text-sm text-muted-foreground">In {result.checkIn} · Worked <b className="text-foreground">{formatHours(result.hours)}</b></div>}
-                        <div className={cn('flex items-center justify-center gap-1 text-xs', result.loc ? 'text-muted-foreground' : 'text-warning')}>
-                            <MapPin aria-hidden className="size-3.5" />{result.loc ? `Location saved (±${result.loc.acc} m)` : `${result.locError} Saved without location.`}
+                    <section data-testid="att-done" className="flex min-h-[80dvh] flex-col items-center justify-center gap-6 text-center">
+                        <div className={cn('relative w-64 max-w-[80vw] overflow-hidden rounded-2xl border-4 bg-black shadow-xl', result.kind === 'in' ? 'border-[#d4af37]' : 'border-[#0a192f]')}>
+                            <img src={result.photo} alt="Your selfie" className="block h-auto w-full -scale-x-100" />
+                            <div className="absolute inset-x-0 bottom-0 bg-black/70 px-3 py-2 text-left">
+                                <div className="truncate text-sm font-bold text-white">{me}</div>
+                                <div className={cn('text-[11px] font-black tracking-wider', result.kind === 'in' ? 'text-[#e6c65c]' : 'text-sky-200')}>{result.kind === 'in' ? 'CHECK IN' : 'CHECK OUT'}  {stamp(result.at)} IST</div>
+                            </div>
+                            <div className={cn('absolute top-2 right-2 grid size-8 place-items-center rounded-full shadow', result.kind === 'in' ? 'bg-[#d4af37]' : 'bg-[#0a192f]')}>
+                                {result.kind === 'in' ? <CheckCircle2 className="size-5 text-[#0a192f]" /> : <LogOut className="size-4 text-white" />}
+                            </div>
                         </div>
-                        <Button variant="outline" className="w-full rounded-xl" onClick={() => { setResult(null); setStep('home'); }}>Done</Button>
+                        <div>
+                            <p className={cn('mb-2 text-[10px] font-black tracking-[0.4em] uppercase', result.kind === 'in' ? 'text-[#8a6d10]' : 'text-[#0a192f]')}>{result.kind === 'in' ? '✦ Welcome ✦' : '✦ Goodbye ✦'}</p>
+                            <h2 className="mb-1 text-3xl font-black tracking-tight text-[#0a192f]">{me}</h2>
+                            <p className={cn('text-sm font-black tracking-widest uppercase', result.kind === 'in' ? 'text-emerald-700' : 'text-[#0a192f]')}>{result.kind === 'in' ? 'Check In Successful' : 'Check Out Successful'}</p>
+                            <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2 shadow-sm">
+                                <Clock aria-hidden className="size-4 text-slate-600" />
+                                <span className="text-lg font-bold text-slate-700 tabular-nums" data-testid="att-done-time">{result.time}</span>
+                            </div>
+                            {result.kind === 'out' && (
+                                <div className="mt-3 rounded-full border border-[#0a192f]/15 bg-[#0a192f]/5 px-5 py-2 text-xs font-black tracking-widest text-[#0a192f] uppercase">
+                                    In {result.checkIn} · {formatHours(result.hours)} worked
+                                </div>
+                            )}
+                            <div className={cn('mt-3 flex items-center justify-center gap-1 text-xs', result.loc ? 'text-slate-600' : 'text-amber-800')}>
+                                <MapPin aria-hidden className="size-3.5" />{result.loc ? `Location saved (±${result.loc.acc} m)` : `${result.locError} Saved without location.`}
+                            </div>
+                        </div>
+                        <Button variant="outline" className="w-full max-w-xs rounded-2xl border-slate-200 font-bold" onClick={closeDone}>Done</Button>
+                        <span className="text-[10px] font-black tracking-widest text-slate-600 uppercase">Back to start in {DONE_SECONDS}s</span>
                     </section>
                 )}
-            </main>
+            </div>
         </div>
     );
 }

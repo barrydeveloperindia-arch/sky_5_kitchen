@@ -168,6 +168,36 @@ test('no accessibility / colour-contrast issues on any screen (WCAG 2 AA)', asyn
     expect(found).toEqual([]);
 });
 
+for (const [w, h, label] of [[320, 568, 'small phone'], [360, 740, 'normal phone'], [430, 932, 'big phone'], [740, 360, 'phone sideways']]) {
+    test(`${label} ${w}x${h}: nothing cut off, no sideways scroll, main buttons on screen`, async ({ page }) => {
+        await page.setViewportSize({ width: w, height: h });
+        const noOverflow = async () => expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+        await noOverflow();
+        await page.getByTestId('att-pick-Varun').click();
+        await noOverflow();
+        for (const id of ['att-me', 'att-clock', 'att-tap', 'att-in-time', 'att-change']) {
+            const box = await page.getByTestId(id).boundingBox();
+            expect(box, id).not.toBeNull();
+            expect(box.x, `${id} left edge`).toBeGreaterThanOrEqual(0);
+            expect(box.x + box.width, `${id} right edge`).toBeLessThanOrEqual(w + 1);
+        }
+        // the clock text fits its box (no clipped digits)
+        expect(await page.getByTestId('att-clock').evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+        await page.getByTestId('att-tap').scrollIntoViewIfNeeded();
+        await page.getByTestId('att-tap').click();
+        await expect(page.getByTestId('att-video')).toBeVisible();
+        await page.getByTestId('att-capture').scrollIntoViewIfNeeded();
+        await expect(page.getByTestId('att-capture')).toBeInViewport();
+        await noOverflow();
+        await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
+        await page.getByTestId('att-capture').click();
+        await expect(page.getByTestId('att-done')).toBeVisible({ timeout: 15000 });
+        await noOverflow();
+        await page.getByRole('button', { name: 'Done' }).scrollIntoViewIfNeeded();
+        await expect(page.getByRole('button', { name: 'Done' })).toBeInViewport();
+    });
+}
+
 test('camera refused: clear message, nothing saved', async ({ page, context }) => {
     await context.clearPermissions();
     await page.addInitScript(() => { navigator.mediaDevices.getUserMedia = () => Promise.reject(new DOMException('denied', 'NotAllowedError')); });
