@@ -37,7 +37,7 @@ export default function AttendanceProof({ log, kind }) {
                 ? <a href={mapLink(loc)} target="_blank" rel="noreferrer" aria-label={`Location of ${log.staffName}`} title={`±${loc.acc} m`} className="grid size-6 place-items-center rounded-md border text-muted-foreground hover:bg-muted hover:text-primary"><MapPin className="size-3.5" /></a>
                 : photoId && <span title={locError || 'No location'} className="text-[10px] font-semibold text-warning">NO GPS</span>}
             <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent className="ui max-w-xs">
+                <DialogContent className="ui max-w-xs bg-white text-[#0a192f]">
                     <DialogHeader>
                         <DialogTitle>{log.staffName} · {kind === 'in' ? 'Check-in' : 'Check-out'} {when}</DialogTitle>
                         <DialogDescription>{log.date}{loc ? ` · location ±${loc.acc} m` : ` · ${locError || 'no location'}`}</DialogDescription>

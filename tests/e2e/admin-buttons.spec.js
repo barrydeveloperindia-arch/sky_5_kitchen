@@ -291,21 +291,20 @@ test('workforce: counts come from the staff list; SHARE ON WHATSAPP; call links'
     await expect(tel).toHaveAttribute('href', /^tel:\+?\d/);
 });
 
-test('workforce: EDIT staff -> UPDATE; name required; CANCEL', async ({ page }) => {
+test('workforce: Staff Directory EDIT -> Save changes; name required; Cancel', async ({ page }) => {
     await adminTab(page, 'workforce');
-    await page.getByText('EDIT', { exact: true }).first().click();
-    await expect(page.getByRole('heading', { name: 'EDIT PERSONNEL' })).toBeVisible();
-    await field(page, 'Phone Number').fill('+91 90000 00000');
-    await page.getByRole('button', { name: 'UPDATE' }).click();
-    await expect(page.getByText('+91 90000 00000')).toBeVisible();
+    await page.getByTestId('sd-edit-Gaurav Panchal').click();
+    await expect(page.getByRole('heading', { name: 'Edit staff' })).toBeVisible();
+    await page.getByTestId('staff-form').getByLabel('Mobile', { exact: true }).fill('+91 90000 00000');
+    await page.getByTestId('sf-save').click();
+    await expect(page.getByTestId('sd-row-Gaurav Panchal')).toContainText('9000000000');
 
-    await page.getByText('EDIT', { exact: true }).first().click();
-    await field(page, 'Full Name').fill('');
-    const msg = onNextDialog(page);
-    await page.getByRole('button', { name: 'UPDATE' }).click();
-    expect(await msg).toBe('Staff name is required.');
-    await page.getByRole('button', { name: 'CANCEL' }).click();
-    await expect(page.getByRole('heading', { name: 'EDIT PERSONNEL' })).toHaveCount(0);
+    await page.getByTestId('sd-edit-Gaurav Panchal').click();
+    await page.getByTestId('staff-form').getByLabel('Full name (as on Aadhaar)', { exact: true }).fill('');
+    await page.getByTestId('sf-save').click();
+    await expect(page.getByTestId('sf-error-name')).toHaveText('Name is required.');
+    await page.getByRole('button', { name: 'Cancel' }).click();
+    await expect(page.getByRole('heading', { name: 'Edit staff' })).toHaveCount(0);
 });
 
 // ---------------- Attendance ----------------
@@ -380,22 +379,20 @@ test('attendance: MANUAL LOG validates date and duplicates; saves a row', async 
 test('attendance: ENROLL STAFF adds the person everywhere; duplicates blocked', async ({ page }) => {
     await adminTab(page, 'attendance');
     await page.getByRole('button', { name: '+ ENROLL STAFF' }).click();
-    await page.getByPlaceholder('Enter Name').fill('Bhawna');
-    await page.getByPlaceholder('e.g., Front Desk, Chef').fill('Housekeeping');
-    let msg = onNextDialog(page);
-    await page.getByRole('button', { name: 'ENROLL PERSONNEL' }).click();
-    expect(await msg).toBe('Bhawna is already enrolled.');
+    await page.getByTestId('staff-form').getByLabel('Full name (as on Aadhaar)', { exact: true }).fill('Bhawna');
+    await page.getByTestId('staff-form').getByLabel('Post', { exact: true }).fill('Housekeeping');
+    await page.getByTestId('sf-save').click();
+    await expect(page.getByTestId('sf-error-name')).toHaveText('Bhawna is already in the staff list.');
 
-    await page.getByPlaceholder('Enter Name').fill('Pooja Rani');
-    await field(page, 'Department').selectOption('housekeeping');
-    await page.getByPlaceholder('https://example.com/photo.jpg').fill('');
-    await page.getByRole('button', { name: 'ENROLL PERSONNEL' }).click();
+    await page.getByTestId('staff-form').getByLabel('Full name (as on Aadhaar)', { exact: true }).fill('Pooja Rani');
+    await page.getByTestId('staff-form').getByLabel('Department', { exact: true }).selectOption('housekeeping');
+    await page.getByTestId('sf-save').click();
     await expect(page.locator('tr', { hasText: 'Pooja Rani' })).toContainText(/pending/i);
 
-    // second enrolment form opens clean (no React controlled-input warning)
+    // second form opens clean
     await page.getByRole('button', { name: '+ ENROLL STAFF' }).click();
-    await page.getByPlaceholder('https://example.com/photo.jpg').fill('https://x/y.jpg');
-    await page.getByRole('button', { name: 'CANCEL' }).click();
+    await expect(page.getByTestId('staff-form').getByLabel('Full name (as on Aadhaar)', { exact: true })).toHaveValue('');
+    await page.getByRole('button', { name: 'Cancel' }).click();
 
     await adminTab(page, 'workforce');
     await expect(page.getByTestId('wf-count-housekeeping')).toHaveText('4 STAFF');
@@ -541,10 +538,9 @@ test('workforce: coverage bars follow the saved shift time (edit moves the bar),
     await expect(page.getByTestId('shift-row-Amresh Kumar')).toContainText('shift time not set');
     await expect(page.getByTestId('shift-now-line')).toHaveCount(1);
 
-    const varunCard = page.locator('div').filter({ hasText: /^Varun/ }).filter({ has: page.getByText('EDIT', { exact: true }) }).last();
-    await varunCard.getByText('EDIT', { exact: true }).click();
-    await field(page, 'Duty Shift').fill('06:00 AM – 06:00 PM');
-    await page.getByRole('button', { name: 'UPDATE' }).click();
+    await page.getByTestId('sd-edit-Varun').click();
+    await page.getByTestId('staff-form').getByLabel('Shift time', { exact: true }).fill('06:00 AM – 06:00 PM');
+    await page.getByTestId('sf-save').click();
     const style = await varun.getByTestId('shift-bar').getAttribute('style');
     expect(style).toMatch(/left: 25%/);
     expect(style).toMatch(/width: 50%/);

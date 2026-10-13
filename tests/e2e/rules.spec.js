@@ -52,3 +52,14 @@ test('attendance selfies: a JPEG under the size limit is saved once, never chang
     expect((await put(request, 'hotel_attendance_photos/p4', { ...photo, kind: 'x' })).status()).toBe(403);
     expect((await put(request, 'hotel_attendance_photos/p5', photo, null)).status()).toBe(403);
 });
+
+test('staff photos: one JPEG per SKY5 staff ID, can be replaced, never deleted', async ({ request }) => {
+    const photo = { staffId: 'SKY5-015', data: 'data:image/jpeg;base64,AAAA', at: '2026-10-13T12:00:00Z' };
+    expect((await put(request, 'hotel_staff_photos/SKY5-015', photo)).status()).toBe(200);
+    expect((await put(request, 'hotel_staff_photos/SKY5-015', { ...photo, data: 'data:image/jpeg;base64,BBBB' })).status()).toBe(200);
+    expect((await request.delete(`${base}/hotel_staff_photos/SKY5-015`, { headers: { Authorization: `Bearer ${user}` } })).status()).toBe(403);
+    expect((await put(request, 'hotel_staff_photos/SKY5-016', { ...photo, staffId: 'SKY5-999' })).status()).toBe(403); // id must match
+    expect((await put(request, 'hotel_staff_photos/anything', { ...photo, staffId: 'anything' })).status()).toBe(403);
+    expect((await put(request, 'hotel_staff_photos/SKY5-017', { ...photo, staffId: 'SKY5-017', data: 'data:image/png;base64,AAAA' })).status()).toBe(403);
+    expect((await put(request, 'hotel_staff_photos/SKY5-018', { ...photo, staffId: 'SKY5-018', aadhaar: '1234' })).status()).toBe(403); // no extra fields
+});

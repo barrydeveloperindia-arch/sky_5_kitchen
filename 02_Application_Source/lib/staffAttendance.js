@@ -20,14 +20,14 @@ const has = (t) => !!t && t !== '--';
 export const DUPLICATE_GUARD_MS = 2 * 60 * 1000;
 export const STAFF_KEY = 'sky5_attendance_staff';
 
-// Every staff name in the registry, each once, in register order
+// Every staff name in the registry, each once, in register order (people marked Left are not offered)
 export function staffNames(registry) {
     const seen = new Set();
     const out = [];
     for (const dept of ['reception', 'kitchen', 'housekeeping']) {
         for (const s of registry?.[dept] || []) {
             const name = String(s?.name || '').trim();
-            if (name && !seen.has(name)) { seen.add(name); out.push({ name, dept, role: s.role || '' }); }
+            if (name && !seen.has(name) && s.status !== 'Left') { seen.add(name); out.push({ name, dept, role: s.role || '', staffId: s.staffId || '', photoId: s.photoId || '' }); }
         }
     }
     return out;

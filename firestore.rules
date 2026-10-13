@@ -37,6 +37,18 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Staff photos for the Staff Directory / ID card (one per staff ID). Can be replaced (new photo), never deleted.
+    match /hotel_staff_photos/{id} {
+      allow read: if signedIn();
+      allow create, update: if signedIn()
+        && id.matches('SKY5-[0-9]{3}')
+        && request.resource.data.keys().hasOnly(['staffId', 'data', 'at'])
+        && request.resource.data.staffId == id
+        && request.resource.data.data is string && request.resource.data.data.matches('data:image/jpeg;base64,.*')
+        && request.resource.data.data.size() <= 150000;
+      allow delete: if false;
+    }
+
     // Money fields must be real, non-negative numbers when present
     function okMoney(d, k) { return !(k in d) || (d[k] is number && d[k] >= 0); }
     // Basic shape checks so a bad or garbled save can never corrupt a room bill or a settlement

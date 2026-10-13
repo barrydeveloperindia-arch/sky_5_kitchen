@@ -82,9 +82,9 @@ test('kitchen status, logs, attendance, settlements and staff edits are all save
     await page.locator('tr', { hasText: 'Arjun Tiwari' }).getByRole('button', { name: 'CHECK-OUT' }).click();
 
     await adminTab(page, 'workforce');
-    await page.getByText('EDIT', { exact: true }).first().click();
-    await page.locator('label', { hasText: 'Phone Number' }).locator('..').locator('input').fill('+91 91111 11111');
-    await page.getByRole('button', { name: 'UPDATE' }).click();
+    await page.getByTestId('sd-edit-Gaurav Panchal').click();
+    await page.getByTestId('staff-form').getByLabel('Mobile', { exact: true }).fill('+91 91111 11111');
+    await page.getByTestId('sf-save').click();
 
     await adminTab(page, 'reception');
     await page.getByTestId('room-card-12').getByRole('button', { name: 'CHECK-OUT' }).click();
@@ -101,7 +101,7 @@ test('kitchen status, logs, attendance, settlements and staff edits are all save
     await adminTab(page, 'attendance');
     await expect(page.locator('tr', { hasText: 'Arjun Tiwari' }).getByRole('button', { name: 'CHECK-OUT' })).toHaveCount(0);
     await adminTab(page, 'workforce');
-    await expect(page.getByText('+91 91111 11111')).toBeVisible();
+    await expect(page.getByTestId('sd-row-Gaurav Panchal')).toContainText('9111111111');
     await adminTab(page, 'checkouts');
     await expect(page.locator('tr', { hasText: 'Room' }).first()).toBeVisible();
     await adminTab(page, 'finance');
