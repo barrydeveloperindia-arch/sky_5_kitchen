@@ -92,7 +92,7 @@ test('staff attendance link (/attendance) opens on its own, without the OPS Cent
     const errors = trackErrors(page);
     await page.goto('/attendance');
     await expect(page.getByTestId('staff-attendance')).toBeVisible();
-    await expect(page.getByText('Hotel Sky 5 · Staff check-in / check-out')).toBeVisible();
+    await expect(page.getByText('Hotel Sky 5 · Check-in / Check-out')).toBeVisible();
     await expect(page.getByTestId('nav-reception')).toHaveCount(0);
     await expect(page.locator('.modern-item-card')).toHaveCount(0);
     expect(errors).toEqual([]);

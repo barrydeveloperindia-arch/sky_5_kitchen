@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { collection, doc, onSnapshot, query, setDoc, where } from 'firebase/firestore';
-import { Camera, CheckCircle2, ChevronRight, Clock, LogIn, LogOut, MapPin, RefreshCw, Search } from 'lucide-react';
+import { Camera, CheckCircle2, ChevronLeft, ChevronRight, Clock, LogIn, LogOut, MapPin, RefreshCw, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getServices, whenSignedIn } from '../lib/firebase';
@@ -200,25 +200,27 @@ export default function StaffAttendance() {
     return (
         <div className="ui min-h-dvh bg-[#f4f6fa] text-[#0a192f]" data-testid="staff-attendance">
             <style>{'@keyframes att-scan{0%,100%{top:12%}50%{top:86%}}'}</style>
-            <div className="mx-auto max-w-md space-y-4 p-3 min-[360px]:p-4">
-                {/* top bar, like the AuraLock terminal */}
-                {/* a div, not <header>: the shop's global header style (sticky, white) must not apply here */}
-                <div role="banner" className="flex items-center justify-between gap-3">
-                    <div className="flex min-w-0 items-center gap-3">
-                        <div aria-hidden className="shrink-0 rounded-xl border-l-4 border-[#d4af37] bg-[#0a192f] px-2.5 py-1.5 text-center font-serif leading-none text-[#d4af37]">
-                            <div className="text-[7px] font-semibold tracking-[0.25em] text-white">HOTEL</div><div className="text-base font-black">SKY 5</div>
-                        </div>
-                        <div className="min-w-0">
-                            <div className="text-[13px] leading-tight font-black tracking-wide text-[#0a192f] min-[360px]:text-sm">STAFF ATTENDANCE</div>
-                            <div className="text-[11px] leading-tight text-slate-600">Hotel Sky 5 · Staff check-in / check-out</div>
-                        </div>
+            {/* App bar (a div, not <header>: the shop's global header style must not apply here) */}
+            <div role="banner" className="bg-[#0a192f] shadow-md">
+                <div className="mx-auto flex max-w-md items-center gap-3 px-3 py-3 min-[360px]:px-4">
+                    <a href="/" data-testid="att-back" aria-label="Back to the hotel app"
+                        className="grid size-9 shrink-0 place-items-center rounded-full border border-white/15 text-white transition-colors hover:border-[#d4af37] hover:text-[#d4af37]">
+                        <ChevronLeft aria-hidden className="size-5" />
+                    </a>
+                    <div aria-hidden className="shrink-0 rounded-lg border border-[#d4af37]/60 px-2 py-1 text-center font-serif leading-none text-[#d4af37]">
+                        <div className="text-[6px] font-semibold tracking-[0.25em] text-white">HOTEL</div><div className="text-sm font-black">SKY 5</div>
                     </div>
-                    <a href="/" data-testid="att-back" className="shrink-0 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-slate-700 hover:border-[#d4af37]">← Hotel app</a>
-                    <span data-testid="att-online" className={cn('flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-1 text-[9px] min-[360px]:px-2.5 min-[360px]:text-[10px] font-black tracking-widest uppercase', online ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-red-200 bg-red-50 text-red-700')}>
-                        <span className={cn('size-1.5 rounded-full', online ? 'animate-pulse bg-emerald-500' : 'bg-red-500')} />{online ? 'Online' : 'Offline'}
+                    <div className="min-w-0 flex-1">
+                        <div className="truncate text-[15px] leading-tight font-bold text-white">Staff Attendance</div>
+                        <div className="truncate text-[11px] leading-tight text-[#aab4cf]">Hotel Sky 5 · Check-in / Check-out</div>
+                    </div>
+                    <span data-testid="att-online" title={online ? 'Connected' : 'No internet'} className={cn('flex shrink-0 items-center gap-1.5 text-[11px] font-semibold', online ? 'text-emerald-300' : 'text-red-300')}>
+                        <span className={cn('size-2 rounded-full', online ? 'animate-pulse bg-emerald-400' : 'bg-red-400')} />{online ? 'Online' : 'Offline'}
                     </span>
                 </div>
-
+            </div>
+            <div className="mx-auto max-w-md space-y-4 p-3 min-[360px]:p-4">
+                {/* top bar, like the AuraLock terminal */}
                 {error && <div role="alert" data-testid="att-error" className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</div>}
 
                 {!registry && !error && <p className="p-10 text-center text-sm text-slate-600">Loading…</p>}
