@@ -764,7 +764,7 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems, liveRooms }) {
             <nav className="mobile-nav">
                 <div className="app-title-nav" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <Logo size={40} />
-                    <span style={{ fontSize: '1.4rem', fontWeight: '800', letterSpacing: '1px' }}>Hotel Sky 5</span>
+                    <span className="nav-hotel-name" style={{ fontSize: '1.4rem', fontWeight: '800', letterSpacing: '1px' }}>Hotel Sky 5</span>
                 </div>
                 
                 {/* Desktop Menu Tabs */}
@@ -820,11 +820,11 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems, liveRooms }) {
 
                 <div className="hero-promo">
                     <div className="hero-promo-text">
-                        <h1 style={{ fontFamily: 'Cinzel, serif', letterSpacing: '4px' }}>Smart Stay.<br /><span>True Comfort.</span><br />Hotel Sky 5</h1>
+                        <h1 style={{ fontFamily: 'Cinzel, serif', letterSpacing: '4px' }}>Smart Stay.<br /><span>True Comfort.</span><br /><span className="hero-name">Hotel Sky 5</span></h1>
                         <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem', marginBottom: '15px', fontStyle: 'italic' }}>
                             Your premium 5-star signature property in the heart of Panchkula.
                         </p>
-                        <div style={{ display: 'flex', gap: '10px' }}>
+                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                             <button className="shop-now-btn" onClick={() => {
                                 const section = document.querySelector('.section-title-modern');
                                 section?.scrollIntoView({ behavior: 'smooth' });

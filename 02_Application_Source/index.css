@@ -2605,3 +2605,12 @@ header {
   .invoice-head h2 { font-size: 1.8rem !important; }
   .invoice-head h1 { font-size: 1.5rem !important; }
 }
+
+/* Small phones: the hero title, its buttons and the header fit without breaking a word or hiding a button */
+.hero-promo h1 .hero-name { color: inherit; white-space: nowrap; }
+.shop-now-btn { white-space: nowrap; }
+@media (max-width: 480px) {
+  .hero-promo h1 { font-size: clamp(1.6rem, 8.5vw, 2.2rem); letter-spacing: 1.5px !important; }
+  .shop-now-btn { padding: 11px 20px; }
+  .nav-hotel-name { display: none; }   /* the logo already says HOTEL SKY 5 */
+}
