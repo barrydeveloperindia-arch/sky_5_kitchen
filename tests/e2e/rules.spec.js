@@ -77,3 +77,18 @@ test('staff faces: 128 numbers from a staff photo or a first check-in, or an emp
     expect((await put(request, 'hotel_staff_faces/SKY5-024', { ...face, aadhaar: '1234' })).status()).toBe(403);
     expect((await put(request, 'hotel_staff_faces/SKY5-025', face, null)).status()).toBe(403);   // signed in only
 });
+
+test('attendance rows: need a staff name; hours must be a real number of hours; no garbage in the flags', async ({ request }) => {
+    const row = { staffName: 'QA', date: '14 Oct', dateISO: '2026-10-14', checkIn: '09:00 AM', checkOut: '--', status: 'Present' };
+    expect((await put(request, 'hotel_attendance/a1', row)).status()).toBe(200);
+    expect((await put(request, 'hotel_attendance/a1', { ...row, checkOut: '06:00 PM', hours: 9 })).status()).toBe(200);
+    expect((await put(request, 'hotel_attendance/a1', { ...row, deleted: true })).status()).toBe(200);   // soft delete
+    expect((await put(request, 'hotel_attendance/a2', { ...row, staffName: '' })).status()).toBe(403);
+    expect((await put(request, 'hotel_attendance/a3', { date: '14 Oct', checkIn: '09:00 AM' })).status()).toBe(403);   // no name
+    expect((await put(request, 'hotel_attendance/a4', { ...row, hours: -2 })).status()).toBe(403);
+    expect((await put(request, 'hotel_attendance/a5', { ...row, hours: 300 })).status()).toBe(403);
+    expect((await put(request, 'hotel_attendance/a6', { ...row, hours: '9' })).status()).toBe(403);
+    expect((await put(request, 'hotel_attendance/a7', { ...row, deleted: 'yes' })).status()).toBe(403);
+    expect((await put(request, 'hotel_attendance/a8', { ...row, inLoc: 'Panchkula' })).status()).toBe(403);
+    expect((await request.delete(`${base}/hotel_attendance/a1`, { headers: { Authorization: `Bearer ${user}` } })).status()).toBe(403);
+});

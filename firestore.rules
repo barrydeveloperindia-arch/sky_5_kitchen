@@ -71,7 +71,13 @@ service cloud.firestore {
                 && (!('guest' in d) || d.guest == null || d.guest is map)))
         && (col != 'hotel_settlements' || (
                 okMoney(d, 'total') && okMoney(d, 'collected') && okMoney(d, 'refund') && okMoney(d, 'advance')))
-        && (col != 'hotel_orders' || (!('status' in d) || d.status is string));
+        && (col != 'hotel_orders' || (!('status' in d) || d.status is string))
+        && (col != 'hotel_attendance' || (
+                d.staffName is string && d.staffName.size() > 0
+                && (!('hours' in d) || (d.hours is number && d.hours >= 0 && d.hours < 48))
+                && (!('deleted' in d) || d.deleted is bool)
+                && (!('inLoc' in d) || d.inLoc == null || d.inLoc is map)
+                && (!('outLoc' in d) || d.outLoc == null || d.outLoc is map)));
     }
 
     // OPS Center + shop live data (rooms, orders, logs, attendance, settlements, staff, menu).

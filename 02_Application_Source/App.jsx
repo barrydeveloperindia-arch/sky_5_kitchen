@@ -1,9 +1,16 @@
 import { useState, useMemo, useCallback, lazy, Suspense } from 'react';
 import ShopView from './components/ShopView';
-// Guests only need the shop: the OPS Center and the staff pages are fetched when they are opened
-const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
-const StaffInventory = lazy(() => import('./components/StaffInventory'));
-const StaffAttendance = lazy(() => import('./components/StaffAttendance'));
+// Guests only need the shop: the OPS Center and the staff pages are fetched when they are opened.
+// A page left open across an update asks for old file names that are gone: reload once to get the new version.
+const lazyScreen = (load) => lazy(() => load().catch((err) => {
+  let reloaded = false;
+  try { reloaded = sessionStorage.getItem('sky5_reloaded_for_update') === '1'; sessionStorage.setItem('sky5_reloaded_for_update', '1'); } catch { /* private mode */ }
+  if (!reloaded) { window.location.reload(); return new Promise(() => {}); }
+  throw err;
+}).then((m) => { try { sessionStorage.removeItem('sky5_reloaded_for_update'); } catch { /* private mode */ } return m; }));
+const AdminDashboard = lazyScreen(() => import('./components/AdminDashboard'));
+const StaffInventory = lazyScreen(() => import('./components/StaffInventory'));
+const StaffAttendance = lazyScreen(() => import('./components/StaffAttendance'));
 import { combos } from './data/combos';
 import { rooms as roomData, liveSeedRooms } from './data/rooms';
 import { parseRoomNumber, addFoodBillToRoom } from './lib/billing';
