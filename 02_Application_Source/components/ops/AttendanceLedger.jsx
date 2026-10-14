@@ -97,7 +97,7 @@ export default function AttendanceLedger({
                                                 <Avatar name={log.staffName} photo={info?.photo} />
                                                 <div>
                                                     <div className="font-semibold text-primary">{log.staffName}</div>
-                                                    <div className="text-[11px] text-muted-foreground">{log.source === 'staff-web' ? 'Self check-in (phone)' : `Log #${String(log.id).padStart(3, '0')}`}</div>
+                                                    <div className="text-[11px] text-muted-foreground">{log.source === 'face-scan' ? `Face scan (terminal) · ${log.staffId}` : log.source === 'staff-web' ? 'Self check-in (phone)' : `Log #${String(log.id).padStart(3, '0')}`}</div>
                                                 </div>
                                             </div>
                                         </TableCell>
@@ -107,14 +107,14 @@ export default function AttendanceLedger({
                                         <TableCell>
                                             <div className="flex items-center gap-2 whitespace-nowrap">
                                                 <span className={cn('font-semibold', log.checkIn === '--' ? 'text-muted-foreground' : 'text-success')}>{log.checkIn}</span>
-                                                {log.checkIn === '--' && <Button size="xs" onClick={() => onQuickIn(log.id)}>CHECK-IN</Button>}
+                                                {log.checkIn === '--' && !log.readOnly && <Button size="xs" onClick={() => onQuickIn(log.id)}>CHECK-IN</Button>}
                                                 <AttendanceProof log={log} kind="in" />
                                             </div>
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex items-center gap-2 whitespace-nowrap">
                                                 <span className={cn('font-semibold', log.checkOut === '--' ? 'text-muted-foreground' : 'text-warning')}>{log.checkOut}</span>
-                                                {log.checkIn !== '--' && log.checkOut === '--' && <Button size="xs" variant="outline" onClick={() => onQuickOut(log.id)}>CHECK-OUT</Button>}
+                                                {log.checkIn !== '--' && log.checkOut === '--' && !log.readOnly && <Button size="xs" variant="outline" onClick={() => onQuickOut(log.id)}>CHECK-OUT</Button>}
                                                 <AttendanceProof log={log} kind="out" />
                                             </div>
                                         </TableCell>

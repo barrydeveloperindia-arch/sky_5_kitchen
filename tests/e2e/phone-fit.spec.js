@@ -84,3 +84,17 @@ test('phone: every OPS Center tab fits the screen', async ({ page }) => {
     }
     for (const [k, v] of Object.entries(found)) expect(v, `${k}: ${JSON.stringify(v)}`).toEqual({ docOverflow: 0, items: [] });
 });
+
+test('OPS Center sidebar stays full height while the page scrolls (tablet / small laptop widths)', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'sidebar is a top bar on phones');
+    for (const width of [800, 900, 1280]) {
+        await page.setViewportSize({ width, height: 700 });
+        await openAdmin(page);
+        await page.getByTestId('nav-today').click();
+        await page.mouse.wheel(0, 3000);
+        await page.waitForTimeout(400);
+        const box = await page.getByTestId('ops-sidebar').boundingBox();
+        expect(box.y, `${width}px: sidebar top`).toBeLessThanOrEqual(1);
+        expect(box.y + box.height, `${width}px: sidebar reaches the bottom`).toBeGreaterThanOrEqual(699);
+    }
+});

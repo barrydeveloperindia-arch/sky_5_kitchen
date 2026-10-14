@@ -234,6 +234,28 @@ test('the hotel app has an Attendance button that opens this page, and this page
     await expect(page.getByTestId('staff-attendance')).toBeVisible();
 });
 
+test('the selfie is taken automatically after a 3-2-1 countdown (no button needed)', async ({ page }) => {
+    await page.getByTestId('att-pick-Bhawna').click();
+    await page.getByTestId('att-tap').click();
+    await expect(page.getByTestId('att-countdown')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('att-done')).toBeVisible({ timeout: 15000 });   // nobody pressed the photo button
+    await expect(page.getByTestId('att-done')).toContainText('Check In Successful');
+});
+
+test('the face scans of today from the attendance terminal show in the register (read only) and in Present Today', async ({ page }) => {
+    const hhmm = (d) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    await page.route('http://board.test/**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ companies: [{ company: 'Sky5 Hotel', staff: [
+        { name: 'Board Person', employeeId: 'SKY5-099', status: 'Present', in: hhmm(new Date(Date.now() - 3600000)), out: '' },
+        { name: 'Zed Notscanned', employeeId: 'SKY5-098', status: 'Not in yet', in: '', out: '' }] }] }) }));
+    await openAdmin(page);
+    await adminTab(page, 'attendance');
+    const row = page.getByTestId('attendance-ledger').getByRole('row').filter({ hasText: 'Board Person' });
+    await expect(row).toContainText('Face scan (terminal) · SKY5-099');
+    await expect(row.getByRole('button', { name: 'CHECK-OUT', exact: true })).toHaveCount(0);   // nothing to press on a scan
+    await expect(page.getByTestId('attendance-ledger').getByRole('row').filter({ hasText: 'Zed Notscanned' })).toHaveCount(0);
+    await expect(page.getByTestId('att-present-today')).toHaveText('1 STAFF');
+});
+
 test('camera refused: clear message, nothing saved', async ({ page, context }) => {
     await context.clearPermissions();
     await page.addInitScript(() => { navigator.mediaDevices.getUserMedia = () => Promise.reject(new DOMException('denied', 'NotAllowedError')); });

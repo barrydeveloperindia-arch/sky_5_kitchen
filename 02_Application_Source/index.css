@@ -1877,6 +1877,8 @@ header {
   position: relative;
   font-family: 'Inter', sans-serif;
   overflow-x: hidden;
+  /* clip (not hidden) so this box is not a scroll box: the OPS Center sidebar can stay sticky full height */
+  overflow-x: clip;
   transition: max-width 0.3s ease;
 }
 

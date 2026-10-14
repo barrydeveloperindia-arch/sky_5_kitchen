@@ -12,6 +12,7 @@ import ShiftTimeline from './ops/ShiftTimeline';
 import FinanceBoard from './ops/FinanceBoard';
 import MenuConfigBoard from './ops/MenuConfigBoard';
 import AttendanceLedger from './ops/AttendanceLedger';
+import { useFaceScans, mergeLogs, presentNames } from '../lib/faceScans';
 import StaffDirectory, { StaffFormDialog } from './ops/StaffDirectory';
 import TodayView from './ops/TodayView';
 import { roomFolio, checkoutFolio, toLocalDateTime, computeRoomBill, parseStayDate, toDateTimeInput, ROOM_GST_RATE, GST_RATE } from '../lib/billing';
@@ -194,7 +195,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
     });
 
     // Attendance & Leave State
-    const [attendanceLogs, setAttendanceLogs] = useSyncedCollection('hotel_attendance', sample([
+    const [attendanceLogsAll, setAttendanceLogs] = useSyncedCollection('hotel_attendance', sample([
         { id: 1, staffName: 'Gaurav Panchal', date: '06-May', checkIn: '08:25 AM', checkOut: '06:35 PM', status: 'Present' },
         { id: 2, staffName: 'Arjun Tiwari', date: '06-May', checkIn: '08:55 AM', checkOut: '--', status: 'Present' },
         { id: 3, staffName: 'Ratnesh', date: '06-May', checkIn: '06:55 PM', checkOut: '--', status: 'Present' },
@@ -205,23 +206,28 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
         { id: 8, staffName: 'Bhawna', date: '06-May', checkIn: '08:40 AM', checkOut: '05:10 PM', status: 'Present' },
         { id: 9, staffName: 'Amresh Kumar', date: '06-May', checkIn: '--', checkOut: '--', status: 'Present' },
     ]));
+    // rows marked deleted (e.g. test check-ins removed on request) never show, count or export
+    // + today's face scans from the attendance terminal (read only), so the register shows everyone who came in
+    const faceRows = useFaceScans(useMemo(() => [...staffRegistry.reception, ...staffRegistry.kitchen, ...staffRegistry.housekeeping], [staffRegistry]));
+    const attendanceLogs = useMemo(() => mergeLogs(attendanceLogsAll.filter(l => !l.deleted), faceRows), [attendanceLogsAll, faceRows]);
 
     const holidays = [
         { date: '15-Aug', event: 'Independence Day', type: 'National' },
         { date: '02-Oct', event: 'Gandhi Jayanti', type: 'National' },
         { date: '25-Dec', event: 'Christmas', type: 'Hotel Holiday' },
     ];
-    const upcomingHoliday = (() => {
+    // every holiday at its NEXT date, soonest first (a holiday already gone this year shows next year's date)
+    const holidaysAhead = (() => {
         const now = new Date();
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const withDates = holidays.map(h => {
+        return holidays.map(h => {
             const [dd, mon] = h.date.split('-');
             let d = new Date(today.getFullYear(), MONTH_ABBR.indexOf(mon), +dd);
             if (d < today) d = new Date(today.getFullYear() + 1, MONTH_ABBR.indexOf(mon), +dd);
-            return { ...h, when: d };
-        });
-        return withDates.sort((a, b) => a.when - b.when)[0];
+            return { ...h, when: d, label: d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) };
+        }).sort((a, b) => a.when - b.when);
     })();
+    const upcomingHoliday = holidaysAhead[0];
 
     const [showAttendanceModal, setShowAttendanceModal] = useState(false);
     const [attendanceForm, setAttendanceForm] = useState({ staffName: '', date: '', checkIn: '', checkOut: '', status: 'Present' });
@@ -932,7 +938,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
     const handleShareAttendanceWhatsApp = () => {
                 const today = dayKey();
         const todays = attendanceLogs.filter(l => l.date === today);
-        const presentCount = todays.filter(l => l.status === 'Present').length;
+        const presentCount = presentNames(attendanceLogs, today).size;   // each person once (phone + face scan)
         const leaveCount = todays.filter(l => /leave/i.test(l.status || '')).length;
         const staffTotal = staffRegistry.reception.length + staffRegistry.kitchen.length + staffRegistry.housekeeping.length;
 
@@ -1897,7 +1903,7 @@ _Generated via Sky-Ops Center_`;
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
                         <AttendanceLedger
                             logs={ledgerLogs} registry={staffRegistry}
-                            presentToday={attendanceLogs.filter(l => l.date === dayKey() && l.status === 'Present').length}
+                            presentToday={presentNames(attendanceLogs, dayKey()).size}
                             leaveToday={attendanceLogs.filter(l => l.date === dayKey() && /leave/i.test(l.status)).length}
                             upcomingHoliday={upcomingHoliday}
                             auditDate={`${activeAttendanceDate}-${calMonth.getFullYear()}`} selectedDay={activeAttendanceDate}
@@ -1912,6 +1918,7 @@ _Generated via Sky-Ops Center_`;
                             <div style={{ background: 'white', borderRadius: '25px', padding: '30px', boxShadow: '0 10px 40px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>
                                 <h3 style={{ margin: '0 0 20px 0', color: 'var(--primary-navy)', fontSize: '1.1rem' }}>📜 Approved Leaves & Alerts</h3>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                    {staffRegistry.special.length === 0 && <p data-testid="alerts-empty" style={{ margin: 0, color: '#5b6b7a', fontSize: '0.9rem' }}>No leaves or alerts right now.</p>}
                                     {staffRegistry.special.map(leave => (
                                         <div key={leave.id} style={{ 
                                             padding: '15px', 
@@ -2008,13 +2015,13 @@ _Generated via Sky-Ops Center_`;
                                     </div>
                                 ) : (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                        {holidays.map((h, idx) => (
+                                        {holidaysAhead.map((h, idx) => (
                                             <div key={idx} style={{ padding: '15px', borderRadius: '15px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                 <div>
                                                     <div style={{ fontWeight: 'bold', color: 'var(--accent)' }}>{h.event}</div>
                                                     <div style={{ fontSize: '0.75rem', color: '#8892b0' }}>{h.type}</div>
                                                 </div>
-                                                <div style={{ fontWeight: '800', color: 'white' }}>{h.date}</div>
+                                                <div style={{ fontWeight: '800', color: 'white' }}>{h.label}</div>
                                             </div>
                                         ))}
                                         <div style={{ marginTop: '10px', padding: '15px', borderRadius: '15px', border: '1px dashed rgba(255,255,255,0.2)', textAlign: 'center', fontSize: '0.75rem', color: '#8892b0' }}>

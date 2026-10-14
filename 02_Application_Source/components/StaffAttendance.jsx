@@ -16,7 +16,8 @@ const writeSaved = (v) => { try { if (v) localStorage.setItem(STAFF_KEY, v); els
 const initials = (n) => String(n || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
 const DEPTS = [['reception', 'Front Desk & Management'], ['kitchen', 'Kitchen'], ['housekeeping', 'Housekeeping']];
 const NO_NET = 'No internet. Connect and open the link again.';
-const DONE_SECONDS = 10; // the success screen goes back to the start by itself, like the AuraLock terminal
+const DONE_SECONDS = 10;
+const AUTO_PHOTO_SECONDS = 3; // the selfie is taken by itself after this countdown // the success screen goes back to the start by itself, like the AuraLock terminal
 
 // Front camera frame -> small JPEG (data URL) that fits the database limit
 function snap(video) {
@@ -101,6 +102,24 @@ export default function StaffAttendance() {
     const clock = new Date(now);
 
     const closeDone = () => { setResult(null); setStep('home'); };
+    // Automatic photo (like the AuraLock terminal): once the camera shows a picture, count 3-2-1 and take it
+    const [autoIn, setAutoIn] = useState(null);
+    const captureRef = useRef(null);
+    useEffect(() => {
+        if (step !== 'camera') return undefined;
+        let left = null, stopped = false;
+        const t = setInterval(() => {
+            if (stopped) return;
+            if (left === null) {
+                if (videoRef.current?.videoWidth) { left = AUTO_PHOTO_SECONDS; setAutoIn(left); }
+                return;
+            }
+            left -= 1;
+            setAutoIn(left);
+            if (left <= 0) { stopped = true; clearInterval(t); captureRef.current?.(); }
+        }, 1000);
+        return () => { stopped = true; clearInterval(t); setAutoIn(null); };
+    }, [step]);
     // every new screen starts at the top (a long name list leaves the page scrolled down)
     useEffect(() => {
         // camera: bring the photo button on screen (a phone held sideways is short); otherwise start at the top
@@ -131,6 +150,7 @@ export default function StaffAttendance() {
 
     const capture = async () => {
         const video = videoRef.current;
+        if (step !== 'camera') return; // already taken (countdown and button at the same moment)
         if (!video || !video.videoWidth) { setError('Camera is starting, try again in a second.'); return; }
         const photo = snap(video);
         stopCamera();
@@ -159,6 +179,7 @@ export default function StaffAttendance() {
             setStep('home');
         }
     };
+    useEffect(() => { captureRef.current = capture; });   // the countdown always calls the latest capture
 
     const stamp = (iso) => new Date(iso).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
     const tapButton = (kind) => {
@@ -275,6 +296,8 @@ export default function StaffAttendance() {
                                     <div aria-hidden className="absolute inset-x-0 h-px bg-[#d4af37] shadow-[0_0_8px_rgba(212,175,55,0.9)]" style={{ animation: 'att-scan 2.5s linear infinite' }} />
                                     <div className="absolute inset-x-0 bottom-4 text-center drop-shadow-md">
                                         <div className="text-[9px] font-black tracking-[0.2em] text-[#e6c65c] uppercase">Position your face in the frame</div>
+                                        {autoIn > 0 && <div data-testid="att-countdown" aria-live="polite" className="my-1 text-5xl font-black text-white tabular-nums drop-shadow">{autoIn}</div>}
+                                        {autoIn === null && <div className="text-xs font-semibold text-white/80">Starting camera…</div>}
                                         <div className="text-sm font-bold text-white">{action === 'in' ? 'Check-in selfie' : 'Check-out selfie'}</div>
                                     </div>
                                 </>
@@ -300,7 +323,7 @@ export default function StaffAttendance() {
 
                         {step === 'camera' && (
                             <div className="grid gap-2">
-                                <Button data-testid="att-capture" onClick={capture} className="h-14 w-full rounded-2xl bg-gradient-to-r from-[#d4af37] to-[#e6c65c] text-base font-black tracking-wider text-[#0a192f] uppercase shadow-lg shadow-[#d4af37]/25 hover:opacity-95"><Camera className="size-5" />Take photo &amp; save</Button>
+                                <Button data-testid="att-capture" onClick={capture} className="h-14 w-full rounded-2xl bg-gradient-to-r from-[#d4af37] to-[#e6c65c] text-base font-black tracking-wider text-[#0a192f] uppercase shadow-lg shadow-[#d4af37]/25 hover:opacity-95"><Camera className="size-5" />{autoIn > 0 ? `Photo in ${autoIn}… (tap to take now)` : 'Take photo now'}</Button>
                                 <Button variant="ghost" className="h-11 w-full rounded-2xl text-xs font-bold tracking-widest uppercase" onClick={() => { stopCamera(); setStep('home'); }}>Cancel</Button>
                             </div>
                         )}

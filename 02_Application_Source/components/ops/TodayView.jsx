@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { presentNames } from '../../lib/faceScans';
 
 const inr = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
 const sameDay = (a, b) => a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -62,7 +63,7 @@ export default function TodayView({ rooms, orders, settlements, attendanceLogs, 
     const todayLabel = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
     const collectedToday = settlements.filter(s => (s.settledAt ? sameDay(new Date(s.settledAt), now) : String(s.date || '').startsWith(todayLabel))).reduce((a, s) => a + (s.collected || 0), 0);
     const kitchenOpen = orders.filter(o => o.status === 'Pending' || o.status === 'Preparing');
-    const present = attendanceLogs.filter(l => l.date === todayKey && l.status === 'Present');
+    const present = [...presentNames(attendanceLogs, todayKey)];   // each person once (phone + face scan)
     const checkoutsToday = folios.filter(({ r }) => sameDay(parseStayDate(r.guest.checkOut), now));
     const stock = inv.status === 'ready' ? computeStock(inventoryItems, inv.data.transactions, inv.data.minLevels, inv.data.conditions) : null;
     const stockAlerts = stock ? stock.filter(r => ['CHECK COUNT', 'REORDER', 'OUT OF STOCK', 'EXPIRED', 'REFILL'].includes(r.status)).length : null;
@@ -76,7 +77,7 @@ export default function TodayView({ rooms, orders, settlements, attendanceLogs, 
                 <Kpi id="due" icon={Wallet} label="Balance due" value={inr(due)} caption="Guests staying now, incl. GST" tone="warning" />
                 <Kpi id="collected" icon={IndianRupee} label="Collected today" value={inr(collectedToday)} caption="Settled at checkout" tone="success" onClick={() => onGo('Finance')} />
                 <Kpi id="kitchen" icon={ChefHat} label="Kitchen queue" value={kitchenOpen.length} caption="Pending + preparing orders" tone={kitchenOpen.length ? 'gold' : 'primary'} onClick={() => onGo('Kitchen')} />
-                <Kpi id="staff" icon={Users} label="Staff present" value={present.length} caption={`Marked on ${todayKey}`} onClick={() => onGo('Attendance')} />
+                <Kpi id="staff" icon={Users} label="Staff present" value={present.length} caption={`Checked in on ${todayKey}`} onClick={() => onGo('Attendance')} />
                 <Kpi id="stock" icon={Package} label="Stock alerts" value={stockAlerts ?? '…'} caption="Reorder / expired / refill" tone={stockAlerts ? 'danger' : 'success'} onClick={() => onGo('Inventory')} />
             </div>
 
