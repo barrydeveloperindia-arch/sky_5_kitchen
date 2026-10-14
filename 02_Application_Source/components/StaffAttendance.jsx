@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { getServices, whenSignedIn } from '../lib/firebase';
 import { normalizeRegistry } from '../lib/staff';
 import { toFirestore, trackWrite, useOnline } from '../lib/syncedState';
+import { findFaces, faceQuality, registeredFace, registerFace, sameFace, loadFaceModels } from '../lib/faceMatch';
 import {
     dayKey, isoDate, staffNames, hotelCheck, formatDistance, findActiveLog, nextAction, waitRemainingMs, formatWait, tapUpdate, logIdFor, toLoc, workedHours, formatHours,
     STAFF_KEY, MAX_PHOTO_CHARS,
@@ -28,9 +29,9 @@ function snap(video) {
     canvas.getContext('2d').drawImage(video, 0, 0, w, h);
     for (const q of [0.7, 0.55, 0.4, 0.3]) {
         const url = canvas.toDataURL('image/jpeg', q);
-        if (url.length <= MAX_PHOTO_CHARS) return url;
+        if (url.length <= MAX_PHOTO_CHARS) return { canvas, url };
     }
-    return null;
+    return { canvas, url: null };
 }
 
 // Phone location (best effort, up to 10 s). Resolves { loc } or { error }.
@@ -104,6 +105,9 @@ export default function StaffAttendance() {
     const closeDone = () => { setResult(null); setStep('home'); };
     // Automatic photo (like the AuraLock terminal): once the camera shows a picture, count 3-2-1 and take it
     const [autoIn, setAutoIn] = useState(null);
+    const [attempt, setAttempt] = useState(0);        // a failed face check starts the countdown again
+    const [checking, setChecking] = useState(false);  // "Checking your face..."
+    const busyRef = useRef(false);
     const captureRef = useRef(null);
     useEffect(() => {
         if (step !== 'camera') return undefined;
@@ -119,7 +123,7 @@ export default function StaffAttendance() {
             if (left <= 0) { stopped = true; clearInterval(t); captureRef.current?.(); }
         }, 1000);
         return () => { stopped = true; clearInterval(t); setAutoIn(null); };
-    }, [step]);
+    }, [step, attempt]);
     // every new screen starts at the top (a long name list leaves the page scrolled down)
     useEffect(() => {
         // camera: bring the photo button on screen (a phone held sideways is short); otherwise start at the top
@@ -138,6 +142,7 @@ export default function StaffAttendance() {
     const openCamera = async () => {
         setError('');
         locRef.current = locate(); // ask for location while the camera opens
+        loadFaceModels().catch(() => {});   // and get the face check ready
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 } }, audio: false });
             streamRef.current = stream;
@@ -150,11 +155,36 @@ export default function StaffAttendance() {
 
     const capture = async () => {
         const video = videoRef.current;
-        if (step !== 'camera') return; // already taken (countdown and button at the same moment)
+        if (step !== 'camera' || busyRef.current) return; // already taken (countdown and button at the same moment)
         if (!video || !video.videoWidth) { setError('Camera is starting, try again in a second.'); return; }
-        const photo = snap(video);
+        busyRef.current = true;
+        setChecking(true);
+        const retry = (msg) => { setError(msg); setChecking(false); busyRef.current = false; setAttempt(a => a + 1); };
+        const shot = snap(video);
+        if (!shot.url) { retry('Photo could not be saved, try again.'); return; }
+        const photo = shot.url;
+        // 1. one clear face, close enough
+        let faces;
+        try { faces = await findFaces(shot.canvas); } catch { retry('Face check could not start. Check internet and try again.'); return; }
+        const quality = faceQuality(faces, shot.canvas.width);
+        if (!quality.ok) { retry(quality.reason); return; }
+        // 2. it must be the chosen person: compare with their registered face (staff photo, or first check-in)
+        const staff = names.find(n => n.name === me) || { name: me };
+        let registered;
+        try { registered = await registeredFace(staff); } catch { retry('Could not check your face. Check internet and try again.'); return; }
+        let face = { check: 'registered' };
+        if (registered) {
+            const r = sameFace(quality.face.descriptor, registered.descriptor);
+            if (!r.match) {
+                stopCamera(); setChecking(false); busyRef.current = false; setStep('home');
+                setError(`This face does not match ${me}. Choose your own name - or ask the manager to update your photo.`);
+                return;
+            }
+            face = { check: 'matched', distance: r.distance, source: registered.source };
+        }
         stopCamera();
-        if (!photo) { setError('Photo could not be saved, try again.'); setStep('home'); return; }
+        setChecking(false);
+        busyRef.current = false;
         setStep('saving');
         const { loc, error: locError } = await (locRef.current || locate());
         const at = new Date();
@@ -165,14 +195,16 @@ export default function StaffAttendance() {
         const id = row0 ? String(row0.id) : logIdFor(me, isoDate(at));
         const photoId = `${id}-${kind}-${at.getTime()}`;
         const fields = tapUpdate(row0, kind, { at, photoId, loc });
+        fields[kind === 'in' ? 'inFace' : 'outFace'] = face;
         if (!loc) fields[kind === 'in' ? 'inLocError' : 'outLocError'] = locError;
         const row = row0 ? fields : { id, staffName: me, date: dayKey(at), dateISO: isoDate(at), checkOut: '--', _order: at.getTime(), ...fields };
         try {
             const { db } = getServices();
             await trackWrite(setDoc(doc(db, 'hotel_attendance_photos', photoId), { logId: id, kind, staffName: me, at: at.toISOString(), data: photo }));
+            if (face.check === 'registered') await registerFace(staff, quality.face.descriptor, photoId);   // first time: this face is now theirs
             await trackWrite(setDoc(doc(db, 'hotel_attendance', id), toFirestore(row), { merge: true }));
             const saved = { ...(row0 || {}), ...row };
-            setResult({ kind, photo, loc, locError, at: at.toISOString(), time: kind === 'in' ? saved.checkIn : saved.checkOut, checkIn: saved.checkIn, hours: workedHours(saved) });
+            setResult({ kind, photo, loc, locError, face, at: at.toISOString(), time: kind === 'in' ? saved.checkIn : saved.checkOut, checkIn: saved.checkIn, hours: workedHours(saved) });
             setStep('done');
         } catch {
             setError('Could not save. Check internet and try again.');
@@ -296,7 +328,12 @@ export default function StaffAttendance() {
                                         </div>
                                     </div>
                                     <div aria-hidden className="absolute inset-x-0 h-px bg-[#d4af37] shadow-[0_0_8px_rgba(212,175,55,0.9)]" style={{ animation: 'att-scan 2.5s linear infinite' }} />
-                                    {autoIn > 0 && (
+                                    {checking && (
+                                        <div data-testid="att-checking" className="absolute inset-0 grid place-items-center bg-[#0a192f]/55 backdrop-blur-[2px]">
+                                            <div className="flex items-center gap-2 rounded-full bg-[#0a192f] px-4 py-2 text-sm font-bold text-white"><RefreshCw aria-hidden className="size-4 animate-spin text-[#d4af37]" />Checking your face…</div>
+                                        </div>
+                                    )}
+                                    {autoIn > 0 && !checking && (
                                         <div aria-hidden className="pointer-events-none absolute inset-0 grid place-items-center">
                                             <div data-testid="att-countdown" className="grid size-24 place-items-center rounded-full border-4 border-[#d4af37] bg-[#0a192f]/60 text-5xl font-black text-white tabular-nums backdrop-blur-sm">{autoIn}</div>
                                         </div>
@@ -371,6 +408,11 @@ export default function StaffAttendance() {
                             {result.kind === 'out' && (
                                 <div className="mt-3 rounded-full border border-[#0a192f]/15 bg-[#0a192f]/5 px-5 py-2 text-xs font-black tracking-widest text-[#0a192f] uppercase">
                                     In {result.checkIn} · {formatHours(result.hours)} worked
+                                </div>
+                            )}
+                            {result.face && (
+                                <div data-testid="att-face" className="mt-3 flex items-center justify-center gap-1 text-xs font-semibold text-emerald-800">
+                                    <CheckCircle2 aria-hidden className="size-3.5" />{result.face.check === 'matched' ? 'Face verified ✓' : 'Face registered ✓ (first check-in) - next time it must match'}
                                 </div>
                             )}
                             {(() => {

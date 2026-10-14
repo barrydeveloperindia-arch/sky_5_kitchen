@@ -14,6 +14,18 @@ let errors;
 test.beforeEach(async ({ page }) => {
     errors = trackErrors(page);
     await page.clock.install();
+    // The face engine needs real faces; the fake camera has none. This stand-in returns one clear, close face
+    // ("me"), or what localStorage faceTest asks for: none / two / far / other (a different person).
+    await page.addInitScript(() => {
+        const face = (v) => ({ descriptor: Array.from({ length: 128 }, () => v), score: 0.95, width: 400 });
+        window.__FACE_TEST__ = { findFaces: () => {
+            const mode = localStorage.getItem('faceTest') || 'me';
+            if (mode === 'none') return [];
+            if (mode === 'two') return [face(0), face(0.5)];
+            if (mode === 'far') return [{ ...face(0), width: 20 }];
+            return [face(mode === 'other' ? 0.5 : 0.01)];
+        } };
+    });
     // Opening the OPS Center writes the staff register (test names) into this emulator project.
     // That first write is not waited for by the page, so give it a moment and retry until it is there.
     await expect(async () => {
@@ -265,3 +277,47 @@ test('camera refused: clear message, nothing saved', async ({ page, context }) =
     await expect(page.getByTestId('att-error')).toContainText('Camera permission is needed');
     await expect(page.getByTestId('att-in-time')).toHaveText('--');
 });
+
+test('face check: the first check-in registers the face; someone else cannot check in or out on that name', async ({ page }) => {
+    await page.getByTestId('att-pick-Varun').click();
+    await tapAndSnap(page);
+    await expect(page.getByTestId('att-face')).toContainText('Face registered');
+    await page.getByRole('button', { name: 'Done' }).click();
+    const inTime = (await page.getByTestId('att-in-time').textContent()).trim();
+
+    // another person picks Varun and tries the check-out
+    await page.evaluate(() => localStorage.setItem('faceTest', 'other'));
+    await page.clock.fastForward('03:00');
+    await expect(page.getByTestId('att-tap')).toHaveText(/CHECK OUT/, { timeout: 20000 });
+    await page.getByTestId('att-tap').click();
+    await expect(page.getByTestId('att-video')).toBeVisible();
+    await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
+    await page.getByTestId('att-capture').click();
+    await expect(page.getByTestId('att-error')).toContainText('This face does not match Varun');
+    await expect(page.getByTestId('att-done')).toHaveCount(0);
+    await expect(page.getByTestId('att-out-time')).toHaveText('--');   // nothing saved
+    await expect(page.getByTestId('att-in-time')).toHaveText(inTime);
+
+    // Varun himself: matches
+    await page.evaluate(() => localStorage.setItem('faceTest', 'me'));
+    await tapAndSnap(page);
+    await expect(page.getByTestId('att-done')).toContainText('Check Out Successful');
+    await expect(page.getByTestId('att-face')).toContainText('Face verified');
+});
+
+for (const [mode, msg] of [['none', 'No face found'], ['two', 'More than one face'], ['far', 'Come closer']]) {
+    test(`face check: a photo with ${mode === 'none' ? 'no face' : mode === 'two' ? 'two faces' : 'a face too far'} is not saved, the camera asks again`, async ({ page }) => {
+        await page.evaluate((m) => localStorage.setItem('faceTest', m), mode);
+        await page.getByTestId('att-pick-Veerwati').click();
+        await page.getByTestId('att-tap').click();
+        await expect(page.getByTestId('att-video')).toBeVisible();
+        await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
+        await page.getByTestId('att-capture').click();
+        await expect(page.getByTestId('att-error')).toContainText(msg);
+        await expect(page.getByTestId('att-video')).toBeVisible();          // still on the camera
+        await expect(page.getByTestId('att-countdown')).toBeVisible({ timeout: 10000 });   // and counting down again
+        await page.evaluate(() => localStorage.setItem('faceTest', 'me'));
+        await expect(page.getByTestId('att-done')).toBeVisible({ timeout: 15000 });
+        await expect(page.getByTestId('att-done')).toContainText('Check In Successful');
+    });
+}

@@ -92,13 +92,17 @@ test('form checks: required fields, 10-digit mobile, duplicate name and duplicat
     await expect(page.getByTestId('sd-count-total')).toHaveText('9'); // nothing was added
 });
 
-test('Left: confirm, hidden from the Active list and the attendance link, shown under Left; Rejoin brings them back', async ({ page }) => {
-    page.once('dialog', d => d.accept());
+test('Left: last working day asked, hidden from the Active list and the attendance link, shown under Former staff; Rejoin brings them back', async ({ page }) => {
     await page.getByTestId('sd-left-Karan').click();
+    await expect(page.getByTestId('sd-left-dialog')).toBeVisible();
+    await page.getByTestId('sd-left-date').fill('2026-10-10');
+    await page.getByTestId('sd-left-confirm').click();
     await expect(page.getByTestId('sd-row-Karan')).toHaveCount(0);
     await expect(page.getByTestId('sd-count-left')).toHaveText('1');
+    await expect(page.getByTestId('sd-former-Karan')).toContainText('Last day 10 Oct 2026');
     await page.getByTestId('sd-status-Left').click();
-    await expect(page.getByTestId('sd-row-Karan')).toContainText('LEFT');
+    await expect(page.getByTestId('sd-row-Karan')).toContainText('LEFT 10 Oct 2026');
+    await expect(page.getByTestId('sd-former')).toHaveCount(0);   // the Former staff box is only under the Active list
     await waitSaved(page);
 
     await page.goto('/attendance');
@@ -115,8 +119,9 @@ test('Left: confirm, hidden from the Active list and the attendance link, shown 
 });
 
 test('Left can be cancelled at the confirm box', async ({ page }) => {
-    page.once('dialog', d => d.dismiss());
     await page.getByTestId('sd-left-Bhawna').click();
+    await page.getByTestId('sd-left-cancel').click();
+    await expect(page.getByTestId('sd-left-dialog')).toHaveCount(0);
     await expect(page.getByTestId('sd-row-Bhawna')).toContainText('ACTIVE');
     await expect(page.getByTestId('sd-count-left')).toHaveText('0');
 });

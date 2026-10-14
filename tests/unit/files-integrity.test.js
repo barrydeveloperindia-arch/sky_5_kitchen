@@ -133,7 +133,8 @@ describe('project files', () => {
         const all = walk(pub).map(f => path.relative(pub, f).split(path.sep).join('/'));
         const allowed = /\.(png|jpe?g|webp|svg|ico|gif|woff2?|ttf)$/i;
         const intended = ['menu.html', 'menu.pdf'];
-        const extra = all.filter(f => !allowed.test(f) && !intended.includes(f));
+        const faceModels = /^models\/(tiny_face_detector|face_landmark_68_tiny|face_recognition)_model-(shard\d|weights_manifest\.json)$/;   // check-in face match
+        const extra = all.filter(f => !allowed.test(f) && !intended.includes(f) && !faceModels.test(f));
         expect(extra).toEqual([]);
     });
     test('hosting never lets a phone keep an old copy of the app page (no-cache on / and /inventory)', () => {

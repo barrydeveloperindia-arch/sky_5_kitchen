@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { Camera, IdCard, Pencil, Phone, Search, UserMinus, UserPlus, UserRoundCheck } from 'lucide-react';
+import { collection, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
+import { Camera, IdCard, Pencil, Phone, ScanFace, Search, UserMinus, UserPlus, UserRoundCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { getServices, whenSignedIn } from '../../lib/firebase';
 import { trackWrite } from '../../lib/syncedState';
 import { MAX_PHOTO_CHARS } from '../../lib/staffAttendance';
+import { resetFace, faceKey, FACES } from '../../lib/faceMatch';
 import {
     DEPARTMENTS, deptLabel, allStaff, isLeft, nextStaffId, validateStaff, addStaff, updateStaff, setStaffStatus, filterStaff, staffCounts, EMPTY_FORM,
 } from '../../lib/staffDirectory';
@@ -111,6 +112,8 @@ function StaffFormBody({ editing, registry, onClose, onSaved }) {
             trackWrite(setDoc(doc(getServices().db, PHOTOS, staffId), { staffId, data: photo, at: new Date().toISOString() })).catch(() => {});
             photoCache.set(staffId, photo);
             extra.photoId = staffId;
+            // a new photo = a new registered face: the old face record is reset and rebuilt from this photo
+            resetFace({ name: form.name, staffId }).catch(() => {});
         }
         if (editing) onSaved(updateStaff(registry, editing.id, form, extra), null);
         else { const r = addStaff(registry, form, extra); onSaved(r.registry, r.staff); }
@@ -195,11 +198,30 @@ export default function StaffDirectory({ registry, onChange, onAdd, onEdit }) {
     const counts = staffCounts(list);
     const shown = filterStaff(list, { search, status, dept });
 
+    const [leaving, setLeaving] = useState(null);   // { staff, date } while the "Mark as left" box is open
+    const [faces, setFaces] = useState({});         // registered check-in faces by face key
+    useEffect(() => {
+        let alive = true;
+        whenSignedIn().then(() => getDocs(collection(getServices().db, FACES)))
+            .then(snap => { if (alive) setFaces(Object.fromEntries(snap.docs.map(d => [d.id, d.data()]))); }).catch(() => {});
+        return () => { alive = false; };
+    }, []);
+    const faceOf = (s) => { const f = faces[faceKey(s)]; return f && !f.reset && f.descriptor?.length === 128 ? f : null; };
+    const clearFace = (s) => {
+        if (!window.confirm(`Reset the registered face of ${s.name}? Their next check-in photo will be registered as their face.`)) return;
+        resetFace(s).then(() => setFaces(f => ({ ...f, [faceKey(s)]: { reset: true, descriptor: [] } }))).catch(() => {});
+    };
+
     const toggleLeft = (s) => {
         if (isLeft(s)) { onChange(setStaffStatus(registry, s.id, 'Active')); return; }
-        if (!window.confirm(`Mark ${s.name} as LEFT? They will no longer appear on the attendance link. Old attendance stays.`)) return;
-        onChange(setStaffStatus(registry, s.id, 'Left', todayIso()));
+        setLeaving({ staff: s, date: todayIso() });
     };
+    const confirmLeft = () => {
+        if (!leaving?.date) return;
+        onChange(setStaffStatus(registry, leaving.staff.id, 'Left', leaving.date));
+        setLeaving(null);
+    };
+    const former = list.filter(isLeft).sort((a, b) => String(b.leftDate || '').localeCompare(String(a.leftDate || '')));
     const idCard = (s) => printIdCard(s, (s.photoId && photoCache.get(s.photoId)) || s.photo || null);
 
     return (
@@ -228,7 +250,7 @@ export default function StaffDirectory({ registry, onChange, onAdd, onEdit }) {
                         className="h-9 w-full rounded-lg border border-slate-300 bg-white pr-3 pl-9 text-sm outline-none focus:border-[#d4af37]" />
                 </div>
                 <div className="inline-flex rounded-lg border p-0.5" role="tablist" aria-label="Status">
-                    {[['Active', 'Active'], ['Left', 'Left'], ['all', 'All']].map(([k, label]) => (
+                    {[['Active', 'Active'], ['Left', 'Former staff'], ['all', 'All']].map(([k, label]) => (
                         <Button key={k} role="tab" aria-selected={status === k} data-testid={`sd-status-${k}`} size="xs" variant={status === k ? 'default' : 'ghost'} onClick={() => setStatus(k)}>{label}</Button>
                     ))}
                 </div>
@@ -259,11 +281,17 @@ export default function StaffDirectory({ registry, onChange, onAdd, onEdit }) {
                                 <TableCell className="text-sm whitespace-nowrap text-slate-700">{s.shift || 'Not set'}</TableCell>
                                 <TableCell className="whitespace-nowrap">{s.phone ? <a href={`tel:${s.phone}`} className="inline-flex items-center gap-1 text-sm font-semibold text-emerald-800 hover:underline"><Phone className="size-3.5" />{s.phone}</a> : <span className="text-sm text-slate-500">—</span>}</TableCell>
                                 <TableCell className="text-sm whitespace-nowrap text-slate-700">{fmtDate(s.joinDate)}</TableCell>
-                                <TableCell><Badge variant="outline" className={isLeft(s) ? 'border-slate-300 text-slate-600' : 'border-emerald-300 bg-emerald-50 text-emerald-800'}>{isLeft(s) ? `LEFT${s.leftDate ? ` ${fmtDate(s.leftDate)}` : ''}` : 'ACTIVE'}</Badge></TableCell>
+                                <TableCell>
+                                    <Badge variant="outline" className={isLeft(s) ? 'border-slate-300 text-slate-600' : 'border-emerald-300 bg-emerald-50 text-emerald-800'}>{isLeft(s) ? `LEFT${s.leftDate ? ` ${fmtDate(s.leftDate)}` : ''}` : 'ACTIVE'}</Badge>
+                                    {!isLeft(s) && <div data-testid={`sd-face-${s.name}`} className={cn('mt-1 flex items-center gap-1 text-[11px] font-semibold whitespace-nowrap', faceOf(s) ? 'text-emerald-800' : 'text-amber-800')}>
+                                        <ScanFace className="size-3.5" />{faceOf(s) ? (faceOf(s).source === 'staff-photo' ? 'Face from photo' : 'Face from 1st check-in') : 'Face not set yet'}
+                                    </div>}
+                                </TableCell>
                                 <TableCell>
                                     <div className="flex justify-end gap-1">
                                         <Button size="xs" variant="outline" onClick={() => onEdit(s)} aria-label={`Edit ${s.name}`} data-testid={`sd-edit-${s.name}`}><Pencil />Edit</Button>
                                         <Button size="xs" variant="outline" onClick={() => idCard(s)} aria-label={`ID card of ${s.name}`} data-testid={`sd-card-${s.name}`}><IdCard />ID card</Button>
+                                        {!isLeft(s) && faceOf(s) && <Button size="xs" variant="ghost" onClick={() => clearFace(s)} aria-label={`Reset face of ${s.name}`} data-testid={`sd-face-reset-${s.name}`}><ScanFace />Reset face</Button>}
                                         <Button size="xs" variant="ghost" onClick={() => toggleLeft(s)} aria-label={isLeft(s) ? `Mark ${s.name} active again` : `Mark ${s.name} as left`} data-testid={`sd-left-${s.name}`}>
                                             {isLeft(s) ? <><UserRoundCheck />Rejoin</> : <><UserMinus />Left</>}
                                         </Button>
@@ -274,6 +302,48 @@ export default function StaffDirectory({ registry, onChange, onAdd, onEdit }) {
                     </TableBody>
                 </Table>
             </div>
+
+            {status === 'Active' && former.length > 0 && (
+                <div data-testid="sd-former" className="rounded-xl border border-slate-200 bg-slate-50">
+                    <div className="flex flex-wrap items-center justify-between gap-1 border-b border-slate-200 px-4 py-2.5">
+                        <h3 className="text-sm font-bold text-[#0a192f]">Former staff <span className="font-semibold text-slate-600">({former.length})</span></h3>
+                        <span className="text-xs text-slate-600">Not on the attendance link · old attendance kept</span>
+                    </div>
+                    <ul className="divide-y divide-slate-200">
+                        {former.map(s => (
+                            <li key={s.id} data-testid={`sd-former-${s.name}`} className="flex flex-wrap items-center gap-3 px-4 py-2.5">
+                                <StaffPhoto staff={s} className="size-8 text-[11px] grayscale" />
+                                <div className="min-w-0 flex-1">
+                                    <div className="text-sm font-semibold text-[#0a192f]">{s.name} <span className="font-mono text-xs font-bold text-slate-600">{s.staffId}</span></div>
+                                    <div className="text-xs text-slate-600">{s.role ? `${s.role} · ` : ''}{deptLabel(s.department)}</div>
+                                </div>
+                                <div className="text-right text-xs text-slate-700">
+                                    <div>Joined {fmtDate(s.joinDate)}</div>
+                                    <div className="font-semibold">Last day {fmtDate(s.leftDate)}</div>
+                                </div>
+                                <Button size="xs" variant="outline" onClick={() => toggleLeft(s)} aria-label={`Mark ${s.name} active again`} data-testid={`sd-rejoin-${s.name}`}><UserRoundCheck />Rejoin</Button>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+
+            <Dialog open={!!leaving} onOpenChange={o => { if (!o) setLeaving(null); }}>
+                <DialogContent className="ui max-w-sm bg-white text-[#0a192f]" data-testid="sd-left-dialog">
+                    <DialogHeader>
+                        <DialogTitle>Mark {leaving?.staff.name} as left?</DialogTitle>
+                        <DialogDescription>They will no longer appear on the attendance link. Their old attendance stays in the register.</DialogDescription>
+                    </DialogHeader>
+                    <label className="grid gap-1 text-sm font-semibold">Last working day
+                        <input type="date" data-testid="sd-left-date" value={leaving?.date || ''} max={todayIso()} min={leaving?.staff.joinDate || undefined}
+                            onChange={e => setLeaving(l => ({ ...l, date: e.target.value }))} className="h-9 rounded-lg border border-slate-300 px-2 font-normal" />
+                    </label>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setLeaving(null)} data-testid="sd-left-cancel">Cancel</Button>
+                        <Button onClick={confirmLeft} disabled={!leaving?.date} data-testid="sd-left-confirm" className="bg-[#0a192f] text-[#d4af37] hover:bg-[#0a192f]/90"><UserMinus />Mark as left</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </section>
     );
 }

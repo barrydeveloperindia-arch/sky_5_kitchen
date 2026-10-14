@@ -49,6 +49,17 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Registered staff faces (128 numbers each) for the check-in face match; "reset" empties one so it can be registered again.
+    match /hotel_staff_faces/{id} {
+      allow read: if signedIn();
+      allow create, update: if signedIn()
+        && request.resource.data.keys().hasOnly(['staffName', 'staffId', 'descriptor', 'source', 'photoId', 'at', 'reset'])
+        && request.resource.data.descriptor is list
+        && ((request.resource.data.reset == false && request.resource.data.descriptor.size() == 128 && request.resource.data.source in ['staff-photo', 'first-check-in'])
+            || (request.resource.data.reset == true && request.resource.data.descriptor.size() == 0 && request.resource.data.source == 'reset'));
+      allow delete: if false;
+    }
+
     // Money fields must be real, non-negative numbers when present
     function okMoney(d, k) { return !(k in d) || (d[k] is number && d[k] >= 0); }
     // Basic shape checks so a bad or garbled save can never corrupt a room bill or a settlement

@@ -7,7 +7,7 @@ const project = `demo-rules-${Date.now().toString(36)}${Math.random().toString(3
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 const user = `${b64({ alg: 'none', typ: 'JWT' })}.${b64({ sub: 'qa', user_id: 'qa', aud: project, iss: `https://securetoken.google.com/${project}`, iat: 1, exp: 9999999999, firebase: { sign_in_provider: 'anonymous' } })}.`;
 const base = `http://127.0.0.1:8181/v1/projects/${project}/databases/(default)/documents`;
-const v = (x) => (typeof x === 'number' ? { integerValue: String(x) } : typeof x === 'string' ? { stringValue: x } : x === null ? { nullValue: null } : { mapValue: { fields: Object.fromEntries(Object.entries(x).map(([k, y]) => [k, v(y)])) } });
+const v = (x) => (typeof x === 'number' ? (Number.isInteger(x) ? { integerValue: String(x) } : { doubleValue: x }) : typeof x === 'boolean' ? { booleanValue: x } : Array.isArray(x) ? { arrayValue: { values: x.map(v) } } : typeof x === 'string' ? { stringValue: x } : x === null ? { nullValue: null } : { mapValue: { fields: Object.fromEntries(Object.entries(x).map(([k, y]) => [k, v(y)])) } });
 const put = (request, path, data, auth = user) => request.patch(`${base}/${path}`, {
     headers: auth ? { Authorization: `Bearer ${auth}` } : {},
     data: { fields: Object.fromEntries(Object.entries(data).map(([k, x]) => [k, v(x)])) },
@@ -62,4 +62,18 @@ test('staff photos: one JPEG per SKY5 staff ID, can be replaced, never deleted',
     expect((await put(request, 'hotel_staff_photos/anything', { ...photo, staffId: 'anything' })).status()).toBe(403);
     expect((await put(request, 'hotel_staff_photos/SKY5-017', { ...photo, staffId: 'SKY5-017', data: 'data:image/png;base64,AAAA' })).status()).toBe(403);
     expect((await put(request, 'hotel_staff_photos/SKY5-018', { ...photo, staffId: 'SKY5-018', aadhaar: '1234' })).status()).toBe(403); // no extra fields
+});
+
+test('staff faces: 128 numbers from a staff photo or a first check-in, or an empty reset; never deleted', async ({ request }) => {
+    const face = { staffName: 'QA', staffId: 'SKY5-020', descriptor: Array.from({ length: 128 }, () => 0.1), source: 'first-check-in', photoId: 'p1', at: '2026-10-14T10:00:00Z', reset: false };
+    const reset = { ...face, descriptor: [], source: 'reset', photoId: '', reset: true };
+    expect((await put(request, 'hotel_staff_faces/SKY5-020', face)).status()).toBe(200);
+    expect((await put(request, 'hotel_staff_faces/SKY5-020', reset)).status()).toBe(200);
+    expect((await put(request, 'hotel_staff_faces/SKY5-020', { ...face, source: 'staff-photo' })).status()).toBe(200);
+    expect((await request.delete(`${base}/hotel_staff_faces/SKY5-020`, { headers: { Authorization: `Bearer ${user}` } })).status()).toBe(403);
+    expect((await put(request, 'hotel_staff_faces/SKY5-021', { ...face, descriptor: [0.1] })).status()).toBe(403);   // not 128
+    expect((await put(request, 'hotel_staff_faces/SKY5-022', { ...reset, reset: false })).status()).toBe(403);   // empty but not a reset
+    expect((await put(request, 'hotel_staff_faces/SKY5-023', { ...face, source: 'hacker' })).status()).toBe(403);
+    expect((await put(request, 'hotel_staff_faces/SKY5-024', { ...face, aadhaar: '1234' })).status()).toBe(403);
+    expect((await put(request, 'hotel_staff_faces/SKY5-025', face, null)).status()).toBe(403);   // signed in only
 });

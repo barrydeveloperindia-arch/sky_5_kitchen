@@ -1,0 +1,104 @@
+/**
+ * HOTEL SKY 5 - face check for staff check-in / check-out (same engine as the AuraLock terminal: face-api.js).
+ * Only the person whose name is chosen can mark attendance: the check-in face is compared with that person's
+ * registered face. The registered face is the photo the manager added in Staff Directory; for someone without
+ * a photo, their first good check-in face is registered (and the manager sees it, and can reset it).
+ * Runs on the phone; models are served from /models.
+ */
+import * as faceapi from 'face-api.js';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { getServices, whenSignedIn } from './firebase';
+import { trackWrite } from './syncedState';
+
+export const MATCH_DISTANCE = 0.5;   // same-person faces are usually 0.2-0.45 apart; different people 0.6+
+export const MIN_FACE_SHARE = 0.2;   // face must be at least this share of the photo width (close enough)
+export const MIN_SCORE = 0.6;        // detector confidence
+export const FACES = 'hotel_staff_faces';
+
+let loading = null;
+export function loadFaceModels() {
+    if (typeof window !== 'undefined' && window.__FACE_TEST__) return Promise.resolve();
+    if (!loading) {
+        loading = Promise.all([
+            faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
+            faceapi.nets.faceLandmark68TinyNet.loadFromUri('/models'),
+            faceapi.nets.faceRecognitionNet.loadFromUri('/models'),
+        ]).catch(err => { loading = null; throw err; });
+    }
+    return loading;
+}
+
+// Every face in a canvas / image: [{ descriptor: number[128], score, width (face box px) }]
+export async function findFaces(el) {
+    if (typeof window !== 'undefined' && window.__FACE_TEST__) return window.__FACE_TEST__.findFaces(el);
+    await loadFaceModels();
+    const found = await faceapi.detectAllFaces(el, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 }))
+        .withFaceLandmarks(true).withFaceDescriptors();
+    return found.map(r => ({ descriptor: Array.from(r.descriptor), score: r.detection.score, width: r.detection.box.width }));
+}
+
+// Is this photo good enough to check a face? { ok, reason, face }
+export function faceQuality(faces, frameWidth) {
+    if (!faces || faces.length === 0) return { ok: false, reason: 'No face found. Look straight at the camera in good light.' };
+    if (faces.length > 1) return { ok: false, reason: 'More than one face. Only you should be in the photo.' };
+    const [face] = faces;
+    if (frameWidth && face.width / frameWidth < MIN_FACE_SHARE) return { ok: false, reason: 'Come closer to the camera.' };
+    if (face.score < MIN_SCORE) return { ok: false, reason: 'Face not clear. Remove mask / cap and face the light.' };
+    return { ok: true, face };
+}
+
+export function distance(a, b) {
+    if (!a || !b || a.length !== b.length) return Infinity;
+    let s = 0;
+    for (let i = 0; i < a.length; i++) { const d = a[i] - b[i]; s += d * d; }
+    return Math.sqrt(s);
+}
+
+// Same person? (rounded distance kept as proof on the attendance row)
+export function sameFace(live, registered) {
+    const d = distance(live, registered);
+    return { match: d <= MATCH_DISTANCE, distance: Number.isFinite(d) ? Math.round(d * 1000) / 1000 : null };
+}
+
+// One face record per person: staff ID when there is one, else the name
+export const faceKey = (staff) => (staff?.staffId ? staff.staffId : `name-${String(staff?.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`);
+
+const loadImage = (src) => new Promise((resolve, reject) => { const i = new Image(); i.onload = () => resolve(i); i.onerror = reject; i.src = src; });
+
+// The registered face of a person: { descriptor, source } or null when nobody registered one yet.
+// A staff photo added by the manager wins and is turned into a face record the first time it is needed.
+export async function registeredFace(staff) {
+    await whenSignedIn();
+    const { db } = getServices();
+    const ref = doc(db, FACES, faceKey(staff));
+    const snap = await getDoc(ref);
+    const rec = snap.exists() ? snap.data() : null;
+    const usable = rec && !rec.reset && Array.isArray(rec.descriptor) && rec.descriptor.length === 128;
+    // the manager's staff photo always wins over a face taken at a first check-in
+    if (usable && (rec.source === 'staff-photo' || !staff?.photoId)) return rec;
+    if (staff?.photoId) {
+        const p = await getDoc(doc(db, 'hotel_staff_photos', staff.photoId));
+        if (p.exists()) {
+            const faces = await findFaces(await loadImage(p.data().data));
+            if (faces.length === 1) {   // a staff photo with no face (or several) cannot be used: fall back below
+                const made = { staffName: staff.name, staffId: staff.staffId || '', descriptor: faces[0].descriptor, source: 'staff-photo', at: new Date().toISOString(), reset: false };
+                trackWrite(setDoc(ref, made)).catch(() => {});
+                return made;
+            }
+        }
+    }
+    return usable ? rec : null;
+}
+
+// First good check-in face becomes the registered face of someone without a photo
+export function registerFace(staff, descriptor, photoId) {
+    const { db } = getServices();
+    const rec = { staffName: staff.name, staffId: staff.staffId || '', descriptor, source: 'first-check-in', photoId: photoId || '', at: new Date().toISOString(), reset: false };
+    return trackWrite(setDoc(doc(db, FACES, faceKey(staff)), rec)).then(() => rec);
+}
+
+// Manager: forget a registered face (the next good check-in registers again)
+export function resetFace(staff) {
+    const { db } = getServices();
+    return trackWrite(setDoc(doc(db, FACES, faceKey(staff)), { staffName: staff.name, staffId: staff.staffId || '', descriptor: [], source: 'reset', photoId: '', at: new Date().toISOString(), reset: true }));
+}
