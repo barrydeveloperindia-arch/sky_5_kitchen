@@ -194,3 +194,27 @@ test('no accessibility / contrast issues on the directory and the form', async (
     await check('form');
     expect(found).toEqual([]);
 });
+
+test('someone who left is not counted, not on the shift timeline and not in any staff dropdown; old attendance stays', async ({ page }) => {
+    const field = (label) => page.locator('label', { hasText: label }).locator('..').locator('select, input').first();
+    await expect(page.getByTestId('wf-count-kitchen')).toHaveText('3 STAFF');
+    await expect(page.getByTestId('shift-row-Karan')).toHaveCount(1);
+    await page.getByTestId('sd-left-Karan').click();
+    await page.getByTestId('sd-left-confirm').click();
+    await waitSaved(page);
+    await expect(page.getByTestId('wf-count-kitchen')).toHaveText('2 STAFF');
+    await expect(page.getByTestId('shift-row-Karan')).toHaveCount(0);
+    await expect(page.getByTestId('shift-legend')).toContainText('Kitchen');
+    // checkout "Inspected By" and the manual attendance log offer only people still working
+    await adminTab(page, 'checkouts');
+    await page.getByRole('button', { name: /RECORD NEW INSPECTION/ }).click();
+    const inspected = await field('Inspected By').locator('option').allInnerTexts();
+    expect(inspected.join('|')).not.toContain('Karan');
+    expect(inspected.join('|')).toContain('Varun');
+    await page.getByRole('button', { name: 'CANCEL' }).click();
+    await adminTab(page, 'attendance');
+    await expect(page.getByTestId('attendance-ledger').getByRole('row').filter({ hasText: 'Karan' })).toHaveCount(1);   // his old row is kept
+    await page.getByRole('button', { name: '+ MANUAL LOG' }).click();
+    const names = await page.locator('select').filter({ has: page.locator('option', { hasText: 'Varun' }) }).first().locator('option').allInnerTexts();
+    expect(names.join('|')).not.toContain('Karan');
+});

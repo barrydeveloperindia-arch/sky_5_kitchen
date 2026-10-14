@@ -102,6 +102,11 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
     // Every list always exists, even if the saved registry is old or was edited by hand
     // (a missing list used to crash the whole Workforce tab)
     const staffRegistry = useMemo(() => normalizeRegistry(staffRegistryRaw), [staffRegistryRaw]);
+    // People who left stay in the register (old records) but are not counted, scheduled or offered in lists
+    const activeStaff = useMemo(() => {
+        const keep = (list) => (list || []).filter(s => s?.status !== 'Left');
+        return { ...staffRegistry, reception: keep(staffRegistry.reception), kitchen: keep(staffRegistry.kitchen), housekeeping: keep(staffRegistry.housekeeping) };
+    }, [staffRegistry]);
     const setStaffRegistry = (u) => setStaffRegistryRaw(prev => (typeof u === 'function' ? u(normalizeRegistry(prev)) : u));
 
 
@@ -845,9 +850,9 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
             `Front Office: 08146407934\n` +
             `----------------------------\n` +
             `*EXECUTIVE DUTY ROSTER* | Daily Report\n\n` +
-            formatSection('FRONT DESK & MANAGEMENT', staffRegistry.reception) + `\n\n` +
-            formatSection('KITCHEN & OPERATIONS', staffRegistry.kitchen) + `\n\n` +
-            formatSection('HOUSEKEEPING & TURNOVER', staffRegistry.housekeeping) + `\n\n` +
+            formatSection('FRONT DESK & MANAGEMENT', activeStaff.reception) + `\n\n` +
+            formatSection('KITCHEN & OPERATIONS', activeStaff.kitchen) + `\n\n` +
+            formatSection('HOUSEKEEPING & TURNOVER', activeStaff.housekeeping) + `\n\n` +
             `*DAILY STAFF SCHEDULE*\n` +
             `----------------------------\n` +
             scheduleText + `\n\n` +
@@ -942,7 +947,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
         const todays = attendanceLogs.filter(l => l.date === today);
         const presentCount = presentNames(attendanceLogs, today).size;   // each person once (phone + face scan)
         const leaveCount = todays.filter(l => /leave/i.test(l.status || '')).length;
-        const staffTotal = staffRegistry.reception.length + staffRegistry.kitchen.length + staffRegistry.housekeeping.length;
+        const staffTotal = activeStaff.reception.length + activeStaff.kitchen.length + activeStaff.housekeeping.length;
 
         let message = `*🏨 HOTEL SKY 5 - ATTENDANCE REPORT (${today})*\n\n`;
         message += `✅ *Present:* ${presentCount}\n`;
@@ -1860,20 +1865,20 @@ _Generated via Sky-Ops Center_`;
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '20px' }}>
                             <div style={{ background: 'white', padding: '25px', borderRadius: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.05)', borderLeft: '6px solid #e67e22' }}>
                                 <h4 style={{ margin: 0, color: '#6b6b6b', fontSize: '0.8rem', textTransform: 'uppercase' }}>Front Desk</h4>
-                                <div data-testid="wf-count-reception" style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-navy)' }}>{staffRegistry.reception.length} STAFF</div>
+                                <div data-testid="wf-count-reception" style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-navy)' }}>{activeStaff.reception.length} STAFF</div>
                             </div>
                             <div style={{ background: 'white', padding: '25px', borderRadius: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.05)', borderLeft: '6px solid #3498db' }}>
                                 <h4 style={{ margin: 0, color: '#6b6b6b', fontSize: '0.8rem', textTransform: 'uppercase' }}>Kitchen Personnel</h4>
-                                <div data-testid="wf-count-kitchen" style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-navy)' }}>{staffRegistry.kitchen.length} STAFF</div>
+                                <div data-testid="wf-count-kitchen" style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-navy)' }}>{activeStaff.kitchen.length} STAFF</div>
                             </div>
                             <div style={{ background: 'white', padding: '25px', borderRadius: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.05)', borderLeft: '6px solid #27ae60' }}>
                                 <h4 style={{ margin: 0, color: '#6b6b6b', fontSize: '0.8rem', textTransform: 'uppercase' }}>Housekeeping</h4>
-                                <div data-testid="wf-count-housekeeping" style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-navy)' }}>{staffRegistry.housekeeping.length} STAFF</div>
+                                <div data-testid="wf-count-housekeeping" style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--primary-navy)' }}>{activeStaff.housekeeping.length} STAFF</div>
                             </div>
                         </div>
 
                         {/* 24-hour coverage, drawn from each person's saved shift time */}
-                        <ShiftTimeline registry={staffRegistry} onShare={handleShareWorkforce} />
+                        <ShiftTimeline registry={activeStaff} onShare={handleShareWorkforce} />
 
                         {/* Staff Directory: every person with staff ID, post, shift, mobile, photo, status (AuraLock style) */}
                         <StaffDirectory registry={staffRegistry} onChange={setStaffRegistry}
@@ -2269,7 +2274,7 @@ _Generated via Sky-Ops Center_`;
                                         style={{ width: '100%', padding: '15px', borderRadius: '12px', border: '1px solid #e0e0e0', background: '#f8f9fa', outline: 'none', cursor: 'pointer' }}
                                     >
                                         <option value="">Select Housekeeper</option>
-                                        {staffRegistry.housekeeping.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
+                                        {activeStaff.housekeeping.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
                                         <option value="Other">Other</option>
                                     </select>
                                 </div>
@@ -2371,7 +2376,7 @@ _Generated via Sky-Ops Center_`;
                                         style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #e0e0e0', background: '#f8f9fa', outline: 'none', cursor: 'pointer' }}
                                     >
                                         <option value="">Select Staff</option>
-                                        {staffRegistry.housekeeping.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
+                                        {activeStaff.housekeeping.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
                                         <option value="Other">Other</option>
                                     </select>
                                 </div>
@@ -2588,7 +2593,7 @@ _Generated via Sky-Ops Center_`;
                                         style={{ width: '100%', padding: '15px', borderRadius: '12px', border: '1px solid #e0e0e0', background: '#f8f9fa', fontSize: '1rem' }}
                                     >
                                         <option value="">Select Staff...</option>
-                                        {[...staffRegistry.reception, ...staffRegistry.kitchen, ...staffRegistry.housekeeping].map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
+                                        {[...activeStaff.reception, ...activeStaff.kitchen, ...activeStaff.housekeeping].map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
                                     </select>
                                 </div>
                                 <div>
@@ -2676,7 +2681,7 @@ _Generated via Sky-Ops Center_`;
                                         style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #e0e0e0', background: '#f8f9fa', outline: 'none', cursor: 'pointer' }}
                                     >
                                         <option value="">Select Staff</option>
-                                        {[...staffRegistry.housekeeping, ...staffRegistry.reception, ...staffRegistry.kitchen].map(s => (
+                                        {[...activeStaff.housekeeping, ...activeStaff.reception, ...activeStaff.kitchen].map(s => (
                                             <option key={s.name} value={s.name}>{s.name} ({s.role})</option>
                                         ))}
                                         <option value="Other">Other</option>

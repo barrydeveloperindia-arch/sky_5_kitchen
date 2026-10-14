@@ -45,11 +45,22 @@ export default function ShiftTimeline({ registry, onShare }) {
                 </div>
             )}
 
+            {/* what the colours mean (always shown next to the bars) */}
+            <ul data-testid="shift-legend" className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                {DEPTS.map(([key, dept, color]) => (
+                    <li key={key} className="flex items-center gap-1.5"><span aria-hidden className={cn('inline-block h-2.5 w-5 rounded-sm', color)} />{dept}</li>
+                ))}
+                <li className="flex items-center gap-1.5"><span aria-hidden className="inline-block h-2.5 w-5 rounded-sm bg-primary opacity-60" />Faded = not on shift now</li>
+                <li className="flex items-center gap-1.5"><span aria-hidden className="inline-block h-3 w-0.5 bg-destructive" />Now</li>
+                <li className="flex items-center gap-1.5"><span className="font-medium text-success">Green name</span> = on shift now</li>
+            </ul>
+
             <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Shift timeline">
                 <div className="min-w-[640px]">
                     <div className="relative ml-36 mb-2 h-4 text-[11px] text-muted-foreground">
                         {HOURS.map(h => (
-                            <span key={h} className="absolute -translate-x-1/2" style={{ left: `${(h / 24) * 100}%` }}>{hourLabel(h)}</span>
+                            // first and last labels sit inside the line, so "12AM" is never cut at the edge
+                            <span key={h} className={cn('absolute', h === 0 ? '' : h === 24 ? '-translate-x-full' : '-translate-x-1/2')} style={{ left: `${(h / 24) * 100}%` }}>{hourLabel(h)}</span>
                         ))}
                     </div>
                     <div className="relative space-y-2">
