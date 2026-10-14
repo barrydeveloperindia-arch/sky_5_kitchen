@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'vitest';
 import {
-    dayKey, isoDate, staffNames, findTodayLog, findActiveLog, nextAction, waitRemainingMs, formatWait, tapUpdate, workedHours, formatHours, logIdFor, toLoc, mapLink, DUPLICATE_GUARD_MS,
+    dayKey, isoDate, staffNames, findTodayLog, findActiveLog, nextAction, waitRemainingMs, formatWait, distanceM, hotelCheck, formatDistance, HOTEL_LOCATION, tapUpdate, workedHours, formatHours, logIdFor, toLoc, mapLink, DUPLICATE_GUARD_MS,
 } from '../../02_Application_Source/lib/staffAttendance';
 
 const at = new Date(2026, 9, 13, 9, 5); // 13 Oct 2026, 09:05 local
@@ -117,5 +117,28 @@ describe('2-minute guard countdown', () => {
         expect(nextAction(log, t + 120_000)).toBe('out');
         expect(waitRemainingMs(null, t)).toBe(0);
         expect(waitRemainingMs({ checkIn: '09:00 AM' }, t)).toBe(0); // typed by the manager: no guard
+    });
+});
+
+describe('hotel location check (Hotel Sky 5 map pin)', () => {
+    test('distance in metres from the hotel pin', () => {
+        expect(distanceM(HOTEL_LOCATION)).toBe(0);
+        expect(distanceM({ lat: 30.72135, lng: 76.85260 })).toBeLessThan(15);
+        const far = distanceM({ lat: 30.69421, lng: 76.86068 });
+        expect(far).toBeGreaterThan(3000); expect(far).toBeLessThan(3600);
+        expect(distanceM(null)).toBeNull();
+        expect(distanceM({ lat: NaN, lng: 1 })).toBeNull();
+    });
+    test('inside 200 m (plus the phone GPS error, up to 100 m) = at hotel; otherwise flagged; no GPS = unknown', () => {
+        expect(hotelCheck({ lat: 30.72135, lng: 76.85260, acc: 15 }).at).toBe(true);
+        expect(hotelCheck({ lat: 30.7235, lng: 76.8525, acc: 10 }).at).toBe(false);      // about 245 m
+        expect(hotelCheck({ lat: 30.7235, lng: 76.8525, acc: 60 }).at).toBe(true);       // same spot, poor GPS
+        expect(hotelCheck({ lat: 30.7300, lng: 76.8525, acc: 500 }).at).toBe(false);     // error allowance is capped at 100 m
+        expect(hotelCheck(null)).toEqual({ at: null, m: null });
+    });
+    test('tap fields keep the result so the register can show it', () => {
+        const t = tapUpdate(null, 'in', { at: new Date(2026, 9, 14, 9, 0), loc: { lat: 30.69421, lng: 76.86068, acc: 15 } });
+        expect(t.inAtHotel).toBe(false); expect(t.inDistM).toBeGreaterThan(3000);
+        expect(formatDistance(45)).toBe('45 m'); expect(formatDistance(3420)).toBe('3.4 km'); expect(formatDistance(null)).toBe('');
     });
 });

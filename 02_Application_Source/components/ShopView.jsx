@@ -769,7 +769,7 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems, liveRooms }) {
                 
                 {/* Desktop Menu Tabs */}
                 <div className="desktop-menu" style={{ gap: '30px', margin: '0 40px' }}>
-                   {['Home', 'Menu Card', 'Admin'].map(tab => (
+                   {['Home', 'Menu Card', 'Attendance', 'Admin'].map(tab => (
                        <span 
                         key={tab} 
                         style={{ 
@@ -781,6 +781,7 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems, liveRooms }) {
                         onClick={() => {
                             if (tab === 'Menu Card') setShowMenuCard(true);
                             if (tab === 'Admin') onNavigate('dashboard');
+                            if (tab === 'Attendance') window.location.assign('/attendance'); // staff check-in / check-out
                         }} role="button" tabIndex={0} onKeyDown={keyActivate}
                        >{tab}</span>
                    ))}
@@ -1002,6 +1003,10 @@ function ShopView({ onNavigate, onPlaceOrder, menuItems, liveRooms }) {
                 <div className="nav-tab" onClick={() => setShowMenuCard(true)} role="button" tabIndex={0} onKeyDown={keyActivate}>
                     <span className="nav-icon">📖</span>
                     <span>Menu</span>
+                </div>
+                <div className="nav-tab" data-testid="tab-attendance" onClick={() => window.location.assign('/attendance')} role="button" tabIndex={0} onKeyDown={keyActivate}>
+                    <span className="nav-icon">🕘</span>
+                    <span>Attendance</span>
                 </div>
                 <div className="nav-tab" onClick={() => onNavigate('dashboard')} role="button" tabIndex={0} onKeyDown={keyActivate}>
                     <span className="nav-icon">👤</span>

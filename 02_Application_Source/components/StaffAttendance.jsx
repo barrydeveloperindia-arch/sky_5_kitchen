@@ -7,7 +7,7 @@ import { getServices, whenSignedIn } from '../lib/firebase';
 import { normalizeRegistry } from '../lib/staff';
 import { toFirestore, trackWrite, useOnline } from '../lib/syncedState';
 import {
-    dayKey, isoDate, staffNames, findActiveLog, nextAction, waitRemainingMs, formatWait, tapUpdate, logIdFor, toLoc, workedHours, formatHours,
+    dayKey, isoDate, staffNames, hotelCheck, formatDistance, findActiveLog, nextAction, waitRemainingMs, formatWait, tapUpdate, logIdFor, toLoc, workedHours, formatHours,
     STAFF_KEY, MAX_PHOTO_CHARS,
 } from '../lib/staffAttendance';
 
@@ -192,6 +192,7 @@ export default function StaffAttendance() {
                             <div className="text-[11px] leading-tight text-slate-600">Hotel Sky 5 · Staff check-in / check-out</div>
                         </div>
                     </div>
+                    <a href="/" data-testid="att-back" className="shrink-0 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-slate-700 hover:border-[#d4af37]">← Hotel app</a>
                     <span data-testid="att-online" className={cn('flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-1 text-[9px] min-[360px]:px-2.5 min-[360px]:text-[10px] font-black tracking-widest uppercase', online ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-red-200 bg-red-50 text-red-700')}>
                         <span className={cn('size-1.5 rounded-full', online ? 'animate-pulse bg-emerald-500' : 'bg-red-500')} />{online ? 'Online' : 'Offline'}
                     </span>
@@ -342,9 +343,13 @@ export default function StaffAttendance() {
                                     In {result.checkIn} · {formatHours(result.hours)} worked
                                 </div>
                             )}
-                            <div className={cn('mt-3 flex items-center justify-center gap-1 text-xs', result.loc ? 'text-slate-600' : 'text-amber-800')}>
-                                <MapPin aria-hidden className="size-3.5" />{result.loc ? `Location saved (±${result.loc.acc} m)` : `${result.locError} Saved without location.`}
-                            </div>
+                            {(() => {
+                                const place = hotelCheck(result.loc);
+                                if (place.at === null) return <div data-testid="att-place" className="mt-3 flex items-center justify-center gap-1 text-xs text-amber-800"><MapPin aria-hidden className="size-3.5" />{result.locError} Saved without location.</div>;
+                                return place.at
+                                    ? <div data-testid="att-place" className="mt-3 flex items-center justify-center gap-1 text-xs font-semibold text-emerald-800"><MapPin aria-hidden className="size-3.5" />At Hotel Sky 5 ✓ ({formatDistance(place.m)})</div>
+                                    : <div data-testid="att-place" className="mt-3 flex items-center justify-center gap-1 rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-700"><MapPin aria-hidden className="size-3.5" />Outside the hotel · {formatDistance(place.m)} away - saved and shown to the manager</div>;
+                            })()}
                         </div>
                         <Button variant="outline" className="w-full max-w-xs rounded-2xl border-slate-200 font-bold" onClick={closeDone}>Done</Button>
                         <span className="text-[10px] font-black tracking-widest text-slate-600 uppercase">Back to start in {DONE_SECONDS}s</span>

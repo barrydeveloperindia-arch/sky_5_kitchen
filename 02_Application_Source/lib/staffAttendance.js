@@ -95,10 +95,11 @@ export const logIdFor = (name, iso = isoDate()) => `self-${iso}-${String(name).t
 // Fields to write for this tap. `photoId` / `loc` are the proof saved with it.
 export function tapUpdate(log, action, { at = new Date(), photoId = null, loc = null } = {}) {
     const iso = at.toISOString();
+    const place = hotelCheck(loc);
     if (action === 'in') {
-        return { checkIn: timeLabel(at), inAt: iso, inPhotoId: photoId, inLoc: loc, status: 'Present', source: 'staff-web' };
+        return { checkIn: timeLabel(at), inAt: iso, inPhotoId: photoId, inLoc: loc, inAtHotel: place.at, inDistM: place.m, status: 'Present', source: 'staff-web' };
     }
-    const out = { checkOut: timeLabel(at), outAt: iso, outPhotoId: photoId, outLoc: loc };
+    const out = { checkOut: timeLabel(at), outAt: iso, outPhotoId: photoId, outLoc: loc, outAtHotel: place.at, outDistM: place.m };
     const h = workedHours({ ...log, outAt: iso });
     if (h != null) out.hours = h;
     return out;
@@ -111,6 +112,28 @@ export function toLoc(pos) {
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
     return { lat: Math.round(latitude * 1e5) / 1e5, lng: Math.round(longitude * 1e5) / 1e5, acc: Math.round(accuracy || 0) };
 }
+
+// Hotel Sky 5 on Google Maps (owner's link, 14-Oct-2026): taps further than this are flagged "outside hotel"
+export const HOTEL_LOCATION = { lat: 30.7212843, lng: 76.8525402 };
+export const HOTEL_RADIUS_M = 200;
+
+// Straight-line distance in metres (haversine)
+export function distanceM(a, b = HOTEL_LOCATION) {
+    if (!a || !b || !Number.isFinite(a.lat) || !Number.isFinite(a.lng)) return null;
+    const R = 6371000, rad = (d) => (d * Math.PI) / 180;
+    const dLat = rad(b.lat - a.lat), dLng = rad(b.lng - a.lng);
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
+    return Math.round(2 * R * Math.asin(Math.sqrt(h)));
+}
+
+// { at: true|false|null, m } - null when there is no location
+export function hotelCheck(loc) {
+    const m = distanceM(loc);
+    if (m == null) return { at: null, m: null };
+    return { at: m <= HOTEL_RADIUS_M + Math.min(Number(loc.acc) || 0, 100), m };   // allow the phone's own GPS error, up to 100 m
+}
+
+export const formatDistance = (m) => (m == null ? '' : m < 1000 ? `${m} m` : `${(m / 1000).toFixed(1)} km`);
 
 export const mapLink = (loc) => (loc ? `https://www.google.com/maps?q=${loc.lat},${loc.lng}` : null);
 

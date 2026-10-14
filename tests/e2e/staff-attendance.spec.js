@@ -7,7 +7,7 @@ import { trackErrors, openAdmin, adminTab, waitSaved } from './helpers';
 test.use({
     launchOptions: { args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] },
     permissions: ['camera', 'geolocation'],
-    geolocation: { latitude: 30.69421, longitude: 76.86068, accuracy: 15 },
+    geolocation: { latitude: 30.72135, longitude: 76.85260, accuracy: 15 },   // inside Hotel Sky 5 (about 10 m from the map pin)
 });
 
 let errors;
@@ -47,7 +47,7 @@ test('check in, 2-minute guard, rolling check out; the register shows the selfie
 
     await tapAndSnap(page);
     await expect(page.getByTestId('att-done')).toContainText('Check In Successful');
-    await expect(page.getByTestId('att-done')).toContainText('Location saved');
+    await expect(page.getByTestId('att-place')).toContainText('At Hotel Sky 5');
     const inTime = (await page.getByTestId('att-done-time').textContent()).trim();
     await page.getByRole('button', { name: 'Done' }).click();
     await expect(page.getByTestId('att-in-time')).toHaveText(inTime);
@@ -79,7 +79,7 @@ test('check in, 2-minute guard, rolling check out; the register shows the selfie
     await expect(page.getByRole('img', { name: 'Selfie of Varun' })).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(rowsForVarun.locator('[data-testid^="att-proof-out-"]')).toBeVisible();
-    await expect(rowsForVarun.getByRole('link', { name: 'Location of Varun' }).first()).toHaveAttribute('href', 'https://www.google.com/maps?q=30.69421,76.86068');
+    await expect(rowsForVarun.getByRole('link', { name: 'Location of Varun' }).first()).toHaveAttribute('href', 'https://www.google.com/maps?q=30.72135,76.8526');
 });
 
 test('a row the manager already made for today is used, not duplicated', async ({ page }) => {
@@ -110,6 +110,9 @@ test('a row the manager already made for today is used, not duplicated', async (
 });
 
 test('night shift: next morning the tap is the CHECK OUT of last night, on the same row', async ({ page }) => {
+    // start at 19:00 so +13 h is always the next morning, whatever time the test runs
+    const evening = new Date(); evening.setHours(19, 0, 0, 0);
+    await page.clock.setSystemTime(evening);
     await page.getByTestId('att-pick-Ratnesh').click();
     await tapAndSnap(page);
     await page.getByRole('button', { name: 'Done' }).click();
@@ -207,6 +210,28 @@ test('after choosing a name the screen starts at the top and the title bar does 
     const pos = await page.getByRole('banner').evaluate(el => getComputedStyle(el).position);
     expect(pos).not.toBe('sticky');
     expect(pos).not.toBe('fixed');
+});
+
+test('a tap away from the hotel is saved but flagged: staff see it, the register shows OUTSIDE with the distance', async ({ page, context }) => {
+    await context.setGeolocation({ latitude: 30.69421, longitude: 76.86068, accuracy: 15 });   // about 3.4 km away
+    await page.getByTestId('att-pick-Varun').click();
+    await tapAndSnap(page);
+    await expect(page.getByTestId('att-place')).toContainText('Outside the hotel');
+    await expect(page.getByTestId('att-place')).toContainText('km away');
+    await page.getByRole('button', { name: 'Done' }).click();
+    await openAdmin(page);
+    await adminTab(page, 'attendance');
+    const row = page.getByTestId('attendance-ledger').getByRole('row').filter({ hasText: 'Self check-in (phone)' });
+    await expect(row.locator('[data-testid^="att-outside-in-"]')).toHaveText(/OUTSIDE \d+\.\d km/);
+});
+
+test('the hotel app has an Attendance button that opens this page, and this page links back', async ({ page }) => {
+    await page.getByTestId('att-back').click();
+    await expect(page.locator('.modern-item-card').first()).toBeVisible();
+    // phone: bottom bar; wide screen: top menu
+    await page.getByText('Attendance', { exact: true }).filter({ visible: true }).first().click();
+    await expect(page).toHaveURL(/\/attendance$/);
+    await expect(page.getByTestId('staff-attendance')).toBeVisible();
 });
 
 test('camera refused: clear message, nothing saved', async ({ page, context }) => {

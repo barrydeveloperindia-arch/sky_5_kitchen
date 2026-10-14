@@ -3,7 +3,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { Camera, MapPin } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { getServices, whenSignedIn } from '../../lib/firebase';
-import { mapLink } from '../../lib/staffAttendance';
+import { mapLink, hotelCheck, formatDistance } from '../../lib/staffAttendance';
 
 // Selfie + location saved by the staff /attendance page, shown next to a check-in or check-out time.
 // The photo is loaded only when someone opens it, so the register stays light.
@@ -26,6 +26,7 @@ export default function AttendanceProof({ log, kind }) {
     }, [open, photoId, photo]);
 
     if (!photoId && !loc) return null;
+    const place = hotelCheck(loc);
     const when = kind === 'in' ? log.checkIn : log.checkOut;
     return (
         <span className="inline-flex items-center gap-1">
@@ -36,6 +37,7 @@ export default function AttendanceProof({ log, kind }) {
             {loc
                 ? <a href={mapLink(loc)} target="_blank" rel="noreferrer" aria-label={`Location of ${log.staffName}`} title={`±${loc.acc} m`} className="grid size-6 place-items-center rounded-md border text-muted-foreground hover:bg-muted hover:text-primary"><MapPin className="size-3.5" /></a>
                 : photoId && <span title={locError || 'No location'} className="text-[10px] font-semibold text-warning">NO GPS</span>}
+            {place.at === false && <span data-testid={`att-outside-${kind}-${log.id}`} title={`${formatDistance(place.m)} from Hotel Sky 5`} className="rounded bg-red-50 px-1 text-[10px] font-bold text-red-700">OUTSIDE {formatDistance(place.m)}</span>}
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent className="ui max-w-xs bg-white text-[#0a192f]">
                     <DialogHeader>
