@@ -212,7 +212,7 @@ export default function StaffAttendance() {
                     </div>
                     <div className="min-w-0 flex-1">
                         <div className="truncate text-[15px] leading-tight font-bold text-white">Staff Attendance</div>
-                        <div className="truncate text-[11px] leading-tight text-[#aab4cf]">Hotel Sky 5 · Check-in / Check-out</div>
+                        <div data-testid="att-subtitle" className="truncate text-[11px] leading-tight text-[#aab4cf]">Hotel Sky 5 · Panchkula</div>
                     </div>
                     <span data-testid="att-online" title={online ? 'Connected' : 'No internet'} className={cn('flex shrink-0 items-center gap-1.5 text-[11px] font-semibold', online ? 'text-emerald-300' : 'text-red-300')}>
                         <span className={cn('size-2 rounded-full', online ? 'animate-pulse bg-emerald-400' : 'bg-red-400')} />{online ? 'Online' : 'Offline'}
