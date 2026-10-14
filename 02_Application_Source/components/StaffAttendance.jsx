@@ -296,9 +296,14 @@ export default function StaffAttendance() {
                                         </div>
                                     </div>
                                     <div aria-hidden className="absolute inset-x-0 h-px bg-[#d4af37] shadow-[0_0_8px_rgba(212,175,55,0.9)]" style={{ animation: 'att-scan 2.5s linear infinite' }} />
+                                    {autoIn > 0 && (
+                                        <div aria-hidden className="pointer-events-none absolute inset-0 grid place-items-center">
+                                            <div data-testid="att-countdown" className="grid size-24 place-items-center rounded-full border-4 border-[#d4af37] bg-[#0a192f]/60 text-5xl font-black text-white tabular-nums backdrop-blur-sm">{autoIn}</div>
+                                        </div>
+                                    )}
+                                    {autoIn > 0 && <span aria-live="polite" className="sr-only">Photo in {autoIn}</span>}
                                     <div className="absolute inset-x-0 bottom-4 text-center drop-shadow-md">
                                         <div className="text-[9px] font-black tracking-[0.2em] text-[#e6c65c] uppercase">Position your face in the frame</div>
-                                        {autoIn > 0 && <div data-testid="att-countdown" aria-live="polite" className="my-1 text-5xl font-black text-white tabular-nums drop-shadow">{autoIn}</div>}
                                         {autoIn === null && <div className="text-xs font-semibold text-white/80">Starting camera…</div>}
                                         <div className="text-sm font-bold text-white">{action === 'in' ? 'Check-in selfie' : 'Check-out selfie'}</div>
                                     </div>
