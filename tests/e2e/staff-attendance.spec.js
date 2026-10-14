@@ -23,6 +23,7 @@ test.beforeEach(async ({ page }) => {
             if (mode === 'none') return [];
             if (mode === 'two') return [face(0), face(0.5)];
             if (mode === 'far') return [{ ...face(0), width: 20 }];
+            if (mode === 'other-far') return [{ ...face(0.5), width: 150 }];   // someone else, a bit far (not a clear photo)
             return [face(mode === 'other' ? 0.5 : 0.01)];
         } };
     });
@@ -321,3 +322,53 @@ for (const [mode, msg] of [['none', 'No face found'], ['two', 'More than one fac
         await expect(page.getByTestId('att-done')).toContainText('Check In Successful');
     });
 }
+
+test('face check: nobody in front of the camera - after 5 tries the camera closes by itself, nothing saved', async ({ page }) => {
+    await page.evaluate(() => localStorage.setItem('faceTest', 'none'));
+    await page.getByTestId('att-pick-Veerwati').click();
+    await page.getByTestId('att-tap').click();
+    await expect(page.getByTestId('att-video')).toBeVisible();
+    await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
+    for (let i = 0; i < 5; i++) {
+        await page.getByTestId('att-capture').click();
+        if (i < 4) await expect(page.getByTestId('att-countdown')).toBeVisible({ timeout: 10000 });
+    }
+    await expect(page.getByTestId('att-video')).toHaveCount(0);
+    await expect(page.getByTestId('att-error')).toContainText('Tap CHECK IN to try again');
+    await expect(page.getByTestId('att-in-time')).toHaveText('--');
+});
+
+test('face check: one face cannot be registered on two names', async ({ page }) => {
+    await page.getByTestId('att-pick-Varun').click();
+    await tapAndSnap(page);
+    await expect(page.getByTestId('att-face')).toContainText('Face registered');
+    await page.getByRole('button', { name: 'Done' }).click();
+    // the same person now picks another name
+    await page.getByTestId('att-change').click();
+    await page.getByTestId('att-pick-Bhawna').click();
+    await page.getByTestId('att-tap').click();
+    await expect(page.getByTestId('att-video')).toBeVisible();
+    await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
+    await page.getByTestId('att-capture').click();
+    await expect(page.getByTestId('att-error')).toContainText('This face is already registered for Varun');
+    await expect(page.getByTestId('att-in-time')).toHaveText('--');
+});
+
+test('face check: a far photo that does not match asks for a closer one first (no false refusal)', async ({ page }) => {
+    await page.getByTestId('att-pick-Varun').click();
+    await tapAndSnap(page);
+    await page.getByRole('button', { name: 'Done' }).click();
+    await page.evaluate(() => localStorage.setItem('faceTest', 'other-far'));
+    await page.clock.fastForward('03:00');
+    await expect(page.getByTestId('att-tap')).toHaveText(/CHECK OUT/, { timeout: 20000 });
+    await page.getByTestId('att-tap').click();
+    await expect(page.getByTestId('att-video')).toBeVisible();
+    await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
+    await page.getByTestId('att-capture').click();
+    await expect(page.getByTestId('att-error')).toContainText('Come closer and look straight');
+    await expect(page.getByTestId('att-video')).toBeVisible();   // still on the camera, asking again
+    await page.evaluate(() => localStorage.setItem('faceTest', 'other'));   // a clear photo of someone else: refused
+    await page.getByTestId('att-capture').click();
+    await expect(page.getByTestId('att-error')).toContainText('This face does not match Varun');
+    await expect(page.getByTestId('att-out-time')).toHaveText('--');
+});

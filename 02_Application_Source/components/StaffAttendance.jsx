@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { getServices, whenSignedIn } from '../lib/firebase';
 import { normalizeRegistry } from '../lib/staff';
 import { toFirestore, trackWrite, useOnline } from '../lib/syncedState';
-import { findFaces, faceQuality, registeredFace, registerFace, sameFace, loadFaceModels } from '../lib/faceMatch';
+import { findFaces, faceQuality, registeredFace, registerFace, sameFace, otherFace, warmUpFaces } from '../lib/faceMatch';
 import {
     dayKey, isoDate, staffNames, hotelCheck, formatDistance, findActiveLog, nextAction, waitRemainingMs, formatWait, tapUpdate, logIdFor, toLoc, workedHours, formatHours,
     STAFF_KEY, MAX_PHOTO_CHARS,
@@ -17,8 +17,17 @@ const writeSaved = (v) => { try { if (v) localStorage.setItem(STAFF_KEY, v); els
 const initials = (n) => String(n || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
 const DEPTS = [['reception', 'Front Desk & Management'], ['kitchen', 'Kitchen'], ['housekeeping', 'Housekeeping']];
 const NO_NET = 'No internet. Connect and open the link again.';
-const DONE_SECONDS = 10;
-const AUTO_PHOTO_SECONDS = 3; // the selfie is taken by itself after this countdown // the success screen goes back to the start by itself, like the AuraLock terminal
+const DONE_SECONDS = 10;        // the success screen goes back to the start by itself, like the AuraLock terminal
+const AUTO_PHOTO_SECONDS = 3;   // the selfie is taken by itself after this countdown
+const MAX_FACE_TRIES = 5;      // photos without a usable face before the camera closes by itself
+
+// The camera frame at full size, for the face check (a small photo loses face detail)
+function fullFrame(video) {
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    return canvas;
+}
 
 // Front camera frame -> small JPEG (data URL) that fits the database limit
 function snap(video) {
@@ -136,22 +145,37 @@ export default function StaffAttendance() {
         return () => clearTimeout(t);
     }, [step]);
 
+    // Get the face check ready while the person is on the start screen (first use is slow on a phone)
+    useEffect(() => {
+        if (!me || step !== 'home') return undefined;
+        const t = setTimeout(() => { warmUpFaces().catch(() => {}); }, 1200);
+        return () => clearTimeout(t);
+    }, [me, step]);
+
     const choose = (name) => { setMe(name); writeSaved(name); setError(''); setSearch(''); setStep('home'); };
     const changeName = () => { setMe(''); writeSaved(''); setResult(null); setStep('home'); };
 
     const openCamera = async () => {
         setError('');
+        setAttempt(0);
         locRef.current = locate(); // ask for location while the camera opens
-        loadFaceModels().catch(() => {});   // and get the face check ready
+        warmUpFaces().catch(() => {});   // and get the face check ready (normally already done)
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 } }, audio: false });
             streamRef.current = stream;
             setStep('camera');
-            requestAnimationFrame(() => { if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.play().catch(() => {}); } });
         } catch {
             setError('Camera permission is needed. Allow the camera for this site and try again (selfie ke bina attendance nahi lagegi).');
         }
     };
+
+    // Put the camera on screen once the video box exists (on a slow phone that is later than the next frame)
+    useEffect(() => {
+        const video = videoRef.current, stream = streamRef.current;
+        if (step !== 'camera' || !video || !stream || video.srcObject === stream) return;
+        video.srcObject = stream;
+        video.play().catch(() => {});
+    }, [step]);
 
     const capture = async () => {
         const video = videoRef.current;
@@ -159,28 +183,47 @@ export default function StaffAttendance() {
         if (!video || !video.videoWidth) { setError('Camera is starting, try again in a second.'); return; }
         busyRef.current = true;
         setChecking(true);
-        const retry = (msg) => { setError(msg); setChecking(false); busyRef.current = false; setAttempt(a => a + 1); };
+        const retry = (msg) => {
+            setChecking(false); busyRef.current = false;
+            // nobody in front of the camera for a while: close it (battery) and wait for a new tap
+            if (attempt + 1 >= MAX_FACE_TRIES) { stopCamera(); setStep('home'); setError(`${msg} Tap ${action === 'in' ? 'CHECK IN' : 'CHECK OUT'} to try again.`); return; }
+            setError(msg); setAttempt(a => a + 1);
+        };
+        const frame = fullFrame(video);
         const shot = snap(video);
         if (!shot.url) { retry('Photo could not be saved, try again.'); return; }
         const photo = shot.url;
         // 1. one clear face, close enough
         let faces;
-        try { faces = await findFaces(shot.canvas); } catch { retry('Face check could not start. Check internet and try again.'); return; }
-        const quality = faceQuality(faces, shot.canvas.width);
+        try { faces = await findFaces(frame); } catch { retry('Face check could not start. Check internet and try again.'); return; }
+        const quality = faceQuality(faces, frame.width);
         if (!quality.ok) { retry(quality.reason); return; }
         // 2. it must be the chosen person: compare with their registered face (staff photo, or first check-in)
         const staff = names.find(n => n.name === me) || { name: me };
         let registered;
         try { registered = await registeredFace(staff); } catch { retry('Could not check your face. Check internet and try again.'); return; }
+        const refuse = (msg) => { stopCamera(); setChecking(false); busyRef.current = false; setStep('home'); setError(msg); };
+        const live = quality.face.descriptor;
         let face = { check: 'registered' };
         if (registered) {
-            const r = sameFace(quality.face.descriptor, registered.descriptor);
+            const r = sameFace(live, registered.descriptor);
             if (!r.match) {
-                stopCamera(); setChecking(false); busyRef.current = false; setStep('home');
-                setError(`This face does not match ${me}. Choose your own name - or ask the manager to update your photo.`);
+                // a far or sideways photo can miss the real person: ask for a better one; refuse only a clear photo
+                if (!faceQuality(faces, frame.width, { register: true }).ok) { retry('Come closer and look straight at the camera.'); return; }
+                refuse(`This face does not match ${me}. Choose your own name - or ask the manager to update your photo.`);
                 return;
             }
             face = { check: 'matched', distance: r.distance, source: registered.source };
+        } else {
+            // first check-in: this face becomes theirs, so it must be a good photo of a face nobody else has
+            const strict = faceQuality(faces, frame.width, { register: true });
+            if (!strict.ok) { retry(strict.reason); return; }
+        }
+        let other;
+        try { other = await otherFace(live, staff); } catch { retry('Could not check your face. Check internet and try again.'); return; }
+        if (other && (!registered || other.distance < face.distance)) {
+            refuse(registered ? `This face looks like ${other.staffName}, not ${me}. Choose your own name - or ask the manager.` : `This face is already registered for ${other.staffName}. Choose your own name.`);
+            return;
         }
         stopCamera();
         setChecking(false);
@@ -341,7 +384,7 @@ export default function StaffAttendance() {
                                     {autoIn > 0 && <span aria-live="polite" className="sr-only">Photo in {autoIn}</span>}
                                     <div className="absolute inset-x-0 bottom-4 text-center drop-shadow-md">
                                         <div className="text-[9px] font-black tracking-[0.2em] text-[#e6c65c] uppercase">Position your face in the frame</div>
-                                        {autoIn === null && <div className="text-xs font-semibold text-white/80">Starting camera…</div>}
+                                        {autoIn === null && attempt === 0 && <div className="text-xs font-semibold text-white/80">Starting camera…</div>}
                                         <div className="text-sm font-bold text-white">{action === 'in' ? 'Check-in selfie' : 'Check-out selfie'}</div>
                                     </div>
                                 </>

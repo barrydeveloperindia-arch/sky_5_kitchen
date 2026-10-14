@@ -16,6 +16,15 @@ describe('faceQuality: only one clear, close face is accepted', () => {
         expect(faceQuality([face({ width: 60 })], 480)).toMatchObject({ ok: false, reason: expect.stringContaining('closer') });
         expect(faceQuality([face({ score: 0.55 })], 480)).toMatchObject({ ok: false, reason: expect.stringContaining('not clear') });
     });
+    it('the face registered at a first check-in must be close, clear and straight', () => {
+        expect(faceQuality([face({ width: 120 })], 480).ok).toBe(true);                       // 25%: fine for a check
+        expect(faceQuality([face({ width: 120 })], 480, { register: true })).toMatchObject({ ok: false, reason: expect.stringContaining('come closer') });
+        expect(faceQuality([face({ score: 0.7 })], 480, { register: true }).ok).toBe(false);
+        expect(faceQuality([face({ yaw: 0.15 })], 480, { register: true })).toMatchObject({ ok: false, reason: expect.stringContaining('look straight') });
+        expect(faceQuality([face({ yaw: 0.85 })], 480, { register: true }).ok).toBe(false);
+        expect(faceQuality([face({ yaw: 0.5 })], 480, { register: true }).ok).toBe(true);
+        expect(faceQuality([face({ yaw: 0.15 })], 480).ok).toBe(true);                        // a later check may be a little sideways
+    });
     it('a good face passes and is returned', () => {
         const f = face();
         expect(faceQuality([f], 480)).toEqual({ ok: true, face: f });

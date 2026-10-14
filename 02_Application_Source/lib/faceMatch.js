@@ -6,13 +6,17 @@
  * Runs on the phone; models are served from /models.
  */
 import * as faceapi from 'face-api.js';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
 import { getServices, whenSignedIn } from './firebase';
 import { trackWrite } from './syncedState';
 
-export const MATCH_DISTANCE = 0.5;   // same-person faces are usually 0.2-0.45 apart; different people 0.6+
+export const MATCH_DISTANCE = 0.6;   // same as the AuraLock terminal; the same person measured 0.45-0.63 on a hotel phone
 export const MIN_FACE_SHARE = 0.2;   // face must be at least this share of the photo width (close enough)
 export const MIN_SCORE = 0.6;        // detector confidence
+// The face that is registered (first check-in) must be a good one: close, clear and looking straight
+export const REGISTER_FACE_SHARE = 0.28;
+export const REGISTER_SCORE = 0.75;
+export const REGISTER_YAW = [0.3, 0.7];   // nose between the eyes: 0.5 = straight, 0 / 1 = side face
 export const FACES = 'hotel_staff_faces';
 
 let loading = null;
@@ -28,22 +32,52 @@ export function loadFaceModels() {
     return loading;
 }
 
+// First use of each model is slow on a phone (about 5 s: the graphics chip prepares it); after that a check is
+// about half a second. So the page runs one empty pass early, while the person is still on the start screen.
+let warming = null;
+export function warmUpFaces() {
+    if (typeof window !== 'undefined' && window.__FACE_TEST__) return Promise.resolve();
+    if (!warming) {
+        warming = loadFaceModels().then(async () => {
+            const c = document.createElement('canvas');
+            c.width = 160; c.height = 160;
+            c.getContext('2d').fillRect(0, 0, 160, 160);
+            await faceapi.detectAllFaces(c, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 }));
+            await faceapi.detectFaceLandmarksTiny(c);
+            await faceapi.computeFaceDescriptor(c);
+        }).catch(err => { warming = null; throw err; });
+    }
+    return warming;
+}
+
 // Every face in a canvas / image: [{ descriptor: number[128], score, width (face box px) }]
 export async function findFaces(el) {
     if (typeof window !== 'undefined' && window.__FACE_TEST__) return window.__FACE_TEST__.findFaces(el);
     await loadFaceModels();
     const found = await faceapi.detectAllFaces(el, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 }))
         .withFaceLandmarks(true).withFaceDescriptors();
-    return found.map(r => ({ descriptor: Array.from(r.descriptor), score: r.detection.score, width: r.detection.box.width }));
+    return found.map(r => ({ descriptor: Array.from(r.descriptor), score: r.detection.score, width: r.detection.box.width, yaw: yawOf(r.landmarks) }));
 }
 
-// Is this photo good enough to check a face? { ok, reason, face }
-export function faceQuality(faces, frameWidth) {
+// Where the nose tip is between the two eyes (0.5 = looking straight); null when it cannot be measured
+function yawOf(landmarks) {
+    try {
+        const mid = (pts) => pts.reduce((a, p) => a + p.x, 0) / pts.length;
+        const l = mid(landmarks.getLeftEye()), r = mid(landmarks.getRightEye()), nose = landmarks.getNose()[3].x;
+        return r === l ? null : (nose - l) / (r - l);
+    } catch { return null; }
+}
+
+// Is this photo good enough to check a face? { ok, reason, face }. `register` = the stricter check for the face
+// that becomes someone's registered face.
+export function faceQuality(faces, frameWidth, { register = false } = {}) {
     if (!faces || faces.length === 0) return { ok: false, reason: 'No face found. Look straight at the camera in good light.' };
     if (faces.length > 1) return { ok: false, reason: 'More than one face. Only you should be in the photo.' };
     const [face] = faces;
-    if (frameWidth && face.width / frameWidth < MIN_FACE_SHARE) return { ok: false, reason: 'Come closer to the camera.' };
-    if (face.score < MIN_SCORE) return { ok: false, reason: 'Face not clear. Remove mask / cap and face the light.' };
+    const share = frameWidth ? face.width / frameWidth : 1;
+    if (share < (register ? REGISTER_FACE_SHARE : MIN_FACE_SHARE)) return { ok: false, reason: register ? 'First check-in: come closer, your face should fill the frame.' : 'Come closer to the camera.' };
+    if (face.score < (register ? REGISTER_SCORE : MIN_SCORE)) return { ok: false, reason: 'Face not clear. Remove mask / cap and face the light.' };
+    if (register && face.yaw != null && (face.yaw < REGISTER_YAW[0] || face.yaw > REGISTER_YAW[1])) return { ok: false, reason: 'First check-in: look straight at the camera.' };
     return { ok: true, face };
 }
 
@@ -88,6 +122,22 @@ export async function registeredFace(staff) {
         }
     }
     return usable ? rec : null;
+}
+
+// Someone else whose registered face is this face (closest one within the limit), or null.
+// Stops one person checking in on several names, and a look-alike being taken for the chosen person.
+export async function otherFace(live, staff) {
+    await whenSignedIn();
+    const snap = await getDocs(collection(getServices().db, FACES));
+    const self = faceKey(staff);
+    let best = null;
+    for (const d of snap.docs) {
+        const rec = d.data();
+        if (d.id === self || rec.reset || !Array.isArray(rec.descriptor) || rec.descriptor.length !== 128) continue;
+        const r = sameFace(live, rec.descriptor);
+        if (r.match && (!best || r.distance < best.distance)) best = { staffName: rec.staffName, distance: r.distance };
+    }
+    return best;
 }
 
 // First good check-in face becomes the registered face of someone without a photo
