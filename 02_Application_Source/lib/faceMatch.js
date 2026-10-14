@@ -5,7 +5,6 @@
  * a photo, their first good check-in face is registered (and the manager sees it, and can reset it).
  * Runs on the phone; models are served from /models.
  */
-import * as faceapi from 'face-api.js';
 import { collection, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
 import { getServices, whenSignedIn } from './firebase';
 import { trackWrite } from './syncedState';
@@ -19,15 +18,20 @@ export const REGISTER_SCORE = 0.75;
 export const REGISTER_YAW = [0.3, 0.7];   // nose between the eyes: 0.5 = straight, 0 / 1 = side face
 export const FACES = 'hotel_staff_faces';
 
+// The face engine is big (about 1.3 MB), so it is fetched only when a face is checked - the shop and the
+// OPS Center never download it.
+let api = null;
+const faceApi = async () => (api ||= await import('face-api.js'));
+
 let loading = null;
 export function loadFaceModels() {
     if (typeof window !== 'undefined' && window.__FACE_TEST__) return Promise.resolve();
     if (!loading) {
-        loading = Promise.all([
+        loading = faceApi().then(faceapi => Promise.all([
             faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
             faceapi.nets.faceLandmark68TinyNet.loadFromUri('/models'),
             faceapi.nets.faceRecognitionNet.loadFromUri('/models'),
-        ]).catch(err => { loading = null; throw err; });
+        ])).catch(err => { loading = null; throw err; });
     }
     return loading;
 }
@@ -39,6 +43,7 @@ export function warmUpFaces() {
     if (typeof window !== 'undefined' && window.__FACE_TEST__) return Promise.resolve();
     if (!warming) {
         warming = loadFaceModels().then(async () => {
+            const faceapi = await faceApi();
             const c = document.createElement('canvas');
             c.width = 160; c.height = 160;
             c.getContext('2d').fillRect(0, 0, 160, 160);
@@ -54,6 +59,7 @@ export function warmUpFaces() {
 export async function findFaces(el) {
     if (typeof window !== 'undefined' && window.__FACE_TEST__) return window.__FACE_TEST__.findFaces(el);
     await loadFaceModels();
+    const faceapi = await faceApi();
     const found = await faceapi.detectAllFaces(el, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 }))
         .withFaceLandmarks(true).withFaceDescriptors();
     return found.map(r => ({ descriptor: Array.from(r.descriptor), score: r.detection.score, width: r.detection.box.width, yaw: yawOf(r.landmarks) }));

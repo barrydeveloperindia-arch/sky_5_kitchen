@@ -49,6 +49,8 @@ const sample = (rows) => (IS_TEST_ENV ? rows : []);
 const newRecordId = (prefix) => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 
 function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems, rooms, setRooms, liveReady = true }) {
+    // A room number that is not found: while the rooms are still arriving from the database, say so (not "does not exist")
+    const roomMissingMessage = (no) => (!rooms.length ? 'Rooms are still loading. Please try again in a moment.' : `Room ${no} does not exist.`);
     // Everything below is live: saved in the database and shared by every device
     const savingCount = useSyncStatus();
     // Bills settled at checkout (shown in Finance)
@@ -400,7 +402,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
 
         const selectedRoom = rooms.find(r => r.id === Number(cleaningForm.roomNumber));
         if (!selectedRoom) {
-            alert(`Room ${cleaningForm.roomNumber} does not exist.`);
+            alert(roomMissingMessage(cleaningForm.roomNumber));
             return;
         }
         // Never wipe a checked-in guest: the room must be checked out (Dirty) before it is cleaned
@@ -489,7 +491,7 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
 
         const selectedRoom = rooms.find(r => r.id === Number(checkoutForm.roomNumber));
         if (!selectedRoom) {
-            alert(`Room ${checkoutForm.roomNumber} does not exist.`);
+            alert(roomMissingMessage(checkoutForm.roomNumber));
             return;
         }
         if (!editingCheckoutLog && (selectedRoom.status !== 'Occupied' || !selectedRoom.guest)) {
@@ -1677,7 +1679,7 @@ _Generated via Sky-Ops Center_`;
         const dateStr = laundryForm.date || (now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) + ", " + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
 
         if (!rooms.find(r => r.id === Number(laundryForm.roomNumber))) {
-            alert(`Room ${laundryForm.roomNumber} does not exist.`);
+            alert(roomMissingMessage(laundryForm.roomNumber));
             return;
         }
 

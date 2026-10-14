@@ -1,8 +1,9 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, lazy, Suspense } from 'react';
 import ShopView from './components/ShopView';
-import AdminDashboard from './components/AdminDashboard';
-import StaffInventory from './components/StaffInventory';
-import StaffAttendance from './components/StaffAttendance';
+// Guests only need the shop: the OPS Center and the staff pages are fetched when they are opened
+const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
+const StaffInventory = lazy(() => import('./components/StaffInventory'));
+const StaffAttendance = lazy(() => import('./components/StaffAttendance'));
 import { combos } from './data/combos';
 import { rooms as roomData, liveSeedRooms } from './data/rooms';
 import { parseRoomNumber, addFoodBillToRoom } from './lib/billing';
@@ -85,9 +86,24 @@ function HotelApp() {
   );
 }
 
+// Shown for a moment while a screen's code arrives
+function Loading() {
+  return (
+    <div role="status" aria-live="polite" style={{ minHeight: '60vh', display: 'grid', placeItems: 'center', color: '#0a192f', fontWeight: 700, letterSpacing: '0.15em', fontSize: 12 }}>
+      LOADING…
+    </div>
+  );
+}
+
 function App() {
   // .legacy keeps the existing screens on browser defaults (see styles/ui.css); new shadcn screens use .ui
-  return <div className="legacy">{isStaffAttendance ? <StaffAttendance /> : isStaffInventory ? <StaffInventory /> : <HotelApp />}</div>;
+  return (
+    <div className="legacy">
+      <Suspense fallback={<Loading />}>
+        {isStaffAttendance ? <StaffAttendance /> : isStaffInventory ? <StaffInventory /> : <HotelApp />}
+      </Suspense>
+    </div>
+  );
 }
 
 export default App;

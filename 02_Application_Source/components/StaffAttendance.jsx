@@ -296,7 +296,8 @@ export default function StaffAttendance() {
             </div>
             <div className="mx-auto max-w-md space-y-4 p-3 min-[360px]:p-4 [@media(max-height:520px)]:space-y-2 [@media(max-height:520px)]:pt-2">
                 {/* top bar, like the AuraLock terminal */}
-                {error && <div role="alert" data-testid="att-error" className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</div>}
+                {/* while the camera is open the advice is shown on the camera itself (that is where the person looks) */}
+                {error && step !== 'camera' && <div role="alert" data-testid="att-error" className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</div>}
 
                 {!registry && !error && <p className="p-10 text-center text-sm text-slate-600">Loading…</p>}
 
@@ -382,8 +383,10 @@ export default function StaffAttendance() {
                                         </div>
                                     )}
                                     {autoIn > 0 && <span aria-live="polite" className="sr-only">Photo in {autoIn}</span>}
-                                    <div className="absolute inset-x-0 bottom-4 text-center drop-shadow-md">
-                                        <div className="text-[9px] font-black tracking-[0.2em] text-[#e6c65c] uppercase">Position your face in the frame</div>
+                                    <div className="absolute inset-x-0 bottom-4 px-4 text-center drop-shadow-md">
+                                        {error
+                                            ? <div role="alert" data-testid="att-error" className="mx-auto mb-1 w-fit max-w-full rounded-full bg-[#0a192f]/85 px-3 py-1 text-xs font-bold text-[#ffd666]">{error}</div>
+                                            : <div className="text-[9px] font-black tracking-[0.2em] text-[#e6c65c] uppercase">Position your face in the frame</div>}
                                         {autoIn === null && attempt === 0 && <div className="text-xs font-semibold text-white/80">Starting camera…</div>}
                                         <div className="text-sm font-bold text-white">{action === 'in' ? 'Check-in selfie' : 'Check-out selfie'}</div>
                                     </div>

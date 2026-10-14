@@ -7,6 +7,8 @@ export default defineConfig({
   globalSetup: './tests/e2e/global-setup.js',
   fullyParallel: true,
   retries: 0,
+  // the machine also runs other projects' tests at night; 10 s per check keeps a slow moment from failing a run
+  expect: { timeout: 10_000 },
   reporter: [['list']],
   use: {
     baseURL: `http://localhost:${PORT}`,

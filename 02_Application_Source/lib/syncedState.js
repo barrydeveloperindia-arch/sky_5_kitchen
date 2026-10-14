@@ -167,6 +167,10 @@ export function useSyncedCollection(name, seed, { newestFirst = false } = {}) {
             const { db } = getServices();
             unsub = onSnapshot(collection(db, name), async snap => {
                 const mine = ++seq;
+                // A new device first hears "empty" from its own (still empty) cache. That is not the real data:
+                // wait for the server, or the screen would flash an empty list and an early save would miss
+                // the records. Offline there is no server answer coming, so carry on with the cache.
+                if (snap.empty && snap.metadata.fromCache && typeof navigator !== 'undefined' && navigator.onLine) return;
                 if (snap.empty && !snap.metadata.fromCache) {
                     const meta = await getDoc(doc(db, META, name));
                     if (!meta.exists()) {
