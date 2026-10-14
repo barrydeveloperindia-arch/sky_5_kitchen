@@ -148,7 +148,7 @@ function StaffFormBody({ editing, registry, onClose, onSaved }) {
                     </Field>
                     <Field label="Post" id="sf-role" error={errors.role}><input id="sf-role" className={inputCls} value={form.role} onChange={set('role')} placeholder="e.g. Front Desk, Chef" /></Field>
                     <Field label="Shift time" id="sf-shift"><input id="sf-shift" className={inputCls} value={form.shift} onChange={set('shift')} placeholder="09:00 AM – 06:00 PM" /></Field>
-                    <Field label="Mobile" id="sf-phone" error={errors.phone}><input id="sf-phone" inputMode="tel" className={inputCls} value={form.phone} onChange={set('phone')} placeholder="10-digit mobile" /></Field>
+                    <Field label="Mobile" id="sf-phone" error={errors.phone}><input id="sf-phone" inputMode="tel" className={inputCls} value={form.phone} onChange={set('phone')} placeholder="10-digit mobile (or +44 …)" /></Field>
                     <Field label="Joining date" id="sf-joinDate" error={errors.joinDate}><input id="sf-joinDate" type="date" className={inputCls} value={form.joinDate} onChange={set('joinDate')} /></Field>
                     <div className="sm:col-span-2"><Field label="Duties (optional)" id="sf-duties"><textarea id="sf-duties" className={cn(inputCls, 'h-16 py-2')} value={form.duties} onChange={set('duties')} /></Field></div>
                 </div>

@@ -28,10 +28,12 @@ export function nextStaffId(registry) {
     return `SKY5-${String((used.length ? Math.max(...used) : 0) + 1).padStart(3, '0')}`;
 }
 
-// "+91 98887 02845" / "098887-02845" -> "9888702845"; '' stays ''; anything else is returned as typed
+// "+91 98887 02845" / "098887-02845" -> "9888702845"; "+44 7700 900123" -> "+447700900123"; '' stays ''; anything else is returned as typed
 export function normalizeMobile(v) {
     const digits = String(v || '').replace(/\D/g, '');
     if (!digits) return '';
+    // a foreign number typed with its country code ("+44 7700 900123") is kept as +<digits>
+    if (/^\s*(\+|00)/.test(String(v)) && !/^(00)?91/.test(digits)) return `+${digits.replace(/^00/, '')}`;
     const ten = digits.length === 12 && digits.startsWith('91') ? digits.slice(2) : digits.length === 11 && digits.startsWith('0') ? digits.slice(1) : digits;
     return ten;
 }
@@ -46,7 +48,7 @@ export function validateStaff(form, registry, selfId = null) {
     if (!String(form.role || '').trim()) errors.role = 'Post is required.';
     if (!DEPARTMENTS.some(d => d.key === form.department)) errors.department = 'Choose a department.';
     const mobile = normalizeMobile(form.phone);
-    if (form.phone && !/^[6-9]\d{9}$/.test(mobile)) errors.phone = 'Mobile must be 10 digits (starting 6-9).';
+    if (form.phone && !/^[6-9]\d{9}$/.test(mobile) && !/^\+[1-9]\d{7,14}$/.test(mobile)) errors.phone = 'Mobile must be 10 digits (starting 6-9), or a foreign number with + and country code.';
     if (form.joinDate && !/^\d{4}-\d{2}-\d{2}$/.test(form.joinDate)) errors.joinDate = 'Pick a date.';
     const others = allStaff(registry).filter(s => s.id !== selfId);
     if (name && others.some(s => String(s.name).trim().toLowerCase() === name.toLowerCase())) errors.name = `${name} is already in the staff list.`;

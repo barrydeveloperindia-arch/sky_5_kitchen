@@ -28,6 +28,9 @@ describe('staff directory', () => {
         expect(normalizeMobile('098887-02845')).toBe('9888702845');
         expect(normalizeMobile('')).toBe('');
         expect(normalizeMobile('967389287')).toBe('967389287'); // 9 digits stays as typed, the form rejects it
+        expect(normalizeMobile('+44 7700 900123')).toBe('+447700900123');   // foreign: kept with its country code
+        expect(normalizeMobile('0044 7700 900123')).toBe('+447700900123');
+        expect(normalizeMobile('+91 98887 02845')).toBe('9888702845');
     });
 
     test('form checks: name, post, department, 10-digit mobile, date', () => {
