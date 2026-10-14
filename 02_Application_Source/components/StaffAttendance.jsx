@@ -383,6 +383,8 @@ export default function StaffAttendance() {
                                         </div>
                                     )}
                                     {autoIn > 0 && <span aria-live="polite" className="sr-only">Photo in {autoIn}</span>}
+                                    {/* dark fade at the bottom so the words stay readable on any background (white shirt, bright wall) */}
+                                    <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#0a192f]/80 to-transparent" />
                                     <div className="absolute inset-x-0 bottom-4 px-4 text-center drop-shadow-md">
                                         {error
                                             ? <div role="alert" data-testid="att-error" className="mx-auto mb-1 w-fit max-w-full rounded-full bg-[#0a192f]/85 px-3 py-1 text-xs font-bold text-[#ffd666]">{error}</div>
