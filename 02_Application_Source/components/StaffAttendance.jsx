@@ -294,7 +294,7 @@ export default function StaffAttendance() {
                     </span>
                 </div>
             </div>
-            <div className="mx-auto max-w-md space-y-4 p-3 min-[360px]:p-4">
+            <div className="mx-auto max-w-md space-y-4 p-3 min-[360px]:p-4 [@media(max-height:520px)]:space-y-2 [@media(max-height:520px)]:pt-2">
                 {/* top bar, like the AuraLock terminal */}
                 {error && <div role="alert" data-testid="att-error" className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</div>}
 
@@ -350,7 +350,7 @@ export default function StaffAttendance() {
                         </div>
 
                         <div className="text-center">
-                            <div className="text-[2.5rem] leading-none font-black tracking-tight text-[#0a192f] tabular-nums min-[360px]:text-5xl [@media(max-height:520px)]:text-4xl" data-testid="att-clock">{clock.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\s?(AM|PM)$/, '')}<span className="ml-1.5 text-xl font-black text-[#8a6d10]">{clock.getHours() < 12 ? 'AM' : 'PM'}</span></div>
+                            <div className="text-[2.5rem] leading-none font-black tracking-tight text-[#0a192f] tabular-nums min-[360px]:text-5xl [@media(max-height:520px)]:text-3xl" data-testid="att-clock">{clock.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\s?(AM|PM)$/, '')}<span className="ml-1.5 text-xl font-black text-[#8a6d10]">{clock.getHours() < 12 ? 'AM' : 'PM'}</span></div>
                             <div className="mt-1 text-[10px] font-black tracking-[0.2em] text-slate-600 uppercase">{clock.toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}</div>
                         </div>
 
@@ -394,12 +394,12 @@ export default function StaffAttendance() {
                                     <span className="text-xs font-black tracking-widest uppercase">Saving…</span>
                                 </div>
                             ) : (
-                                <div className="flex size-full flex-col items-center justify-center bg-gradient-to-br from-[#0a192f] via-[#112240] to-[#0a192f] p-6 text-white [@media(max-height:520px)]:p-4">
+                                <div className="flex size-full flex-col items-center justify-center bg-gradient-to-br from-[#0a192f] via-[#112240] to-[#0a192f] p-6 text-white [@media(max-height:520px)]:p-3">
                                     <div className="mb-3 rounded-xl border border-[#d4af37]/60 px-3 py-1 text-center font-serif leading-none text-[#d4af37] [@media(max-height:520px)]:hidden">
                                         <div className="text-[8px] tracking-[0.3em]">HOTEL</div><div className="text-xl font-black">SKY 5</div>
                                     </div>
-                                    <h2 data-testid={action === 'wait' ? 'att-wait' : undefined} className="mb-1 text-lg font-black tracking-tight">{!ready ? 'Loading…' : action === 'wait' ? 'Saved ✓' : 'Ready to scan'}</h2>
-                                    <p className="mb-5 text-center text-[10px] font-bold tracking-[0.15em] text-slate-300 uppercase">
+                                    <h2 data-testid={action === 'wait' ? 'att-wait' : undefined} className="mb-1 text-lg font-black tracking-tight [@media(max-height:520px)]:mb-0 [@media(max-height:520px)]:text-base">{!ready ? 'Loading…' : action === 'wait' ? 'Saved ✓' : 'Ready to scan'}</h2>
+                                    <p className="mb-5 text-center text-[10px] font-bold tracking-[0.15em] text-slate-300 uppercase [@media(max-height:520px)]:mb-2">
                                         {action === 'wait' ? `Check-out opens in ${formatWait(waitLeft)}` : 'Camera off · tap below to scan'}
                                     </p>
                                     {nightShift && <div data-testid="att-night" className="mb-3 rounded-lg bg-white/10 px-3 py-1.5 text-center text-[11px] font-semibold text-amber-200">Night shift from {log.date} is still open: CHECK OUT closes it.</div>}
@@ -454,8 +454,9 @@ export default function StaffAttendance() {
                                 </div>
                             )}
                             {result.face && (
-                                <div data-testid="att-face" className="mt-3 flex items-center justify-center gap-1 text-xs font-semibold text-emerald-800">
-                                    <CheckCircle2 aria-hidden className="size-3.5" />{result.face.check === 'matched' ? 'Face verified ✓' : 'Face registered ✓ (first check-in) - next time it must match'}
+                                <div data-testid="att-face" className="mt-3 text-xs font-semibold text-emerald-800">
+                                    <div className="flex items-center justify-center gap-1"><CheckCircle2 aria-hidden className="size-3.5" />{result.face.check === 'matched' ? 'Face verified ✓' : 'Face registered ✓ (first check-in) - next time it must match'}</div>
+                                    {result.face.check === 'registered' && <div className="mt-0.5 font-normal text-slate-600">Saved as a match code, used only for Hotel Sky 5 attendance.</div>}
                                 </div>
                             )}
                             {(() => {

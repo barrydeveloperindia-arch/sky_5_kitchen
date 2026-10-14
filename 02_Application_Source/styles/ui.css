@@ -124,3 +124,7 @@
   :where(.legacy, .legacy *, .legacy ::before, .legacy ::after):not(:where(.ui, .ui *)) { all: revert; }
   .ui { line-height: 1.5; font-family: var(--font-sans); color: var(--color-foreground); }
 }
+
+/* A table inside a scrolling box that the keyboard can reach (role="region" tabIndex=0): that box does the sideways
+   scrolling, not the table's own inner box (which a keyboard cannot reach). Unlayered, so it beats overflow-x-auto. */
+[role="region"] [data-slot="table-container"] { overflow-x: visible; }

@@ -24,11 +24,13 @@ const navId = (key) => `nav-${key.replace(' ', '-').toLowerCase()}`;
 export function OpsSidebar({ activeTab, onSelect, onHome }) {
     return (
         <aside data-testid="ops-sidebar" className="ui flex w-full flex-col bg-sidebar text-sidebar-foreground md:sticky md:top-0 md:h-screen md:w-64 md:shrink-0">
-            <button type="button" onClick={onHome} className="flex items-center gap-3 px-4 py-3 text-left md:flex-col md:gap-2 md:px-5 md:pt-6 md:pb-5" title="Back to the guest shop">
-                <Logo size={64} />
+            <button type="button" onClick={onHome} className="flex items-center gap-3 px-4 py-2 text-left md:flex-col md:gap-2 md:px-5 md:pt-6 md:pb-5" title="Back to the guest shop">
+                {/* phone: a small logo so the page itself gets the screen (most of all when the phone is sideways) */}
+                <span className="md:hidden"><Logo size={34} noBorder /></span>
+                <span className="hidden md:block"><Logo size={64} /></span>
                 <h2 className="font-serif text-sm font-bold tracking-[0.25em] text-gold">OPS CENTER</h2>
             </button>
-            <nav className="flex gap-1 overflow-x-auto px-3 pb-3 md:flex-1 md:flex-col md:gap-0.5 md:overflow-x-visible md:overflow-y-auto" aria-label="OPS Center">
+            <nav className="flex gap-1 overflow-x-auto px-3 pb-2 md:pb-3 md:flex-1 md:flex-col md:gap-0.5 md:overflow-x-visible md:overflow-y-auto" aria-label="OPS Center">
                 {OPS_TABS.map(({ key, label, icon }) => {
                     const Icon = icon;
                     const active = activeTab === key;
@@ -70,20 +72,20 @@ export function OpsHeader({ title, subtitle, liveReady, savingCount, stats }) {
                 <button type="button" onClick={clearSyncError} className="rounded-md border border-destructive/40 px-3 py-1 text-xs font-semibold">OK</button>
             </div>
         )}
-        <div role="banner" className="ui mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div role="banner" className="ui mb-4 flex flex-wrap items-center justify-between gap-3 md:mb-6 md:gap-4">
             <div>
-                <h1 className="text-2xl font-bold tracking-tight text-primary md:text-3xl">{title}</h1>
+                <h1 className="text-xl font-bold tracking-tight text-primary sm:text-2xl md:text-3xl">{title}</h1>
                 {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
             </div>
-            <div className="flex flex-wrap items-center gap-2 text-sm">
+            <div className="flex flex-wrap items-center gap-1.5 text-xs sm:gap-2 sm:text-sm">
                 <span
                     data-testid="admin-live"
                     title="Saved to the database and shared with every device"
-                    className={cn('rounded-full px-3 py-1 font-semibold', online && liveReady && !savingCount ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning')}
+                    className={cn('rounded-full px-2.5 py-0.5 font-semibold sm:px-3 sm:py-1', online && liveReady && !savingCount ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning')}
                 >{liveText}</span>
-                <span data-testid="stat-occupied" title="Rooms where a guest is staying right now" className="rounded-full border bg-card px-3 py-1">Rooms with guests: <b>{stats.occupied}</b></span>
-                <span data-testid="stat-dirty" title="Guest has left; the room must be cleaned before the next guest" className="rounded-full border bg-card px-3 py-1 text-destructive">Rooms to clean: <b>{stats.dirty}</b></span>
-                <span data-testid="stat-available" title="Clean and empty: can be given to a new guest" className="rounded-full border bg-card px-3 py-1 text-success">Ready for new guest: <b>{stats.clean}</b></span>
+                <span data-testid="stat-occupied" title="Rooms where a guest is staying right now" className="rounded-full border bg-card px-2.5 py-0.5 sm:px-3 sm:py-1">Rooms with guests: <b>{stats.occupied}</b></span>
+                <span data-testid="stat-dirty" title="Guest has left; the room must be cleaned before the next guest" className="rounded-full border bg-card px-2.5 py-0.5 sm:px-3 sm:py-1 text-destructive">Rooms to clean: <b>{stats.dirty}</b></span>
+                <span data-testid="stat-available" title="Clean and empty: can be given to a new guest" className="rounded-full border bg-card px-2.5 py-0.5 sm:px-3 sm:py-1 text-success">Ready for new guest: <b>{stats.clean}</b></span>
             </div>
         </div>
         </>

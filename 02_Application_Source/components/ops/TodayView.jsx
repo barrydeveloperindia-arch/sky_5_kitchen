@@ -21,12 +21,14 @@ function Kpi({ id, icon, label, value, caption, tone = 'primary', onClick }) {
     };
     return (
         <Card data-testid={`today-kpi-${id}`} onClick={onClick}
-            className={cn('gap-2 py-4', onClick && 'cursor-pointer transition-shadow hover:shadow-md')}>
-            <CardContent className="flex items-start gap-3 px-4">
-                <span className={cn('grid size-10 shrink-0 place-items-center rounded-lg', tones[tone])}><Icon className="size-5" /></span>
-                <div className="min-w-0">
+            {...(onClick ? { role: 'button', tabIndex: 0, 'aria-label': `${label}: ${value}`, onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } } : {})}
+            className={cn('gap-2 py-4', onClick && 'cursor-pointer transition-shadow hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none')}>
+            {/* small phone: icon above the number, so a long amount (₹11,56,624) is never cut */}
+            <CardContent className="flex flex-col items-start gap-2 px-3 sm:flex-row sm:gap-3 sm:px-4">
+                <span className={cn('grid size-9 shrink-0 place-items-center rounded-lg sm:size-10', tones[tone])}><Icon className="size-5" /></span>
+                <div className="min-w-0 max-w-full">
                     <div className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{label}</div>
-                    <div className="text-2xl font-bold text-foreground" data-testid={`today-kpi-${id}-value`}>{value}</div>
+                    <div className="text-xl font-bold break-words text-foreground tabular-nums sm:text-2xl" data-testid={`today-kpi-${id}-value`}>{value}</div>
                     {caption && <div className="text-xs text-muted-foreground">{caption}</div>}
                 </div>
             </CardContent>

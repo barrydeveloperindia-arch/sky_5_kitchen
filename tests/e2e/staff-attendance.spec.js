@@ -85,7 +85,7 @@ test('check in, 2-minute guard, rolling check out; the register shows the selfie
     await adminTab(page, 'attendance');
     const ledger = page.getByTestId('attendance-ledger');
     const rowsForVarun = ledger.getByRole('row').filter({ hasText: 'Self check-in (phone)' });
-    await expect(rowsForVarun).toHaveCount(1);
+    await expect(rowsForVarun).toHaveCount(1, { timeout: 15000 });   // the register loads from the database
     await expect(rowsForVarun).toContainText('Varun');
     await expect(rowsForVarun).toContainText(inTime);
     await rowsForVarun.locator('[data-testid^="att-proof-in-"]').click();
