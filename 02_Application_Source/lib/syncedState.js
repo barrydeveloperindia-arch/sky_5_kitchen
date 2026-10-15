@@ -13,7 +13,7 @@
  * value only the changed keys are written.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { collection, deleteField, doc, FieldPath, getDoc, onSnapshot, setDoc, writeBatch } from 'firebase/firestore';
+import { collection, deleteField, doc, FieldPath, getDoc, onSnapshot, runTransaction, setDoc, writeBatch } from 'firebase/firestore';
 import { getServices, whenSignedIn } from './firebase';
 
 const META = 'hotel_meta';
@@ -171,6 +171,8 @@ export function useSyncedCollection(name, seed, { newestFirst = false } = {}) {
                 // wait for the server, or the screen would flash an empty list and an early save would miss
                 // the records. Offline there is no server answer coming, so carry on with the cache.
                 if (snap.empty && snap.metadata.fromCache && typeof navigator !== 'undefined' && navigator.onLine) return;
+                // Records are never deleted, so an empty answer after real data is a listener hiccup: keep the list
+                if (snap.empty && readyRef.current && itemsRef.current.length) return;
                 if (snap.empty && !snap.metadata.fromCache) {
                     const meta = await getDoc(doc(db, META, name));
                     if (!meta.exists()) {
@@ -244,6 +246,7 @@ export function useSyncedDoc(key, seed) {
     const [ready, setReady] = useState(false);
     const readyRef = useRef(false);
     const pendingRef = useRef([]);
+    const seedingRef = useRef(false);
 
     useEffect(() => {
         let unsub = () => {};
@@ -252,25 +255,43 @@ export function useSyncedDoc(key, seed) {
         whenSignedIn().then(() => {
             if (!alive) return;
             const { db } = getServices();
-            unsub = onSnapshot(doc(db, STATE, key), snap => {
-                if (!snap.exists()) {
-                    if (!snap.metadata.fromCache) setDoc(doc(db, STATE, key), { value: toFirestore(seedRef.current) });
-                    return;
-                }
-                let value = snap.data().value;
+            const ref = doc(db, STATE, key);
+            // the value from the server: on the first one, replay what was changed before it arrived
+            const apply = (serverValue) => {
+                if (!alive) return;
+                let value = serverValue;
                 if (!readyRef.current) {
                     readyRef.current = true;
-                    const pending = pendingRef.current.splice(0);
-                    if (pending.length) {
-                        const server = value;
-                        for (const { updater: u } of pending) value = typeof u === 'function' ? u(value) : u;
-                        writeDocValue(db, key, server, value);
-                        pending.forEach(p => p.done());
+                    const queued = pendingRef.current.splice(0);
+                    if (queued.length) {
+                        for (const { updater: u } of queued) value = typeof u === 'function' ? u(value) : u;
+                        writeDocValue(db, key, serverValue, value);
+                        queued.forEach(p => p.done());
                     }
                 }
                 valueRef.current = value;
                 setValue(value);
                 setReady(true);
+            };
+            unsub = onSnapshot(ref, snap => {
+                if (!snap.exists()) {
+                    // The listener can briefly report "missing" for a document that is there (seen under load).
+                    // Writing the seed then would wipe the real data (e.g. the hotel's staff list), so: once the
+                    // document has been seen, ignore it; before that, ask the server in a transaction - write the
+                    // seed only if it really is not there, else use what the server has. Records are never deleted.
+                    if (!snap.metadata.fromCache && !readyRef.current && !seedingRef.current) {
+                        seedingRef.current = true;
+                        runTransaction(db, async t => {
+                            const cur = await t.get(ref);
+                            if (cur.exists()) return cur.data().value;
+                            t.set(ref, { value: toFirestore(seedRef.current) });
+                            return seedRef.current;
+                        }).then(v => { if (!readyRef.current) apply(v); })
+                            .catch(() => { seedingRef.current = false; });
+                    }
+                    return;
+                }
+                apply(snap.data().value);
             });
         });
         return () => { alive = false; unsub(); for (const p of pending.splice(0)) p.done(); };
