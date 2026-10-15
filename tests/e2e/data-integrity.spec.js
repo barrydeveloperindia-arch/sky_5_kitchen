@@ -270,3 +270,51 @@ test('live: a person marked Left on the PC disappears from the staff phone list 
     await expect(phone.page.getByTestId('att-pick-Varun')).toBeVisible();
     await phone.ctx.close();
 });
+
+test('checked out several times in a day: the LAST check-out is the one saved (one row, hours up to the last tap)', async ({ page }) => {
+    await page.clock.install({ time: new Date('2026-10-15T09:00:00') });
+    await openAttendance(page);
+    await page.getByTestId('att-pick-Varun').click();
+    const tap = async () => {
+        await page.getByTestId('att-tap').click();
+        await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
+        await page.getByTestId('att-capture').click();
+        await expect(page.getByTestId('att-done')).toBeVisible({ timeout: 15000 });
+        await page.getByRole('button', { name: 'Done' }).click();
+    };
+    await tap();   // CHECK IN ~09:00
+    const inShown = (await page.getByTestId('att-in-time').innerText()).trim();
+    // four check-outs during the day: lunch, a short trip out, evening, and the real leaving time
+    const outs = [];
+    for (const later of ['04:00:00', '01:30:00', '03:00:00', '01:15:00']) {
+        await page.clock.fastForward(later);
+        await expect(page.getByTestId('att-tap')).toHaveText(/CHECK OUT/, { timeout: 20000 });
+        await tap();
+        outs.push((await page.getByTestId('att-out-time').innerText()).trim());
+    }
+    expect(new Set(outs).size).toBe(4);   // each tap moved the check-out
+    await expect(page.getByTestId('att-in-time')).toHaveText(inShown);   // the check-in never moves
+
+    await expect.poll(async () => (await readAll(page, 'hotel_attendance')).find(r => r.staffName === 'Varun' && r.dateISO === '2026-10-15' && !r.deleted)?.checkOut, { timeout: 15000 }).toBe(outs[3]);
+    const rows = (await readAll(page, 'hotel_attendance')).filter(r => r.staffName === 'Varun' && r.dateISO === '2026-10-15' && !r.deleted);
+    expect(rows).toHaveLength(1);
+    const row = rows[0];
+    expect(row.checkIn).toBe(inShown);
+    expect(row.checkOut).toBe(outs[3]);   // the last one counts
+    const hours = (Date.parse(row.outAt) - Date.parse(row.inAt)) / 3600000;
+    expect(hours).toBeGreaterThan(9.7);   // 4 + 1.5 + 3 + 1.25 = 9h 45m (plus the seconds of each tap)
+    expect(hours).toBeLessThan(9.9);
+    expect(Math.abs(row.hours - hours)).toBeLessThan(0.001);
+    await expect(page.getByTestId('att-hours')).toHaveText(/^9h 4\dm$/);
+    // every check-out selfie is kept as proof; the row points to the last one
+    const outPhotos = (await readAll(page, 'hotel_attendance_photos')).filter(p => p.logId === row._id && p.kind === 'out');
+    expect(outPhotos).toHaveLength(4);
+    expect(outPhotos.map(p => p._id)).toContain(row.outPhotoId);
+
+    // the OPS Center register shows the same: one row, last check-out
+    await openAdmin(page);
+    await adminTab(page, 'attendance');
+    const reg = page.getByTestId('attendance-ledger').getByRole('row').filter({ hasText: 'Self check-in (phone)' });
+    await expect(reg).toHaveCount(1);
+    await expect(reg).toContainText(outs[3]);
+});
