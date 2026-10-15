@@ -81,6 +81,15 @@
         ]
       },
       {
+        "source": "/tv",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      },
+      {
         "source": "/attendance/**",
         "headers": [
           {

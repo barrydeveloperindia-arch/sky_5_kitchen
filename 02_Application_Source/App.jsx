@@ -11,6 +11,7 @@ const lazyScreen = (load) => lazy(() => load().catch((err) => {
 const AdminDashboard = lazyScreen(() => import('./components/AdminDashboard'));
 const StaffInventory = lazyScreen(() => import('./components/StaffInventory'));
 const StaffAttendance = lazyScreen(() => import('./components/StaffAttendance'));
+const HotelTv = lazyScreen(() => import('./components/HotelTv'));
 import { combos } from './data/combos';
 import { rooms as roomData, liveSeedRooms } from './data/rooms';
 import { parseRoomNumber, addFoodBillToRoom } from './lib/billing';
@@ -22,6 +23,8 @@ const staffPath = window.location.pathname.replace(/\/+$/, '');
 const isStaffInventory = staffPath === '/inventory';
 // Staff check-in / check-out on their own phone (share link: /attendance)
 const isStaffAttendance = staffPath === '/attendance';
+// Staff attendance board for the hotel TV (read only)
+const isHotelTv = staffPath === '/tv';
 
 // Live data starts clean: every room free, no guests, no orders. The sample guests/orders
 // exist only in the test environment (E2E fixtures), never in the live hotel data.
@@ -107,7 +110,7 @@ function App() {
   return (
     <div className="legacy">
       <Suspense fallback={<Loading />}>
-        {isStaffAttendance ? <StaffAttendance /> : isStaffInventory ? <StaffInventory /> : <HotelApp />}
+        {isHotelTv ? <HotelTv /> : isStaffAttendance ? <StaffAttendance /> : isStaffInventory ? <StaffInventory /> : <HotelApp />}
       </Suspense>
     </div>
   );
