@@ -153,6 +153,14 @@ export function registerFace(staff, descriptor, photoId) {
     return trackWrite(setDoc(doc(db, FACES, faceKey(staff)), rec)).then(() => rec);
 }
 
+// Manager (Staff Directory -> Face): this face, taken now, becomes the person's registered face.
+// Saved like a staff photo face, so it wins over any face from a first check-in.
+export function saveStaffFace(staff, descriptor) {
+    const { db } = getServices();
+    const rec = { staffName: staff.name, staffId: staff.staffId || '', descriptor, source: 'staff-photo', photoId: '', at: new Date().toISOString(), reset: false };
+    return trackWrite(setDoc(doc(db, FACES, faceKey(staff)), rec)).then(() => rec);
+}
+
 // Manager: forget a registered face (the next good check-in registers again)
 export function resetFace(staff) {
     const { db } = getServices();

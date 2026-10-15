@@ -10,6 +10,7 @@ import { getServices, whenSignedIn } from '../../lib/firebase';
 import { trackWrite } from '../../lib/syncedState';
 import { MAX_PHOTO_CHARS } from '../../lib/staffAttendance';
 import { resetFace, faceKey, FACES } from '../../lib/faceMatch';
+import FaceDialog from './FaceDialog';
 import {
     DEPARTMENTS, deptLabel, allStaff, isLeft, nextStaffId, validateStaff, addStaff, updateStaff, setStaffStatus, filterStaff, staffCounts, EMPTY_FORM,
 } from '../../lib/staffDirectory';
@@ -207,9 +208,14 @@ export default function StaffDirectory({ registry, onChange, onAdd, onEdit }) {
         return () => { alive = false; };
     }, []);
     const faceOf = (s) => { const f = faces[faceKey(s)]; return f && !f.reset && f.descriptor?.length === 128 ? f : null; };
-    const clearFace = (s) => {
-        if (!window.confirm(`Reset the registered face of ${s.name}? Their next check-in photo will be registered as their face.`)) return;
-        resetFace(s).then(() => setFaces(f => ({ ...f, [faceKey(s)]: { reset: true, descriptor: [] } }))).catch(() => {});
+    const [faceFor, setFaceFor] = useState(null);   // the person whose Face box is open
+    const faceChanged = (s, rec) => setFaces(f => ({ ...f, [faceKey(s)]: rec }));
+    // a face taken in the Face box is also the person's staff photo
+    const photoSaved = (s, data) => {
+        photoCache.set(s.staffId, data);
+        const next = { ...registry };
+        for (const d of DEPARTMENTS) next[d.key] = (registry[d.key] || []).map(p => (p.id === s.id ? { ...p, photoId: s.staffId } : p));
+        onChange(next);
     };
 
     const toggleLeft = (s) => {
@@ -291,7 +297,7 @@ export default function StaffDirectory({ registry, onChange, onAdd, onEdit }) {
                                     <div className="flex justify-end gap-1">
                                         <Button size="xs" variant="outline" onClick={() => onEdit(s)} aria-label={`Edit ${s.name}`} data-testid={`sd-edit-${s.name}`}><Pencil />Edit</Button>
                                         <Button size="xs" variant="outline" onClick={() => idCard(s)} aria-label={`ID card of ${s.name}`} data-testid={`sd-card-${s.name}`}><IdCard />ID card</Button>
-                                        {!isLeft(s) && faceOf(s) && <Button size="xs" variant="ghost" onClick={() => clearFace(s)} aria-label={`Reset face of ${s.name}`} data-testid={`sd-face-reset-${s.name}`}><ScanFace />Reset face</Button>}
+                                        {!isLeft(s) && <Button size="xs" variant="outline" onClick={() => setFaceFor(s)} aria-label={`Face of ${s.name}`} data-testid={`sd-face-open-${s.name}`}><ScanFace />Face</Button>}
                                         <Button size="xs" variant="ghost" onClick={() => toggleLeft(s)} aria-label={isLeft(s) ? `Mark ${s.name} active again` : `Mark ${s.name} as left`} data-testid={`sd-left-${s.name}`}>
                                             {isLeft(s) ? <><UserRoundCheck />Rejoin</> : <><UserMinus />Left</>}
                                         </Button>
@@ -327,6 +333,10 @@ export default function StaffDirectory({ registry, onChange, onAdd, onEdit }) {
                     </ul>
                 </div>
             )}
+
+            <FaceDialog staff={faceFor} face={faceFor ? faceOf(faceFor) : null}
+                photoSrc={faceFor ? (faceFor.photoId && photoCache.get(faceFor.photoId)) || faceFor.photo || null : null}
+                onClose={() => setFaceFor(null)} onPhotoSaved={photoSaved} onFaceChanged={faceChanged} />
 
             <Dialog open={!!leaving} onOpenChange={o => { if (!o) setLeaving(null); }}>
                 <DialogContent className="ui max-w-sm bg-white text-[#0a192f]" data-testid="sd-left-dialog">
