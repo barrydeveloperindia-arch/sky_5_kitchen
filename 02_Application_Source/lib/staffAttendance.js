@@ -70,6 +70,25 @@ export function nextAction(log, now = Date.now()) {
     return 'out';
 }
 
+// Both buttons are always on (like the AuraLock terminal). What a press does:
+//  CHECK IN : first of the day = 'in'; after a check-out = 'back' (back at work, the day goes on); already in = a note
+//  CHECK OUT: moves the check-out (the last one counts); before any check-in = a note
+// A second tap within 2 minutes of the last one only shows a note (no double entries).
+export function pressDecision(log, pressed, now = Date.now()) {
+    const inNow = !!log && has(log.checkIn);
+    const out = inNow && has(log.checkOut);
+    const wait = waitRemainingMs(log, now);
+    if (pressed === 'in') {
+        if (!inNow) return { go: 'in' };
+        if (!out) return { msg: `You are already checked in since ${log.checkIn} ✓` };
+        if (wait > 0) return { msg: `Just saved. CHECK IN works again in ${formatWait(wait)}.` };
+        return { go: 'back' };
+    }
+    if (!inNow) return { msg: 'Not checked in yet today - tap CHECK IN first.' };
+    if (wait > 0) return { msg: `Just saved. CHECK OUT works again in ${formatWait(wait)}.` };
+    return { go: 'out' };
+}
+
 // How long until the 2-minute guard ends (0 = a tap works now)
 export function waitRemainingMs(log, now = Date.now()) {
     if (!log || !has(log.checkIn)) return 0;
@@ -102,6 +121,13 @@ export function tapUpdate(log, action, { at = new Date(), photoId = null, loc = 
     const place = hotelCheck(loc);
     if (action === 'in') {
         return { checkIn: timeLabel(at), inAt: iso, inPhotoId: photoId, inLoc: loc, inAtHotel: place.at, inDistM: place.m, status: 'Present', source: 'staff-web' };
+    }
+    if (action === 'back') {
+        // back at work after a check-out: the day is open again (the first check-in stays); kept as proof in `backs`
+        return {
+            checkOut: '--', outAt: null, outPhotoId: null, outLoc: null, outAtHotel: null, outDistM: null, hours: 0,
+            backs: [...(Array.isArray(log?.backs) ? log.backs : []), { at: iso, photoId, loc, afterOut: log?.checkOut || '--' }],
+        };
     }
     const out = { checkOut: timeLabel(at), outAt: iso, outPhotoId: photoId, outLoc: loc, outAtHotel: place.at, outDistM: place.m };
     const h = workedHours({ ...log, outAt: iso });

@@ -442,3 +442,65 @@ test('name list: the pencil next to a name edits that person (saved in the datab
     await expect.poll(async () => ((await readDoc(page, 'hotel_state/staffRegistry'))?.value?.housekeeping || []).find(s => s.name === 'Bhawna'), { timeout: 15000 })
         .toMatchObject({ role: 'Housekeeping Lead', phone: '9999900003' });
 });
+
+test('both buttons always on: out, BACK IN, out again - one row, first IN and last OUT; notes for wrong presses; the voice says thank you', async ({ page }) => {
+    await page.addInitScript(() => {
+        window.__said = [];
+        window.speechSynthesis.speak = (u) => window.__said.push(u.text);
+        window.speechSynthesis.cancel = () => {};
+    });
+    await page.clock.install({ time: new Date('2026-10-16T09:00:00') });
+    await openAttendance(page);
+    await page.getByTestId('att-pick-Varun').click();
+    const shoot = async () => {
+        await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
+        await page.getByTestId('att-capture').click();
+        await expect(page.getByTestId('att-done')).toBeVisible({ timeout: 15000 });
+    };
+    // CHECK OUT before any check-in: a note
+    await page.getByTestId('att-out').click();
+    await expect(page.getByTestId('att-notice')).toContainText('CHECK IN first');
+    // check in
+    await page.getByTestId('att-tap').click();
+    await shoot();
+    await expect(page.getByTestId('att-done')).toContainText('Check In Successful');
+    await page.getByRole('button', { name: 'Done' }).click();
+    // CHECK IN again while in: a note (no double entry)
+    await page.clock.fastForward('01:00:00');
+    await page.getByTestId('att-in').click();
+    await expect(page.getByTestId('att-notice')).toContainText('already checked in since');
+    // check out (by mistake / a break)
+    await page.getByTestId('att-tap').click();
+    await shoot();
+    await expect(page.getByTestId('att-done')).toContainText('Check Out Successful');
+    await page.getByRole('button', { name: 'Done' }).click();
+    // still working: BACK IN
+    await page.clock.fastForward('00:30:00');
+    await expect(page.getByTestId('att-in')).toContainText('back in');
+    await page.getByTestId('att-in').click();
+    await shoot();
+    await expect(page.getByTestId('att-done')).toContainText('Back In Successful');
+    await page.getByRole('button', { name: 'Done' }).click();
+    await expect(page.getByTestId('att-out-time')).toHaveText('--');
+    // leaving for the day
+    await page.clock.fastForward('07:00:00');
+    await page.getByTestId('att-tap').click();
+    await shoot();
+    await expect(page.getByTestId('att-done')).toContainText('Check Out Successful');
+
+    const rows = (await readAll(page, 'hotel_attendance')).filter(r => r.staffName === 'Varun' && r.dateISO === '2026-10-16' && !r.deleted);
+    expect(rows).toHaveLength(1);
+    const r = rows[0];
+    expect(r.checkIn).toBe('09:00 AM');
+    expect(r.checkOut).toBe((await page.getByTestId('att-done-time').innerText()).trim());
+    expect(r.backs).toHaveLength(1);
+    expect(r.backs[0].afterOut).toMatch(/^10:0\d AM$/);
+    expect(r.hours).toBeGreaterThan(8.4);   // 09:00 -> ~17:30: first IN to last OUT
+    // spoken like the AuraLock terminal
+    const said = await page.evaluate(() => window.__said);
+    expect(said).toEqual(expect.arrayContaining([
+        expect.stringMatching(/^Good morning Varun\. Check in successful/),
+        expect.stringMatching(/^Thank you Varun\. Check out successful/),
+        expect.stringMatching(/^Welcome back Varun/),
+    ]));
+});

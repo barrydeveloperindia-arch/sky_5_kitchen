@@ -155,3 +155,25 @@ describe('a corrected name keeps today\'s row (found by staff ID)', () => {
         expect(findTodayLog([row], 'Varun', at)).toBe(row);                                         // old callers still work
     });
 });
+
+describe('both buttons always on: what a press does', () => {
+    test('pressDecision', async () => {
+        const { pressDecision, tapUpdate } = await import('../../02_Application_Source/lib/staffAttendance');
+        const t = (h, m = 0) => new Date(2026, 9, 16, h, m).getTime();
+        expect(pressDecision(null, 'in', t(9))).toEqual({ go: 'in' });
+        expect(pressDecision(null, 'out', t(9)).msg).toMatch(/CHECK IN first/);
+        const inRow = { checkIn: '09:00 AM', checkOut: '--', inAt: new Date(t(9)).toISOString() };
+        expect(pressDecision(inRow, 'in', t(10)).msg).toMatch(/already checked in since 09:00 AM/);
+        expect(pressDecision(inRow, 'out', t(9, 1)).msg).toMatch(/works again in/);   // 2-minute guard
+        expect(pressDecision(inRow, 'out', t(13))).toEqual({ go: 'out' });
+        const outRow = { ...inRow, checkOut: '01:00 PM', outAt: new Date(t(13)).toISOString() };
+        expect(pressDecision(outRow, 'in', t(14))).toEqual({ go: 'back' });           // back at work
+        expect(pressDecision(outRow, 'out', t(18))).toEqual({ go: 'out' });           // the last check-out counts
+        expect(pressDecision(outRow, 'in', t(13, 1)).msg).toMatch(/works again in/);
+        // back in: the day is open again, the first check-in stays, the break is kept
+        const back = tapUpdate(outRow, 'back', { at: new Date(t(14)), photoId: 'p2' });
+        expect(back).toMatchObject({ checkOut: '--', outAt: null, hours: 0 });
+        expect(back.checkIn).toBeUndefined();
+        expect(back.backs).toEqual([expect.objectContaining({ photoId: 'p2', afterOut: '01:00 PM' })]);
+    });
+});

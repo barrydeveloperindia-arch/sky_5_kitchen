@@ -10,10 +10,11 @@ import { StaffFormDialog } from './ops/StaffDirectory';
 import FaceDialog from './ops/FaceDialog';
 import PinDialog from './ops/PinDialog';
 import { verifyPin } from '../lib/staffPin';
+import { speakAttendance } from '../lib/voice';
 import { allStaff, setStaffStatus } from '../lib/staffDirectory';
 import { faceKey, FACES, findFaces, faceQuality, registeredFace, registerFace, sameFace, otherFace, warmUpFaces } from '../lib/faceMatch';
 import {
-    dayKey, isoDate, staffNames, hotelCheck, formatDistance, findActiveLog, nextAction, waitRemainingMs, formatWait, tapUpdate, logIdFor, toLoc, workedHours, formatHours,
+    dayKey, isoDate, staffNames, hotelCheck, formatDistance, findActiveLog, nextAction, pressDecision, timeLabel, waitRemainingMs, formatWait, tapUpdate, logIdFor, toLoc, workedHours, formatHours,
     STAFF_KEY, MAX_PHOTO_CHARS,
 } from '../lib/staffAttendance';
 
@@ -22,6 +23,7 @@ const writeSaved = (v) => { try { if (v) localStorage.setItem(STAFF_KEY, v); els
 const initials = (n) => String(n || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
 const DEPTS = [['reception', 'Front Desk & Management'], ['kitchen', 'Kitchen'], ['housekeeping', 'Housekeeping']];
 const NO_NET = 'No internet. Connect and open the link again.';
+const nowMs = () => Date.now();   // read when a button is pressed (outside the component)
 const DONE_SECONDS = 10;        // the success screen goes back to the start by itself, like the AuraLock terminal
 const AUTO_PHOTO_SECONDS = 3;   // the selfie is taken by itself after this countdown
 const MAX_FACE_TRIES = 5;      // photos without a usable face before the camera closes by itself
@@ -68,6 +70,9 @@ export default function StaffAttendance() {
     const [pinAsk, setPinAsk] = useState(null);    // { rec, title, then } while a PIN is asked
     const [pinFallback, setPinFallback] = useState(false);   // the face did not work: offer the PIN
     const lastPhotoRef = useRef(null);             // the last camera photo (kept for a PIN check-in)
+    const pressRef = useRef(null);                 // which button was pressed: 'in' | 'out' (both are always on)
+    const [going, setGoing] = useState(null);      // what that press does now: 'in' | 'back' | 'out'
+    const [notice, setNotice] = useState('');      // a short note instead of the camera (already in, just saved...)
     const [logs, setLogs] = useState([]);
     const [ready, setReady] = useState(false);
     const [me, setMe] = useState(readSaved);
@@ -120,7 +125,7 @@ export default function StaffAttendance() {
     const waitLeft = waitRemainingMs(log, now);
     const inT = log?.checkIn && log.checkIn !== '--' ? log.checkIn : '--';
     const outT = log?.checkOut && log.checkOut !== '--' ? log.checkOut : '--';
-    const hint = action === 'out' && outT !== '--' ? 'Leaving later? Tap CHECK OUT again, the last tap counts.'
+    const hint = outT !== '--' ? 'Still working? Tap CHECK IN (back in) - or CHECK OUT again when you leave; the last one counts.'
         : 'A selfie and your location are saved with every tap.';
     const clock = new Date(now);
 
@@ -208,6 +213,17 @@ export default function StaffAttendance() {
     const choose = (name) => { setMe(name); writeSaved(name); setError(''); setSearch(''); setStep('home'); };
     const changeName = () => { setMe(''); writeSaved(''); setResult(null); setStep('home'); };
 
+    // a press on CHECK IN / CHECK OUT: open the camera for it, or say why not (no double entries)
+    const press = (kind) => {
+        setError(''); setPinFallback(false);
+        const d = pressDecision(log, kind, nowMs());
+        if (d.msg) { setNotice(d.msg); return; }
+        setNotice('');
+        pressRef.current = kind;
+        setGoing(d.go);
+        openCamera();
+    };
+
     const openCamera = async () => {
         setError('');
         setAttempt(0);
@@ -239,7 +255,7 @@ export default function StaffAttendance() {
         const retry = (msg) => {
             setChecking(false); busyRef.current = false;
             // nobody in front of the camera for a while: close it (battery) and wait for a new tap
-            if (attempt + 1 >= MAX_FACE_TRIES) { stopCamera(); setStep('home'); setError(`${msg} Tap ${action === 'in' ? 'CHECK IN' : 'CHECK OUT'} to try again.`); setPinFallback(true); return; }
+            if (attempt + 1 >= MAX_FACE_TRIES) { stopCamera(); setStep('home'); setError(`${msg} Tap ${pressRef.current === 'out' ? 'CHECK OUT' : 'CHECK IN'} to try again.`); setPinFallback(true); return; }
             setError(msg); setAttempt(a => a + 1);
         };
         const frame = fullFrame(video);
@@ -294,25 +310,31 @@ export default function StaffAttendance() {
         const at = new Date();
         // decide on the tap's own time (not the last screen refresh), so a tap just after midnight is dated correctly
         const row0 = findActiveLog(logs, who, at);
-        const kind = nextAction(row0, at.getTime());
-        if (kind === 'wait') { setStep('home'); return; }
+        const pressed = pressRef.current || (nextAction(row0, at.getTime()) === 'in' ? 'in' : 'out');
+        const d = pressDecision(row0, pressed, at.getTime());
+        if (d.msg) { setNotice(d.msg); setStep('home'); return; }
+        const kind = d.go;   // 'in' | 'back' | 'out'
         const id = row0 ? String(row0.id) : logIdFor(me, isoDate(at));
         const photoId = photo ? `${id}-${kind}-${at.getTime()}` : null;   // a PIN tap with no camera photo has no selfie
         const fields = tapUpdate(row0, kind, { at, photoId, loc });
-        fields[kind === 'in' ? 'inFace' : 'outFace'] = face;
-        if (!loc) fields[kind === 'in' ? 'inLocError' : 'outLocError'] = locError;
+        if (kind === 'back') fields.backs[fields.backs.length - 1].face = face;
+        else fields[kind === 'in' ? 'inFace' : 'outFace'] = face;
+        if (!loc) fields[kind === 'out' ? 'outLocError' : kind === 'in' ? 'inLocError' : 'backLocError'] = locError;
         // the row carries the staff ID, and the current name (a corrected name updates today's row)
         if (myStaffId) fields.staffId = myStaffId;
         fields.staffName = me;
         const row = row0 ? fields : { id, staffName: me, date: dayKey(at), dateISO: isoDate(at), checkOut: '--', _order: at.getTime(), ...fields };
         try {
             const { db } = getServices();
-            if (photo) await trackWrite(setDoc(doc(db, 'hotel_attendance_photos', photoId), { logId: id, kind, staffName: me, at: at.toISOString(), data: photo }));
+            // a "back in" selfie is a check-in selfie (the photo store knows only in / out)
+            if (photo) await trackWrite(setDoc(doc(db, 'hotel_attendance_photos', photoId), { logId: id, kind: kind === 'out' ? 'out' : 'in', staffName: me, at: at.toISOString(), data: photo }));
             if (register) await registerFace(register.staff, register.descriptor, photoId);   // first time: this face is now theirs
             await trackWrite(setDoc(doc(db, 'hotel_attendance', id), toFirestore(row), { merge: true }));
             const saved = { ...(row0 || {}), ...row };
-            setResult({ kind, photo, loc, locError, face, at: at.toISOString(), time: kind === 'in' ? saved.checkIn : saved.checkOut, checkIn: saved.checkIn, hours: workedHours(saved) });
+            setResult({ kind, photo, loc, locError, face, at: at.toISOString(), time: kind === 'in' ? saved.checkIn : kind === 'back' ? timeLabel(at) : saved.checkOut, checkIn: saved.checkIn, hours: workedHours(saved) });
             setStep('done');
+            pressRef.current = null;   // the next tap starts fresh
+            speakAttendance(me, kind);   // like the AuraLock terminal: "Good morning Varun. Check in successful."
         } catch {
             setError('Could not save. Check internet and try again.');
             setStep('home');
@@ -320,24 +342,31 @@ export default function StaffAttendance() {
     };
     useEffect(() => { captureRef.current = capture; });   // the countdown always calls the latest capture
     // the face did not work: the person's PIN (as in TimeStation) checks them in / out instead
-    const checkInWithPin = () => {
+    // kind = the button the PIN stands for: the one that just failed (card), or the one that fits now (link)
+    const checkInWithPin = (kind = pressRef.current || (action === 'in' ? 'in' : 'out')) => {
         const r = myRecord();
         if (!r) return;
-        requirePin(r, action === 'out' ? 'Check out with PIN' : 'Check in with PIN', () => saveTap(lastPhotoRef.current, { check: 'pin' }, null));
+        pressRef.current = kind;
+        requirePin(r, kind === 'out' ? 'Check out with PIN' : 'Check in with PIN', () => saveTap(lastPhotoRef.current, { check: 'pin' }, null));
     };
 
     const stamp = (iso) => new Date(iso).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
     const tapButton = (kind) => {
-        // during the 2-minute guard the CHECK OUT button shows a countdown, then switches on by itself
-        const active = ready && action === kind;
+        // both buttons are always on (like the AuraLock terminal); the one that fits now is highlighted.
+        // 'att-tap' marks the expected next tap; during the 2-minute guard CHECK OUT shows a countdown
+        const suggested = (action === 'in' && kind === 'in') || (action === 'out' && kind === 'out');
         const counting = ready && action === 'wait' && kind === 'out';
         const Icon = kind === 'in' ? LogIn : LogOut;
+        const sub = kind === 'in'
+            ? (inT !== '--' && outT === '--' ? `since ${inT}` : outT !== '--' ? 'back in' : '')
+            : (counting ? `in ${formatWait(waitLeft)}` : outT !== '--' ? 'again' : '');
         return (
-            <button type="button" data-testid={active ? 'att-tap' : `att-tap-off-${kind}`} disabled={!active} onClick={openCamera}
+            <button type="button" data-testid={suggested ? 'att-tap' : counting ? 'att-tap-off-out' : `att-${kind}`} disabled={!ready} onClick={() => press(kind)}
                 className={cn('flex flex-col items-center gap-1 rounded-2xl px-4 py-3.5 text-xs font-black tracking-wider uppercase transition-all active:scale-95 disabled:opacity-35',
-                    kind === 'in' ? 'bg-gradient-to-r from-[#d4af37] to-[#e6c65c] text-[#0a192f] shadow-lg shadow-[#d4af37]/25' : 'border border-[#d4af37]/50 bg-[#112240] text-white')}>
+                    kind === 'in' ? 'bg-gradient-to-r from-[#d4af37] to-[#e6c65c] text-[#0a192f] shadow-lg shadow-[#d4af37]/25' : 'border border-[#d4af37]/50 bg-[#112240] text-white',
+                    !suggested && 'opacity-80')}>
                 <Icon className="size-5" />{kind === 'in' ? 'CHECK IN' : 'CHECK OUT'}
-                {counting && <span data-testid="att-wait-count" className="text-[10px] font-bold tracking-normal normal-case">in {formatWait(waitLeft)}</span>}
+                {sub && <span data-testid={counting ? 'att-wait-count' : undefined} className="text-[10px] font-bold tracking-normal normal-case">{sub}</span>}
             </button>
         );
     };
@@ -375,11 +404,12 @@ export default function StaffAttendance() {
                         <div className="mt-3 grid grid-cols-2 gap-2">
                             <Button variant="outline" onClick={() => { setError(''); setPinFallback(false); openCamera(); }} data-testid="att-try-again" className="h-11 rounded-xl border-amber-300 bg-white font-bold"><RefreshCw />Try again</Button>
                             {myRecord()?.pinSet
-                                ? <Button onClick={checkInWithPin} data-testid="att-use-pin" className="h-11 rounded-xl bg-[#0a192f] font-black text-[#d4af37] hover:bg-[#0a192f]/90"><KeyRound />Use PIN</Button>
+                                ? <Button onClick={() => checkInWithPin()} data-testid="att-use-pin" className="h-11 rounded-xl bg-[#0a192f] font-black text-[#d4af37] hover:bg-[#0a192f]/90"><KeyRound />Use PIN</Button>
                                 : <p data-testid="att-no-pin" className="self-center text-xs text-amber-900">No PIN yet - the manager sets it in OPS Center → Workforce.</p>}
                         </div>
                     </div>
                 ) : error && step !== 'camera' && <div role="alert" data-testid="att-error" className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</div>}
+                {notice && step === 'home' && <div role="status" data-testid="att-notice" className="flex items-start gap-2 rounded-2xl border border-sky-200 bg-sky-50 p-3 text-sm font-semibold text-sky-900"><CheckCircle2 className="mt-0.5 size-4 shrink-0" />{notice}</div>}
                 <PinDialog open={!!pinAsk} title={pinAsk ? `${pinAsk.rec.name} ${pinAsk.badge}` : ''} person={pinAsk?.rec.name} badge={pinAsk?.badge}
                     description="Enter your 4-digit PIN (the same as in TimeStation)"
                     onClose={() => setPinAsk(null)}
@@ -514,7 +544,7 @@ export default function StaffAttendance() {
                                             ? <div role="alert" data-testid="att-error" className="mx-auto mb-1 w-fit max-w-full rounded-full bg-[#0a192f]/85 px-3 py-1 text-xs font-bold text-[#ffd666]">{error}</div>
                                             : <div className="text-[9px] font-black tracking-[0.2em] text-[#e6c65c] uppercase">Position your face in the frame</div>}
                                         {autoIn === null && attempt === 0 && <div className="text-xs font-semibold text-white/80">Starting camera…</div>}
-                                        <div className="text-sm font-bold text-white">{action === 'in' ? 'Check-in selfie' : 'Check-out selfie'}</div>
+                                        <div className="text-sm font-bold text-white">{going === 'out' ? 'Check-out selfie' : going === 'back' ? 'Back-in selfie' : 'Check-in selfie'}</div>
                                     </div>
                                 </>
                             ) : step === 'saving' ? (
@@ -534,7 +564,7 @@ export default function StaffAttendance() {
                                     {nightShift && <div data-testid="att-night" className="mb-3 rounded-lg bg-white/10 px-3 py-1.5 text-center text-[11px] font-semibold text-amber-200">Night shift from {log.date} is still open: CHECK OUT closes it.</div>}
                                     <div className="grid w-full max-w-xs grid-cols-2 gap-3">{tapButton('in')}{tapButton('out')}</div>
                                     {ready && action !== 'wait' && myRecord()?.pinSet && (
-                                        <button type="button" onClick={checkInWithPin} data-testid="att-pin-link"
+                                        <button type="button" onClick={() => checkInWithPin(action === 'in' ? 'in' : 'out')} data-testid="att-pin-link"
                                             className="mt-4 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold text-[#e6c65c] underline-offset-4 hover:underline [@media(max-height:520px)]:mt-2">
                                             <KeyRound className="size-3.5" />Face not working? {action === 'out' ? 'Check out' : 'Check in'} with PIN
                                         </button>
@@ -565,22 +595,22 @@ export default function StaffAttendance() {
 
                 {step === 'done' && result && (
                     <section data-testid="att-done" className="flex min-h-[80dvh] flex-col items-center justify-center gap-6 text-center">
-                        <div className={cn('relative w-64 max-w-[80vw] overflow-hidden rounded-2xl border-4 bg-black shadow-xl', result.kind === 'in' ? 'border-[#d4af37]' : 'border-[#0a192f]')}>
+                        <div className={cn('relative w-64 max-w-[80vw] overflow-hidden rounded-2xl border-4 bg-black shadow-xl', result.kind !== 'out' ? 'border-[#d4af37]' : 'border-[#0a192f]')}>
                             {result.photo
                                 ? <img src={result.photo} alt="Your selfie" className="block h-auto w-full -scale-x-100" />
                                 : <div className="grid h-48 place-items-center bg-[#0a192f] text-[#d4af37]"><KeyRound className="size-12" /></div>}
                             <div className="absolute inset-x-0 bottom-0 bg-black/70 px-3 py-2 text-left">
                                 <div className="truncate text-sm font-bold text-white">{me}</div>
-                                <div className={cn('text-[11px] font-black tracking-wider', result.kind === 'in' ? 'text-[#e6c65c]' : 'text-sky-200')}>{result.kind === 'in' ? 'CHECK IN' : 'CHECK OUT'}  {stamp(result.at)} IST</div>
+                                <div className={cn('text-[11px] font-black tracking-wider', result.kind !== 'out' ? 'text-[#e6c65c]' : 'text-sky-200')}>{result.kind === 'out' ? 'CHECK OUT' : result.kind === 'back' ? 'BACK IN' : 'CHECK IN'}  {stamp(result.at)} IST</div>
                             </div>
-                            <div className={cn('absolute top-2 right-2 grid size-8 place-items-center rounded-full shadow', result.kind === 'in' ? 'bg-[#d4af37]' : 'bg-[#0a192f]')}>
-                                {result.kind === 'in' ? <CheckCircle2 className="size-5 text-[#0a192f]" /> : <LogOut className="size-4 text-white" />}
+                            <div className={cn('absolute top-2 right-2 grid size-8 place-items-center rounded-full shadow', result.kind !== 'out' ? 'bg-[#d4af37]' : 'bg-[#0a192f]')}>
+                                {result.kind !== 'out' ? <CheckCircle2 className="size-5 text-[#0a192f]" /> : <LogOut className="size-4 text-white" />}
                             </div>
                         </div>
                         <div>
-                            <p className={cn('mb-2 text-[10px] font-black tracking-[0.4em] uppercase', result.kind === 'in' ? 'text-[#8a6d10]' : 'text-[#0a192f]')}>{result.kind === 'in' ? '✦ Welcome ✦' : '✦ Goodbye ✦'}</p>
+                            <p className={cn('mb-2 text-[10px] font-black tracking-[0.4em] uppercase', result.kind !== 'out' ? 'text-[#8a6d10]' : 'text-[#0a192f]')}>{result.kind === 'out' ? '✦ Goodbye ✦' : result.kind === 'back' ? '✦ Welcome back ✦' : '✦ Welcome ✦'}</p>
                             <h2 className="mb-1 text-3xl font-black tracking-tight text-[#0a192f]">{me}</h2>
-                            <p className={cn('text-sm font-black tracking-widest uppercase', result.kind === 'in' ? 'text-emerald-700' : 'text-[#0a192f]')}>{result.kind === 'in' ? 'Check In Successful' : 'Check Out Successful'}</p>
+                            <p className={cn('text-sm font-black tracking-widest uppercase', result.kind !== 'out' ? 'text-emerald-700' : 'text-[#0a192f]')}>{result.kind === 'out' ? 'Check Out Successful' : result.kind === 'back' ? 'Back In Successful' : 'Check In Successful'}</p>
                             <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2 shadow-sm">
                                 <Clock aria-hidden className="size-4 text-slate-600" />
                                 <span className="text-lg font-bold text-slate-700 tabular-nums" data-testid="att-done-time">{result.time}</span>

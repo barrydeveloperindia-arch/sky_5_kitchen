@@ -66,7 +66,10 @@ test('check in, 2-minute guard, rolling check out; the register shows the selfie
     await expect(page.getByTestId('att-in-time')).toHaveText(inTime);
     await expect(page.getByTestId('att-wait')).toBeVisible(); // a second tap right away does nothing
     await expect(page.getByTestId('att-wait-count')).toHaveText(/in [12]:\d\d/); // the countdown is on the CHECK OUT button
-    await expect(page.getByTestId('att-tap-off-out')).toBeDisabled();
+    await expect(page.getByTestId('att-tap-off-out')).toBeEnabled();   // both buttons always on (like AuraLock)
+    await page.getByTestId('att-tap-off-out').click();                   // too soon: a note, no camera, nothing saved
+    await expect(page.getByTestId('att-notice')).toContainText('Just saved');
+    await expect(page.getByTestId('att-video')).toHaveCount(0);
 
     // the phone remembers who this is
     await page.reload();
