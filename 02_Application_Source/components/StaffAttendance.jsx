@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { collection, doc, onSnapshot, query, setDoc, where } from 'firebase/firestore';
-import { Camera, CheckCircle2, ChevronLeft, ChevronRight, Clock, LogIn, LogOut, MapPin, RefreshCw, Search } from 'lucide-react';
+import { Camera, CheckCircle2, ChevronLeft, ChevronRight, Clock, LogIn, LogOut, MapPin, RefreshCw, Search, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getServices, whenSignedIn } from '../lib/firebase';
 import { normalizeRegistry } from '../lib/staff';
 import { toFirestore, trackWrite, useOnline } from '../lib/syncedState';
+import { StaffFormDialog } from './ops/StaffDirectory';
 import { findFaces, faceQuality, registeredFace, registerFace, sameFace, otherFace, warmUpFaces } from '../lib/faceMatch';
 import {
     dayKey, isoDate, staffNames, hotelCheck, formatDistance, findActiveLog, nextAction, waitRemainingMs, formatWait, tapUpdate, logIdFor, toLoc, workedHours, formatHours,
@@ -57,6 +58,7 @@ function locate() {
 
 export default function StaffAttendance() {
     const [registry, setRegistry] = useState(null);
+    const [adding, setAdding] = useState(false);   // "New staff register" form open
     const [logs, setLogs] = useState([]);
     const [ready, setReady] = useState(false);
     const [me, setMe] = useState(readSaved);
@@ -336,8 +338,22 @@ export default function StaffAttendance() {
                                 </div>
                             );
                         })}
+                        {/* a new person not on the list registers here (same form as OPS Center -> Workforce) */}
+                        <div className="flex items-center justify-between gap-3 rounded-2xl border border-dashed border-[#d4af37] bg-[#fdf8e7] p-3">
+                            <div className="min-w-0 text-sm"><b className="text-slate-900">Naam list me nahi hai?</b><div className="text-xs text-slate-700">New staff - register yourself here.</div></div>
+                            <Button data-testid="att-new-staff" onClick={() => setAdding(true)} className="shrink-0 bg-[#0a192f] text-[#d4af37] hover:bg-[#0a192f]/90"><UserPlus />New staff register</Button>
+                        </div>
                     </section>
                 )}
+                <StaffFormDialog open={adding} editing={null} registry={registry || {}} onClose={() => setAdding(false)}
+                    onSaved={(next, added) => {
+                        // save only the department list that changed, so another change on another device is kept
+                        const { db } = getServices();
+                        const changed = Object.fromEntries(['reception', 'kitchen', 'housekeeping'].filter(d => next[d] !== registry?.[d]).map(d => [d, toFirestore(next[d])]));
+                        trackWrite(setDoc(doc(db, 'hotel_state', 'staffRegistry'), { value: changed }, { merge: true })).catch(() => setError('Could not save. Check internet and try again.'));
+                        setRegistry(next);
+                        if (added) choose(added.name);
+                    }} />
 
                 {registry && known && step !== 'done' && (
                     <>

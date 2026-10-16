@@ -318,3 +318,28 @@ test('checked out several times in a day: the LAST check-out is the one saved (o
     await expect(reg).toHaveCount(1);
     await expect(reg).toContainText(outs[3]);
 });
+
+test('a new person registers on the staff page ("New staff register"), is saved with the next staff ID and can check in', async ({ page }) => {
+    await openAttendance(page);
+    await page.getByTestId('att-new-staff').click();
+    const form = page.getByTestId('staff-form');
+    await expect(form).toBeVisible();
+    await form.getByLabel('Full name (as on Aadhaar)', { exact: true }).fill('Naya Staff');
+    await form.getByLabel('Department', { exact: true }).selectOption('kitchen');
+    await form.getByLabel('Post', { exact: true }).fill('Cook');
+    await form.getByLabel('Mobile', { exact: true }).fill('9999900002');
+    await page.getByTestId('sf-save').click();
+    await expect(page.getByTestId('att-me')).toHaveText('Naya Staff');   // chosen straight away
+    await expect.poll(async () => ((await readDoc(page, 'hotel_state/staffRegistry'))?.value?.kitchen || []).some(s => s.name === 'Naya Staff'), { timeout: 15000 }).toBe(true);
+    const reg = (await readDoc(page, 'hotel_state/staffRegistry')).value;
+    const p = reg.kitchen.find(s => s.name === 'Naya Staff');
+    expect(p).toMatchObject({ role: 'Cook', phone: '9999900002', status: 'Active' });
+    expect(p.staffId).toMatch(/^SKY5-\d{3}$/);
+    expect(reg.reception.length).toBeGreaterThan(0);   // the other lists were not touched
+    // and the first check-in works (face registered)
+    await page.getByTestId('att-tap').click();
+    await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
+    await page.getByTestId('att-capture').click();
+    await expect(page.getByTestId('att-done')).toContainText('Check In Successful', { timeout: 15000 });
+    await expect(page.getByTestId('att-face')).toContainText('Face registered');
+});
