@@ -343,3 +343,86 @@ test('a new person registers on the staff page ("New staff register"), is saved 
     await expect(page.getByTestId('att-done')).toContainText('Check In Successful', { timeout: 15000 });
     await expect(page.getByTestId('att-face')).toContainText('Face registered');
 });
+
+test('staff page: Edit details saves the change (also a corrected name), Re-scan face replaces the face, Delete marks as left and keeps old attendance', async ({ page }) => {
+    await openAttendance(page);
+    await page.getByTestId('att-pick-Varun').click();
+    // first check-in registers a face (a row exists for today)
+    await page.getByTestId('att-tap').click();
+    await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
+    await page.getByTestId('att-capture').click();
+    await expect(page.getByTestId('att-done')).toBeVisible({ timeout: 15000 });
+    await page.getByRole('button', { name: 'Done' }).click();
+
+    // 1. Edit details: new post and a corrected name
+    await page.getByTestId('att-edit').click();
+    const form = page.getByTestId('staff-form');
+    await expect(form).toBeVisible();
+    await form.getByLabel('Post', { exact: true }).fill('Head Waiter');
+    await form.getByLabel('Full name (as on Aadhaar)', { exact: true }).fill('Varun Kumar');
+    await page.getByTestId('sf-save').click();
+    await expect(page.getByTestId('att-me')).toHaveText('Varun Kumar');
+    await expect.poll(async () => ((await readDoc(page, 'hotel_state/staffRegistry'))?.value?.kitchen || []).find(s => s.name === 'Varun Kumar')?.role, { timeout: 15000 }).toBe('Head Waiter');
+
+    // 2. Re-scan face: the box shows the registered face, a new face is taken and saved
+    await page.getByTestId('att-rescan').click();
+    await expect(page.getByTestId('face-dialog')).toContainText('Face of Varun Kumar');
+    await page.evaluate(() => localStorage.setItem('faceTest', 'other'));
+    await page.getByTestId('face-take').click();
+    await expect.poll(() => page.getByTestId('face-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
+    await page.getByTestId('face-scan').click();
+    await expect(page.getByTestId('face-new')).toBeVisible({ timeout: 15000 });
+    await page.getByTestId('face-save').click();
+    await expect(page.getByTestId('face-dialog')).toHaveCount(0);
+    await expect.poll(async () => (await readAll(page, 'hotel_staff_faces')).find(f => f.staffName === 'Varun Kumar')?.source, { timeout: 15000 }).toBe('staff-photo');
+
+    // 3. Delete (= left today): off the list, old attendance kept
+    page.once('dialog', d => d.accept());
+    await page.getByTestId('att-delete').click();
+    await expect(page.getByTestId('att-pick-Varun Kumar')).toHaveCount(0);
+    await expect(page.getByTestId('att-pick-Veerwati')).toBeVisible();
+    await expect.poll(async () => ((await readDoc(page, 'hotel_state/staffRegistry'))?.value?.kitchen || []).find(s => s.name === 'Varun Kumar')?.status, { timeout: 15000 }).toBe('Left');
+    expect((await readAll(page, 'hotel_attendance')).filter(r => r.source === 'staff-web' && !r.deleted).length).toBeGreaterThan(0);
+});
+
+test('staff page: Delete can be cancelled - nothing changes', async ({ page }) => {
+    await openAttendance(page);
+    await page.getByTestId('att-pick-Bhawna').click();
+    page.once('dialog', d => d.dismiss());
+    await page.getByTestId('att-delete').click();
+    await expect(page.getByTestId('att-me')).toHaveText('Bhawna');
+    await page.waitForTimeout(800);
+    expect(((await readDoc(page, 'hotel_state/staffRegistry'))?.value?.housekeeping || []).find(s => s.name === 'Bhawna')?.status).not.toBe('Left');
+});
+
+test('name corrected after the check-in: the next tap is the CHECK OUT on the same row (not a second check-in)', async ({ page }) => {
+    await page.clock.install();
+    await openAttendance(page);
+    await page.getByTestId('att-new-staff').click();
+    const form = page.getByTestId('staff-form');
+    await form.getByLabel('Full name (as on Aadhaar)', { exact: true }).fill('Rakesh');
+    await form.getByLabel('Post', { exact: true }).fill('Helper');
+    await page.getByTestId('sf-save').click();
+    await expect(page.getByTestId('att-me')).toHaveText('Rakesh');
+    const tap = async () => {
+        await page.getByTestId('att-tap').click();
+        await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
+        await page.getByTestId('att-capture').click();
+        await expect(page.getByTestId('att-done')).toBeVisible({ timeout: 15000 });
+        await page.getByRole('button', { name: 'Done' }).click();
+    };
+    await tap();   // CHECK IN as "Rakesh"
+    await page.getByTestId('att-edit').click();
+    await page.getByTestId('staff-form').getByLabel('Full name (as on Aadhaar)', { exact: true }).fill('Rakesh Kumar');
+    await page.getByTestId('sf-save').click();
+    await expect(page.getByTestId('att-me')).toHaveText('Rakesh Kumar');
+    await expect(page.getByTestId('att-in-time')).not.toHaveText('--');   // still checked in
+    await page.clock.fastForward('03:00');
+    await expect(page.getByTestId('att-tap')).toHaveText(/CHECK OUT/, { timeout: 20000 });
+    await tap();
+    const rows = (await readAll(page, 'hotel_attendance')).filter(r => /^Rakesh/.test(r.staffName) && !r.deleted);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ staffName: 'Rakesh Kumar' });
+    expect(rows[0].staffId).toMatch(/^SKY5-\d{3}$/);
+    expect(rows[0].checkOut).not.toBe('--');
+});

@@ -35,9 +35,13 @@ export function staffNames(registry) {
 
 // Today's row for this person (a row the manager already made counts too). The short "13-Oct" key has
 // no year, so a row that carries its full date must match that too (last year's 13-Oct is not today).
-export function findTodayLog(logs, name, at = new Date()) {
+// `who` = a name, or { name, staffId } - the staff ID also finds a row saved before the name was corrected
+export function findTodayLog(logs, who, at = new Date()) {
     const key = dayKey(at), iso = isoDate(at);
-    return (logs || []).find(l => l && l.staffName === name && l.date === key && (!l.dateISO || l.dateISO === iso) && !l.deleted) || null;
+    const name = typeof who === 'string' ? who : who?.name;
+    const staffId = typeof who === 'string' ? '' : who?.staffId || '';
+    const mine = (l) => l.staffName === name || (staffId && l.staffId === staffId);
+    return (logs || []).find(l => l && mine(l) && l.date === key && (!l.dateISO || l.dateISO === iso) && !l.deleted) || null;
 }
 
 // A shift is at most this long: a check-in from last night still takes this morning's check-out
@@ -46,10 +50,10 @@ const startOfDay = (at) => new Date(at.getFullYear(), at.getMonth(), at.getDate(
 
 // The row the next tap belongs to: today's row, or (night shift) yesterday's row while that shift is
 // still running - checked in less than 16 h ago and not checked out before midnight.
-export function findActiveLog(logs, name, at = new Date()) {
-    const today = findTodayLog(logs, name, at);
+export function findActiveLog(logs, who, at = new Date()) {
+    const today = findTodayLog(logs, who, at);
     if (today) return today;
-    const yesterday = findTodayLog(logs, name, new Date(startOfDay(at) - 12 * 3600000));
+    const yesterday = findTodayLog(logs, who, new Date(startOfDay(at) - 12 * 3600000));
     if (!yesterday || !has(yesterday.checkIn)) return null;
     const inAt = Date.parse(yesterday.inAt || '');
     if (!Number.isFinite(inAt) || at.getTime() - inAt > MAX_SHIFT_MS) return null;

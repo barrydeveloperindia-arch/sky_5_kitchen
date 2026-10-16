@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import { collection, doc, onSnapshot, query, setDoc, where } from 'firebase/firestore';
-import { Camera, CheckCircle2, ChevronLeft, ChevronRight, Clock, LogIn, LogOut, MapPin, RefreshCw, Search, UserPlus } from 'lucide-react';
+import { collection, doc, getDoc, onSnapshot, query, setDoc, where } from 'firebase/firestore';
+import { Camera, CheckCircle2, ChevronLeft, ChevronRight, Clock, LogIn, LogOut, MapPin, Pencil, RefreshCw, ScanFace, Search, Trash2, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getServices, whenSignedIn } from '../lib/firebase';
 import { normalizeRegistry } from '../lib/staff';
 import { toFirestore, trackWrite, useOnline } from '../lib/syncedState';
 import { StaffFormDialog } from './ops/StaffDirectory';
-import { findFaces, faceQuality, registeredFace, registerFace, sameFace, otherFace, warmUpFaces } from '../lib/faceMatch';
+import FaceDialog from './ops/FaceDialog';
+import { allStaff, setStaffStatus } from '../lib/staffDirectory';
+import { faceKey, FACES, findFaces, faceQuality, registeredFace, registerFace, sameFace, otherFace, warmUpFaces } from '../lib/faceMatch';
 import {
     dayKey, isoDate, staffNames, hotelCheck, formatDistance, findActiveLog, nextAction, waitRemainingMs, formatWait, tapUpdate, logIdFor, toLoc, workedHours, formatHours,
     STAFF_KEY, MAX_PHOTO_CHARS,
@@ -59,6 +61,8 @@ function locate() {
 export default function StaffAttendance() {
     const [registry, setRegistry] = useState(null);
     const [adding, setAdding] = useState(false);   // "New staff register" form open
+    const [editing, setEditing] = useState(null);  // staff record whose details are being edited
+    const [faceBox, setFaceBox] = useState(null);  // { staff, face } while "Re-scan face" is open
     const [logs, setLogs] = useState([]);
     const [ready, setReady] = useState(false);
     const [me, setMe] = useState(readSaved);
@@ -102,8 +106,10 @@ export default function StaffAttendance() {
     const names = registry ? staffNames(registry) : [];
     const known = names.some(n => n.name === me);
     const myRole = names.find(n => n.name === me)?.role || '';
+    const myStaffId = names.find(n => n.name === me)?.staffId || '';
+    const who = { name: me, staffId: myStaffId };   // finds today's row even after a name correction
     const shown = names.filter(n => n.name.toLowerCase().includes(search.trim().toLowerCase()));
-    const log = findActiveLog(logs, me, new Date(now));
+    const log = findActiveLog(logs, who, new Date(now));
     const nightShift = !!log && log.date !== today;
     const action = nextAction(log, now);
     const waitLeft = waitRemainingMs(log, now);
@@ -153,6 +159,40 @@ export default function StaffAttendance() {
         const t = setTimeout(() => { warmUpFaces().catch(() => {}); }, 1200);
         return () => clearTimeout(t);
     }, [me, step]);
+
+    // save only the department lists that changed, so a change made on another device meanwhile is kept
+    const saveRegistry = (next) => {
+        const { db } = getServices();
+        const changed = Object.fromEntries(['reception', 'kitchen', 'housekeeping'].filter(d => next[d] !== registry?.[d]).map(d => [d, toFirestore(next[d])]));
+        if (Object.keys(changed).length) trackWrite(setDoc(doc(db, 'hotel_state', 'staffRegistry'), { value: changed }, { merge: true })).catch(() => setError('Could not save. Check internet and try again.'));
+        setRegistry(next);
+    };
+    const myRecord = () => (registry ? allStaff(registry).find(x => x.name === me) : null);
+    const editMe = () => { const r = myRecord(); if (r) setEditing(r); };
+    const rescanMe = async () => {
+        const r = myRecord();
+        if (!r) return;
+        let face = null;
+        try {
+            await whenSignedIn();
+            const f = await getDoc(doc(getServices().db, FACES, faceKey(r)));
+            const d = f.exists() ? f.data() : null;
+            face = d && !d.reset && d.descriptor?.length === 128 ? d : null;
+        } catch { /* shown as "no face yet" */ }
+        let photo = null;
+        if (face?.source === 'staff-photo' && r.photoId) {
+            try { const p = await getDoc(doc(getServices().db, 'hotel_staff_photos', r.photoId)); photo = p.exists() ? p.data().data : null; } catch { /* no picture */ }
+        }
+        setFaceBox({ staff: r, face, photo });
+    };
+    // "Delete" = this person has left: off the list, the TV and the counts; their old attendance stays
+    const removeMe = () => {
+        const r = myRecord();
+        if (!r || !window.confirm(`Delete ${r.name} from the staff list? (Marked as left today - old attendance is kept.)`)) return;
+        const d = new Date();
+        saveRegistry(setStaffStatus(registry, r.id, 'Left', `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`));
+        changeName();
+    };
 
     const choose = (name) => { setMe(name); writeSaved(name); setError(''); setSearch(''); setStep('home'); };
     const changeName = () => { setMe(''); writeSaved(''); setResult(null); setStep('home'); };
@@ -234,7 +274,7 @@ export default function StaffAttendance() {
         const { loc, error: locError } = await (locRef.current || locate());
         const at = new Date();
         // decide on the tap's own time (not the last screen refresh), so a tap just after midnight is dated correctly
-        const row0 = findActiveLog(logs, me, at);
+        const row0 = findActiveLog(logs, who, at);
         const kind = nextAction(row0, at.getTime());
         if (kind === 'wait') { setStep('home'); return; }
         const id = row0 ? String(row0.id) : logIdFor(me, isoDate(at));
@@ -242,6 +282,9 @@ export default function StaffAttendance() {
         const fields = tapUpdate(row0, kind, { at, photoId, loc });
         fields[kind === 'in' ? 'inFace' : 'outFace'] = face;
         if (!loc) fields[kind === 'in' ? 'inLocError' : 'outLocError'] = locError;
+        // the row carries the staff ID, and the current name (a corrected name updates today's row)
+        if (myStaffId) fields.staffId = myStaffId;
+        fields.staffName = me;
         const row = row0 ? fields : { id, staffName: me, date: dayKey(at), dateISO: isoDate(at), checkOut: '--', _order: at.getTime(), ...fields };
         try {
             const { db } = getServices();
@@ -345,15 +388,17 @@ export default function StaffAttendance() {
                         </div>
                     </section>
                 )}
-                <StaffFormDialog open={adding} editing={null} registry={registry || {}} onClose={() => setAdding(false)}
+                <StaffFormDialog open={adding || !!editing} editing={editing} registry={registry || {}} onClose={() => { setAdding(false); setEditing(null); }}
                     onSaved={(next, added) => {
-                        // save only the department list that changed, so another change on another device is kept
-                        const { db } = getServices();
-                        const changed = Object.fromEntries(['reception', 'kitchen', 'housekeeping'].filter(d => next[d] !== registry?.[d]).map(d => [d, toFirestore(next[d])]));
-                        trackWrite(setDoc(doc(db, 'hotel_state', 'staffRegistry'), { value: changed }, { merge: true })).catch(() => setError('Could not save. Check internet and try again.'));
-                        setRegistry(next);
+                        const renamed = editing && allStaff(next).find(x => x.id === editing.id);
+                        saveRegistry(next);
                         if (added) choose(added.name);
+                        else if (renamed && renamed.name !== me) choose(renamed.name);   // the name itself was corrected
                     }} />
+                <FaceDialog staff={faceBox?.staff || null} face={faceBox?.face || null} photoSrc={faceBox?.photo || null}
+                    onClose={() => setFaceBox(null)}
+                    onPhotoSaved={(st) => saveRegistry(Object.fromEntries(Object.entries(registry).map(([k, v]) => [k, Array.isArray(v) ? v.map(x => (x?.id === st.id ? { ...x, photoId: st.staffId } : x)) : v])))}
+                    onFaceChanged={() => {}} />
 
                 {registry && known && step !== 'done' && (
                     <>
@@ -365,6 +410,13 @@ export default function StaffAttendance() {
                             </div>
                             {step === 'home' && <Button variant="ghost" size="sm" onClick={changeName} data-testid="att-change">Not you?</Button>}
                         </div>
+                        {step === 'home' && (
+                            <div className="grid grid-cols-3 gap-2" data-testid="att-manage">
+                                <Button variant="outline" size="sm" onClick={editMe} data-testid="att-edit" className="h-9 rounded-xl border-slate-200 bg-white text-xs font-bold"><Pencil />Edit details</Button>
+                                <Button variant="outline" size="sm" onClick={rescanMe} data-testid="att-rescan" className="h-9 rounded-xl border-slate-200 bg-white text-xs font-bold"><ScanFace />Re-scan face</Button>
+                                <Button variant="outline" size="sm" onClick={removeMe} data-testid="att-delete" className="h-9 rounded-xl border-red-200 bg-white text-xs font-bold text-red-700 hover:bg-red-50"><Trash2 />Delete</Button>
+                            </div>
+                        )}
 
                         <div className="text-center">
                             <div className="text-[2.5rem] leading-none font-black tracking-tight text-[#0a192f] tabular-nums min-[360px]:text-5xl [@media(max-height:520px)]:text-3xl" data-testid="att-clock">{clock.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\s?(AM|PM)$/, '')}<span className="ml-1.5 text-xl font-black text-[#8a6d10]">{clock.getHours() < 12 ? 'AM' : 'PM'}</span></div>

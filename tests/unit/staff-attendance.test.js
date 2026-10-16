@@ -142,3 +142,16 @@ describe('hotel location check (Hotel Sky 5 map pin)', () => {
         expect(formatDistance(45)).toBe('45 m'); expect(formatDistance(3420)).toBe('3.4 km'); expect(formatDistance(null)).toBe('');
     });
 });
+
+describe('a corrected name keeps today\'s row (found by staff ID)', () => {
+    test('findTodayLog / findActiveLog with { name, staffId }', async () => {
+        const { findTodayLog, findActiveLog, dayKey, isoDate } = await import('../../02_Application_Source/lib/staffAttendance');
+        const at = new Date(2026, 9, 16, 12, 0);
+        const row = { staffName: 'Varun', staffId: 'SKY5-004', date: dayKey(at), dateISO: isoDate(at), checkIn: '09:00 AM', inAt: new Date(2026, 9, 16, 9).toISOString() };
+        expect(findTodayLog([row], 'Varun Kumar', at)).toBeNull();                                  // by name only: lost
+        expect(findTodayLog([row], { name: 'Varun Kumar', staffId: 'SKY5-004' }, at)).toBe(row);     // by staff ID: found
+        expect(findActiveLog([row], { name: 'Varun Kumar', staffId: 'SKY5-004' }, at)).toBe(row);
+        expect(findTodayLog([row], { name: 'Someone', staffId: 'SKY5-009' }, at)).toBeNull();
+        expect(findTodayLog([row], 'Varun', at)).toBe(row);                                         // old callers still work
+    });
+});
