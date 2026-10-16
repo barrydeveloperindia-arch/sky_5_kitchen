@@ -36,9 +36,9 @@ test('guide screens', async ({ page }) => {
     expect(r.ok()).toBe(true);
 
     // the manager registered Varun's face (Workforce -> Face)
-    const face = { staffName: val('Varun'), staffId: val(''), source: val('staff-photo'), photoId: val(''), at: val(new Date().toISOString()), reset: { booleanValue: false },
+    const face = { staffName: val('Varun'), staffId: val('SKY5-004'), source: val('staff-photo'), photoId: val(''), at: val(new Date().toISOString()), reset: { booleanValue: false },
         descriptor: { arrayValue: { values: Array.from({ length: 128 }, () => ({ doubleValue: 0.01 })) } } };
-    expect((await page.request.patch(`http://127.0.0.1:8181/v1/projects/${project}/databases/(default)/documents/hotel_staff_faces/name-varun`,
+    expect((await page.request.patch(`http://127.0.0.1:8181/v1/projects/${project}/databases/(default)/documents/hotel_staff_faces/SKY5-004`,
         { headers: { Authorization: 'Bearer owner' }, data: { fields: face } })).ok()).toBe(true);
 
     await page.goto('/attendance');
