@@ -14,6 +14,13 @@ test.use({
 const PORTRAIT = { width: 390, height: 844 };
 const SIDEWAYS = { width: 844, height: 390 };
 const sideScroll = (page) => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+const downScroll = (page) => page.evaluate(() => document.documentElement.scrollHeight - innerHeight);
+// fully visible without scrolling
+const inView = async (page, loc) => {
+    const b = await loc.boundingBox();
+    const vp = page.viewportSize();
+    return !!b && b.y >= 0 && b.y + b.height <= vp.height + 1 && b.x >= 0 && b.x + b.width <= vp.width + 1;
+};
 const onScreen = async (page, loc) => {
     const box = await loc.boundingBox();
     const vp = page.viewportSize();
@@ -50,11 +57,22 @@ test('staff page: turning the phone at every step keeps the screen whole and the
         await page.getByTestId('att-tap').scrollIntoViewIfNeeded();
         expect(await onScreen(page, page.getByTestId('att-tap'))).toBe(true);
     }
+    // sideways = two columns: who / clock / times on the left, the big panel with both buttons on the right, no scrolling
+    await page.setViewportSize(SIDEWAYS);
+    const me = await page.getByTestId('att-me').boundingBox();
+    const panel = await page.getByTestId('att-panel').boundingBox();
+    expect(panel.x, 'panel beside the name, not under it').toBeGreaterThan(me.x + me.width);
+    expect(panel.height, 'panel uses the screen height').toBeGreaterThan(SIDEWAYS.height * 0.6);
+    expect(await inView(page, page.getByTestId('att-tap'))).toBe(true);
+    expect(await inView(page, page.getByTestId('att-out'))).toBe(true);
+    expect(await downScroll(page), 'start screen sideways needs no scrolling').toBeLessThanOrEqual(1);
+    await page.setViewportSize(PORTRAIT);
     // turn while the camera is open: the camera keeps running and the photo button stays on screen
     await page.getByTestId('att-tap').click();
     await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
     await page.setViewportSize(SIDEWAYS);
     await expect(page.getByTestId('att-video')).toBeVisible();
+    expect(await inView(page, page.getByTestId('att-capture')), 'photo button visible sideways without scrolling').toBe(true);
     expect(await page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
     expect(await sideScroll(page)).toBeLessThanOrEqual(1);
     await page.getByTestId('att-capture').scrollIntoViewIfNeeded();
@@ -66,6 +84,7 @@ test('staff page: turning the phone at every step keeps the screen whole and the
     for (const vp of [SIDEWAYS, PORTRAIT]) {
         await page.setViewportSize(vp);
         expect(await sideScroll(page), `done screen ${vp.width}x${vp.height}`).toBeLessThanOrEqual(1);
+        if (vp === SIDEWAYS) expect(await inView(page, page.getByRole('button', { name: 'Done' })), 'done screen sideways: all on one screen').toBe(true);
         await expect(page.getByRole('button', { name: 'Done' })).toBeVisible();
     }
     await page.getByRole('button', { name: 'Done' }).click();

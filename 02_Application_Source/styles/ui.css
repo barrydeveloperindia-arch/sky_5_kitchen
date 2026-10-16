@@ -8,6 +8,8 @@
 @import "../index.css" layer(legacy);
 
 @custom-variant dark (&:is(.dark *));
+/* a phone turned sideways (wide and short): screens use two columns instead of one tall column */
+@custom-variant land (@media (orientation: landscape) and (max-height: 600px));
 
 @theme inline {
   --font-sans: "Inter", "Montserrat", ui-sans-serif, system-ui, sans-serif;

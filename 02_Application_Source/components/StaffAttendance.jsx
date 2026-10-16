@@ -376,7 +376,7 @@ export default function StaffAttendance() {
             <style>{'@keyframes att-scan{0%,100%{top:12%}50%{top:86%}}'}</style>
             {/* App bar (a div, not <header>: the shop's global header style must not apply here) */}
             <div role="banner" className="bg-[#0a192f] shadow-md">
-                <div className="mx-auto flex max-w-md items-center gap-3 px-3 py-3 min-[360px]:px-4">
+                <div className="mx-auto flex max-w-md items-center gap-3 px-3 py-3 min-[360px]:px-4 land:max-w-4xl land:py-2">
                     <a href="/" data-testid="att-back" aria-label="Back to the hotel app"
                         className="grid size-9 shrink-0 place-items-center rounded-full border border-white/15 text-white transition-colors hover:border-[#d4af37] hover:text-[#d4af37]">
                         <ChevronLeft aria-hidden className="size-5" />
@@ -393,7 +393,7 @@ export default function StaffAttendance() {
                     </span>
                 </div>
             </div>
-            <div className="mx-auto max-w-md space-y-4 p-3 min-[360px]:p-4 [@media(max-height:520px)]:space-y-2 [@media(max-height:520px)]:pt-2">
+            <div className="mx-auto max-w-md space-y-4 p-3 min-[360px]:p-4 [@media(max-height:520px)]:space-y-2 [@media(max-height:520px)]:pt-2 land:max-w-4xl land:px-4">
                 {/* top bar, like the AuraLock terminal */}
                 {/* while the camera is open the advice is shown on the camera itself (that is where the person looks) */}
                 {/* the face did not work: one clear card with the two ways on (try again / PIN) */}
@@ -439,6 +439,7 @@ export default function StaffAttendance() {
                         )}
                         {names.length === 0 && <p data-testid="att-no-staff" className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">No staff in the register yet. Ask the manager to add you in OPS Center → Workforce.</p>}
                         {names.length > 0 && shown.length === 0 && <p data-testid="att-no-match" className="rounded-2xl border border-slate-200 bg-white p-4 text-center text-sm text-slate-600">No name matches “{search.trim()}”.</p>}
+                        <div className="space-y-3 land:grid land:grid-cols-2 land:items-start land:gap-3 land:space-y-0">
                         {DEPTS.map(([dept, label]) => {
                             const list = shown.filter(n => n.dept === dept);
                             if (!list.length) return null;
@@ -467,6 +468,7 @@ export default function StaffAttendance() {
                                 </div>
                             );
                         })}
+                        </div>
                         {/* a new person not on the list registers here (same form as OPS Center -> Workforce) */}
                         <div className="flex items-center justify-between gap-3 rounded-2xl border border-dashed border-[#d4af37] bg-[#fdf8e7] p-3">
                             <div className="min-w-0 text-sm"><b className="text-slate-900">Naam list me nahi hai?</b><div className="text-xs text-slate-700">New staff - register yourself here.</div></div>
@@ -487,8 +489,8 @@ export default function StaffAttendance() {
                     onFaceChanged={() => {}} />
 
                 {registry && known && step !== 'done' && (
-                    <>
-                        <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+                    <div data-testid="att-main" className="space-y-4 [@media(max-height:520px)]:space-y-2 land:grid land:grid-flow-dense land:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] land:items-start land:gap-x-4 land:space-y-0 land:[&>*]:mb-2">
+                        <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm land:col-start-1">
                             <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-full bg-[#0a192f] text-sm font-black text-[#d4af37]">{initials(me)}</span>
                             <div className="min-w-0 flex-1">
                                 <div className="truncate font-black text-slate-900" data-testid="att-me">{me}</div>
@@ -497,23 +499,23 @@ export default function StaffAttendance() {
                             {step === 'home' && <Button variant="ghost" size="sm" onClick={changeName} data-testid="att-change">Not you?</Button>}
                         </div>
                         {step === 'home' && (
-                            <div className="grid grid-cols-3 gap-2" data-testid="att-manage">
+                            <div className="grid grid-cols-3 gap-2 land:col-start-1" data-testid="att-manage">
                                 <Button variant="outline" size="sm" onClick={editMe} data-testid="att-edit" className="h-9 rounded-xl border-slate-200 bg-white text-xs font-bold"><Pencil />Edit details</Button>
                                 <Button variant="outline" size="sm" onClick={rescanMe} data-testid="att-rescan" className="h-9 rounded-xl border-slate-200 bg-white text-xs font-bold"><ScanFace />Re-scan face</Button>
                                 <Button variant="outline" size="sm" onClick={removeMe} data-testid="att-delete" className="h-9 rounded-xl border-red-200 bg-white text-xs font-bold text-red-700 hover:bg-red-50"><Trash2 />Delete</Button>
                             </div>
                         )}
 
-                        <div className="text-center">
+                        <div className="text-center land:col-start-1 land:py-1">
                             <div className="text-[2.5rem] leading-none font-black tracking-tight text-[#0a192f] tabular-nums min-[360px]:text-5xl [@media(max-height:520px)]:text-3xl" data-testid="att-clock">{clock.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\s?(AM|PM)$/, '')}<span className="ml-1.5 text-xl font-black text-[#8a6d10]">{clock.getHours() < 12 ? 'AM' : 'PM'}</span></div>
                             <div className="mt-1 text-[10px] font-black tracking-[0.2em] text-slate-600 uppercase">{clock.toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}</div>
                         </div>
 
                         {/* main panel: standby with the two buttons, or the live camera */}
-                        <div className="relative h-[44vh] min-h-72 overflow-hidden rounded-[2rem] [@media(max-height:520px)]:h-auto [@media(max-height:520px)]:min-h-0 border-b-4 border-[#d4af37] bg-[#0a192f] shadow-xl">
+                        <div data-testid="att-panel" className="relative h-[44vh] min-h-72 overflow-hidden rounded-[2rem] [@media(max-height:520px)]:h-auto [@media(max-height:520px)]:min-h-0 border-b-4 border-[#d4af37] bg-[#0a192f] shadow-xl land:col-start-2 land:row-span-6 land:row-start-1 land:h-[calc(100dvh-5.25rem)]! land:min-h-0!">
                             {step === 'camera' ? (
                                 <>
-                                    <video ref={videoRef} data-testid="att-video" playsInline muted className="size-full -scale-x-100 object-cover [@media(max-height:520px)]:h-[52vh]" />
+                                    <video ref={videoRef} data-testid="att-video" playsInline muted className="size-full -scale-x-100 object-cover [@media(max-height:520px)]:h-[52vh] land:h-full!" />
                                     <div className="absolute top-4 left-4 flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3 py-1 backdrop-blur-md">
                                         <span className="size-1.5 animate-pulse rounded-full bg-[#d4af37]" />
                                         <span className="text-[9px] font-black tracking-widest text-white uppercase">Camera active</span>
@@ -553,7 +555,7 @@ export default function StaffAttendance() {
                                     <span className="text-xs font-black tracking-widest uppercase">Saving…</span>
                                 </div>
                             ) : (
-                                <div className="flex size-full flex-col items-center justify-center bg-gradient-to-br from-[#0a192f] via-[#112240] to-[#0a192f] p-6 text-white [@media(max-height:520px)]:p-3">
+                                <div className="flex size-full flex-col items-center justify-center bg-gradient-to-br from-[#0a192f] via-[#112240] to-[#0a192f] p-6 text-white [@media(max-height:520px)]:p-3 land:p-4">
                                     <div className="mb-3 rounded-xl border border-[#d4af37]/60 px-3 py-1 text-center font-serif leading-none text-[#d4af37] [@media(max-height:520px)]:hidden">
                                         <div className="text-[8px] tracking-[0.3em]">HOTEL</div><div className="text-xl font-black">SKY 5</div>
                                     </div>
@@ -574,7 +576,7 @@ export default function StaffAttendance() {
                         </div>
 
                         {step === 'camera' && (
-                            <div className="grid gap-2">
+                            <div className="grid gap-2 land:col-start-1">
                                 <Button data-testid="att-capture" onClick={capture} className="h-14 w-full rounded-2xl bg-gradient-to-r from-[#d4af37] to-[#e6c65c] text-base font-black tracking-wider text-[#0a192f] uppercase shadow-lg shadow-[#d4af37]/25 hover:opacity-95"><Camera className="size-5" />{autoIn > 0 ? `Photo in ${autoIn}… (tap to take now)` : 'Take photo now'}</Button>
                                 <Button variant="ghost" className="h-11 w-full rounded-2xl text-xs font-bold tracking-widest uppercase" onClick={() => { stopCamera(); setStep('home'); }}>Cancel</Button>
                             </div>
@@ -582,20 +584,20 @@ export default function StaffAttendance() {
 
                         {step === 'home' && (
                             <>
-                                <div className="grid grid-cols-3 divide-x divide-slate-100 rounded-2xl border border-slate-200 bg-white text-center shadow-sm">
+                                <div className="grid grid-cols-3 divide-x divide-slate-100 rounded-2xl border border-slate-200 bg-white text-center shadow-sm land:col-start-1">
                                     <div className="py-2.5"><div className="text-[9px] font-black tracking-widest text-slate-600 uppercase">In</div><div className={cn('font-black tabular-nums', inT === '--' ? 'text-slate-600' : 'text-emerald-700')} data-testid="att-in-time">{inT}</div></div>
                                     <div className="py-2.5"><div className="text-[9px] font-black tracking-widest text-slate-600 uppercase">Out</div><div className={cn('font-black tabular-nums', outT === '--' ? 'text-slate-600' : 'text-[#0a192f]')} data-testid="att-out-time">{outT}</div></div>
                                     <div className="py-2.5"><div className="text-[9px] font-black tracking-widest text-slate-600 uppercase">Hours</div><div className="font-black text-slate-900 tabular-nums" data-testid="att-hours">{formatHours(workedHours(log))}</div></div>
                                 </div>
-                                <p className="flex items-center justify-center gap-1.5 text-center text-xs text-slate-600"><Camera aria-hidden className="size-3.5 shrink-0" />{hint}</p>
+                                <p className="flex items-center justify-center gap-1.5 text-center text-xs text-slate-600 land:col-start-1"><Camera aria-hidden className="size-3.5 shrink-0" />{hint}</p>
                             </>
                         )}
-                    </>
+                    </div>
                 )}
 
                 {step === 'done' && result && (
-                    <section data-testid="att-done" className="flex min-h-[80dvh] flex-col items-center justify-center gap-6 text-center">
-                        <div className={cn('relative w-64 max-w-[80vw] overflow-hidden rounded-2xl border-4 bg-black shadow-xl', result.kind !== 'out' ? 'border-[#d4af37]' : 'border-[#0a192f]')}>
+                    <section data-testid="att-done" className="flex min-h-[80dvh] flex-col items-center justify-center gap-6 text-center land:min-h-[calc(100dvh-5.25rem)] land:flex-row land:gap-10">
+                        <div className={cn('relative w-64 max-w-[80vw] shrink-0 overflow-hidden land:w-auto land:max-w-[40vw] land:[&_img]:max-h-[calc(100dvh-7rem)] land:[&_img]:w-auto rounded-2xl border-4 bg-black shadow-xl', result.kind !== 'out' ? 'border-[#d4af37]' : 'border-[#0a192f]')}>
                             {result.photo
                                 ? <img src={result.photo} alt="Your selfie" className="block h-auto w-full -scale-x-100" />
                                 : <div className="grid h-48 place-items-center bg-[#0a192f] text-[#d4af37]"><KeyRound className="size-12" /></div>}
@@ -607,9 +609,10 @@ export default function StaffAttendance() {
                                 {result.kind !== 'out' ? <CheckCircle2 className="size-5 text-[#0a192f]" /> : <LogOut className="size-4 text-white" />}
                             </div>
                         </div>
+                        <div className="flex flex-col items-center gap-6 land:gap-3">
                         <div>
-                            <p className={cn('mb-2 text-[10px] font-black tracking-[0.4em] uppercase', result.kind !== 'out' ? 'text-[#8a6d10]' : 'text-[#0a192f]')}>{result.kind === 'out' ? '✦ Goodbye ✦' : result.kind === 'back' ? '✦ Welcome back ✦' : '✦ Welcome ✦'}</p>
-                            <h2 className="mb-1 text-3xl font-black tracking-tight text-[#0a192f]">{me}</h2>
+                            <p className={cn('mb-2 text-[10px] font-black tracking-[0.4em] uppercase land:mb-1', result.kind !== 'out' ? 'text-[#8a6d10]' : 'text-[#0a192f]')}>{result.kind === 'out' ? '✦ Goodbye ✦' : result.kind === 'back' ? '✦ Welcome back ✦' : '✦ Welcome ✦'}</p>
+                            <h2 className="mb-1 text-3xl font-black tracking-tight text-[#0a192f] land:text-2xl">{me}</h2>
                             <p className={cn('text-sm font-black tracking-widest uppercase', result.kind !== 'out' ? 'text-emerald-700' : 'text-[#0a192f]')}>{result.kind === 'out' ? 'Check Out Successful' : result.kind === 'back' ? 'Back In Successful' : 'Check In Successful'}</p>
                             <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2 shadow-sm">
                                 <Clock aria-hidden className="size-4 text-slate-600" />
@@ -634,8 +637,9 @@ export default function StaffAttendance() {
                                     : <div data-testid="att-place" className="mt-3 flex items-center justify-center gap-1 rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-700"><MapPin aria-hidden className="size-3.5" />Outside the hotel · {formatDistance(place.m)} away - saved and shown to the manager</div>;
                             })()}
                         </div>
-                        <Button variant="outline" className="w-full max-w-xs rounded-2xl border-slate-200 font-bold" onClick={closeDone}>Done</Button>
+                        <Button variant="outline" className="w-full max-w-xs rounded-2xl border-slate-200 font-bold land:w-64" onClick={closeDone}>Done</Button>
                         <span className="text-[10px] font-black tracking-widest text-slate-600 uppercase">Back to start in {DONE_SECONDS}s</span>
+                        </div>
                     </section>
                 )}
             </div>
