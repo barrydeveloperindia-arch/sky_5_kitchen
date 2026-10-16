@@ -178,3 +178,31 @@ test('a face registered to someone who has left does not block the same face on 
     await expect(page.getByTestId('face-dialog')).toHaveCount(0);
     expect(await terminalScan(page, 'in')).toBe('Bhawna');
 });
+
+test('a face that only LOOKS a little like someone else (not the same person): the manager is warned and can save it anyway', async ({ page }) => {
+    await seedFace(page, 'Varun', 0.01);
+    await openFace(page, 'Bhawna');
+    await showFace(page, 0.05);   // 0.45 away from Varun's face: similar, but not the same person
+    await takeFace(page);
+    await expect(page.getByTestId('face-new')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('face-similar')).toContainText('looks a little like Varun');
+    await expect(page.getByTestId('face-error')).toHaveCount(0);
+    await page.getByTestId('face-save').click();   // "Save anyway"
+    await expect(page.getByTestId('face-dialog')).toHaveCount(0);
+    await expect(page.getByTestId('sd-face-Bhawna')).toContainText('Face from photo');
+    // the terminal still tells the two apart: Bhawna's own face is Bhawna, Varun's face stays Varun
+    await showFace(page, 0.05);
+    expect(await terminalScan(page, 'in')).toBe('Bhawna');
+    await page.getByRole('button', { name: 'Done' }).click();
+    await showFace(page, 0.01);
+    expect(await terminalScan(page, 'in')).toBe('Varun');
+});
+
+test('the same person on two names (clearly the same face) is still stopped', async ({ page }) => {
+    await seedFace(page, 'Varun', 0.01);
+    await openFace(page, 'Bhawna');
+    await showFace(page, 0.02);   // 0.11 away: the same face
+    await takeFace(page);
+    await expect(page.getByTestId('face-error')).toContainText('already registered for Varun');
+    await expect(page.getByTestId('face-save')).toHaveCount(0);
+});

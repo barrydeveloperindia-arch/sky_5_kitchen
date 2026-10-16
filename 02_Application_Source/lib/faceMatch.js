@@ -9,6 +9,10 @@ import { collection, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
 import { getServices, whenSignedIn } from './firebase';
 import { trackWrite } from './syncedState';
 
+// A face this close to someone else's registered face is the SAME person (the manager is stopped). Between this and
+// MATCH_DISTANCE it only looks similar (live data: different people measured 0.59-0.8 apart), so the manager is
+// warned and decides.
+export const DUPLICATE_BLOCK = 0.4;
 export const MATCH_DISTANCE = 0.6;   // same as the AuraLock terminal; the same person measured 0.45-0.63 on a hotel phone
 export const MIN_FACE_SHARE = 0.2;   // face must be at least this share of the photo width (close enough)
 export const MIN_SCORE = 0.6;        // detector confidence
@@ -146,7 +150,7 @@ export async function otherFace(live, staff) {
         if (d.id === self || rec.reset || !Array.isArray(rec.descriptor) || rec.descriptor.length !== 128) continue;
         if (reg.exists() && !working.has(d.id)) continue;
         const r = sameFace(live, rec.descriptor);
-        if (r.match && (!best || r.distance < best.distance)) best = { staffName: rec.staffName, distance: r.distance };
+        if (r.match && (!best || r.distance < best.distance)) best = { staffName: rec.staffName, distance: r.distance, same: r.distance < DUPLICATE_BLOCK };
     }
     return best;
 }

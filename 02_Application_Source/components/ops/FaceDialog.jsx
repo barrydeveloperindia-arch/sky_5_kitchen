@@ -90,14 +90,15 @@ function FaceBody({ staff, face, photoSrc, onClose, onPhotoSaved, onFaceChanged 
         if (!q.ok) { setStep('camera'); setError(q.reason.replace('First check-in: ', '')); return; }
         let other = null;
         try { other = await otherFace(q.face.descriptor, staff); } catch { setStep('camera'); setError('Could not check the face. Check internet and try again.'); return; }
-        if (other) {
+        // clearly the same person as someone else: stop. Only similar: the manager decides (warning on the review step)
+        if (other?.same) {
             setStep('camera');
             setError(`This face is already registered for ${other.staffName}. If that is wrong, open ${other.staffName} → Face → Reset first, then take this face again.`);
             return;
         }
         if (!photo) { setStep('camera'); setError('Photo could not be saved, try again.'); return; }
         stop();
-        setShot({ photo, descriptor: q.face.descriptor });
+        setShot({ photo, descriptor: q.face.descriptor, similar: other ? other.staffName : '' });
         setStep('review');
     };
 
@@ -163,6 +164,12 @@ function FaceBody({ staff, face, photoSrc, onClose, onPhotoSaved, onFaceChanged 
                 </div>
             )}
 
+            {step === 'review' && shot?.similar && (
+                <p data-testid="face-similar" role="status" className="flex items-start gap-1.5 rounded-lg bg-amber-50 p-2.5 text-sm font-semibold text-amber-900"><TriangleAlert className="mt-0.5 size-4 shrink-0" />
+                    This face looks a little like {shot.similar}. If these are two different people, save it. If it is the same person, do not - open {shot.similar} → Face → Reset first.
+                </p>
+            )}
+
             {error && <p role="alert" data-testid="face-error" className="flex items-start gap-1.5 rounded-lg bg-red-50 p-2.5 text-sm font-semibold text-red-700"><TriangleAlert className="mt-0.5 size-4 shrink-0" />{error}</p>}
 
             <DialogFooter className="gap-2 sm:justify-between">
@@ -176,7 +183,7 @@ function FaceBody({ staff, face, photoSrc, onClose, onPhotoSaved, onFaceChanged 
                 </>}
                 {step === 'review' && <>
                     <Button variant="outline" onClick={() => openCamera()}>Take again</Button>
-                    <Button onClick={save} data-testid="face-save" className="bg-[#0a192f] text-[#d4af37] hover:bg-[#0a192f]/90"><CheckCircle2 />Save face</Button>
+                    <Button onClick={save} data-testid="face-save" className="bg-[#0a192f] text-[#d4af37] hover:bg-[#0a192f]/90"><CheckCircle2 />{shot?.similar ? 'Save anyway' : 'Save face'}</Button>
                 </>}
             </DialogFooter>
         </DialogContent>
