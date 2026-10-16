@@ -19,6 +19,20 @@ const STATUS = {
     'Not in yet': 'bg-white/5 text-slate-300 ring-white/15',
 };
 
+// a phone or a tablet held upright: a list of cards instead of the wide TV table
+function useNarrow() {
+    const q = '(max-width: 900px), (orientation: portrait)';
+    const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.matchMedia?.(q).matches);
+    useEffect(() => {
+        const m = window.matchMedia?.(q);
+        if (!m) return undefined;
+        const on = () => setNarrow(m.matches);
+        m.addEventListener('change', on);
+        return () => m.removeEventListener('change', on);
+    }, []);
+    return narrow;
+}
+
 function useNow() {
     const [now, setNow] = useState(() => new Date());
     useEffect(() => { const t = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(t); }, []);
@@ -27,6 +41,7 @@ function useNow() {
 
 export default function HotelTv() {
     const now = useNow();
+    const narrow = useNarrow();
     const [registry, setRegistry] = useState(null);
     const [logs, setLogs] = useState([]);
     const [online, setOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine);
@@ -71,6 +86,58 @@ export default function HotelTv() {
         ['Checked out', board.counts.out, 'left for now', 'text-sky-200', 'border-sky-300/70', 'tv-out'],
     ];
 
+    if (narrow) return (
+        <div data-testid="hotel-tv" className="ui min-h-dvh space-y-3 bg-[#0a192f] p-3 text-white">
+            <div role="banner" className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-2.5">
+                    <Logo size={34} noBorder />
+                    <div className="min-w-0">
+                        <h1 className="truncate text-base font-black tracking-wide">STAFF ATTENDANCE</h1>
+                        <p className="truncate text-[11px] text-slate-200">Hotel Sky 5 · Panchkula · Live</p>
+                    </div>
+                </div>
+                <div className="shrink-0 text-right">
+                    <div data-testid="tv-clock" className="text-xl leading-none font-black tabular-nums">{now.toLocaleTimeString('en-GB', { hour12: false })}</div>
+                    <div className="mt-0.5 text-[11px] text-[#f0d77a]">{now.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' })}</div>
+                </div>
+            </div>
+            <div className="grid grid-cols-5 gap-1.5">
+                {tiles.map(([label, value, , color, border, id]) => (
+                    <div key={id} className={`rounded-xl border-t-4 ${border} bg-white/[0.06] px-1 py-2 text-center`}>
+                        <div data-testid={id} className={`text-2xl leading-none font-black tabular-nums ${color}`}>{value}</div>
+                        <div className={`mt-1 text-[9px] leading-tight font-black tracking-wide uppercase ${color}`}>{label}</div>
+                    </div>
+                ))}
+            </div>
+            {!registry && <p className="p-6 text-center text-sm text-slate-300">Loading…</p>}
+            <div className="space-y-1.5">
+                {board.rows.map(r => (
+                    <div key={r.id} data-testid={`tv-row-${r.name}`} className={`flex items-center gap-3 rounded-xl bg-white/[0.05] px-3 py-2 ${r.in == null ? 'text-slate-400' : ''}`}>
+                        <StaffPhoto staff={r} className="size-10 text-xs" />
+                        <div className="min-w-0 flex-1">
+                            <div className={`truncate text-sm ${r.in == null ? 'font-semibold' : 'font-black text-white'}`}>{r.name}</div>
+                            <div className="truncate text-[11px] text-slate-400">{r.staffId ? `${r.staffId} · ` : ''}{r.role || DEPT[r.department]}</div>
+                            <div className="text-xs tabular-nums">
+                                <span className="text-slate-400">In </span><b data-testid={`tv-in-${r.name}`} className={r.late ? 'text-amber-300' : r.in != null ? 'text-emerald-300' : ''}>{minutesToLabel(r.in)}</b>
+                                <span className="ml-2 text-slate-400">Out </span><b data-testid={`tv-out-${r.name}`}>{minutesToLabel(r.out)}</b>
+                                {r.minutes != null && <span className="ml-2 text-slate-300">{formatSpan(r.minutes)}</span>}
+                            </div>
+                        </div>
+                        <span data-testid={`tv-status-${r.name}`} className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black whitespace-nowrap ring-1 ${STATUS[r.status]}`}>{r.status}</span>
+                    </div>
+                ))}
+            </div>
+            <div role="contentinfo" className="flex items-center gap-2 rounded-xl bg-white/[0.06] px-3 py-2 text-xs">
+                <span className="font-black tracking-widest text-[#e6c65c]">LATEST</span>
+                <span data-testid="tv-latest" className="min-w-0 flex-1 truncate">
+                    {board.latest.length === 0 ? <span className="text-slate-400">No check-in yet today</span>
+                        : board.latest.slice(0, 3).map((e, i) => <span key={i} className="mr-3"><b>{e.name}</b> {e.kind === 'in' ? 'IN' : 'OUT'} {minutesToLabel(e.min)}</span>)}
+                </span>
+                <span data-testid="tv-online" className={`shrink-0 font-bold ${online ? 'text-emerald-300' : 'text-amber-300'}`}>{online ? '● Live' : '● Offline'}</span>
+            </div>
+        </div>
+    );
+
     return (
         <div data-testid="hotel-tv" className="ui flex h-dvh flex-col gap-[1.6vh] overflow-hidden bg-[#0a192f] p-[2vh] text-white">
             {/* not <header>: the shop CSS styles every header (white, sticky) */}
@@ -112,7 +179,7 @@ export default function HotelTv() {
                         <span data-testid={`tv-in-${r.name}`} className={`text-center font-bold tabular-nums ${r.late ? 'text-amber-300' : r.in != null ? 'text-emerald-300' : ''}`}>{minutesToLabel(r.in)}</span>
                         <span data-testid={`tv-out-${r.name}`} className="text-center font-bold tabular-nums">{minutesToLabel(r.out)}</span>
                         <span className={`text-center tabular-nums ${r.sofar ? 'italic text-slate-300' : ''}`}>{formatSpan(r.minutes)}</span>
-                        <span className="text-right"><span data-testid={`tv-status-${r.name}`} className={`inline-block rounded-full px-[1vw] py-[0.4vh] text-[0.75em] font-black ring-1 ${STATUS[r.status]}`}>{r.status}</span></span>
+                        <span className="text-right"><span data-testid={`tv-status-${r.name}`} className={`inline-block rounded-full px-[1vw] py-[0.4vh] text-[0.75em] font-black whitespace-nowrap ring-1 ${STATUS[r.status]}`}>{r.status}</span></span>
                     </div>
                 ))}
             </section>

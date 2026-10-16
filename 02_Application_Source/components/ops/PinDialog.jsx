@@ -72,7 +72,7 @@ function PinBody({ title, description, person, badge, onSubmit }) {
                     {description && <DialogDescription>{description}</DialogDescription>}
                 </DialogHeader>
             )}
-            <div className="flex justify-center gap-3 py-1" aria-live="polite" aria-label={`${pin.length} of 4 digits entered`} data-testid="pin-dots">
+            <div role="status" className="flex justify-center gap-3 py-1" aria-live="polite" aria-label={`${pin.length} of 4 digits entered`} data-testid="pin-dots">
                 {[0, 1, 2, 3].map(i => <span key={i} className={`size-4 rounded-full border-2 border-[#0a192f] transition-colors ${i < pin.length ? 'bg-[#0a192f]' : ''}`} />)}
             </div>
             {busy && <p className="text-center text-xs font-semibold text-slate-600">Checking…</p>}

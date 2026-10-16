@@ -178,3 +178,18 @@ test('the manager can switch to the back camera (phone pointed at the person) an
     await page.getByTestId('face-save').click();
     await expect(page.getByTestId('sd-face-Ratnesh')).toContainText('Face from photo');
 });
+
+test('a face registered to someone who has left does not block the same face on another name', async ({ page }) => {
+    await who(page, 'B');
+    await phoneTap(page, 'Karan');   // Karan registers face B
+    await expect(page.getByTestId('att-done')).toBeVisible({ timeout: 15000 });
+    await page.getByRole('button', { name: 'Done' }).click();
+    await openAdmin(page);
+    await adminTab(page, 'workforce');
+    await page.getByTestId('sd-left-Karan').click();
+    await page.getByTestId('sd-left-confirm').click();   // Karan leaves
+    await page.goto('/attendance');
+    await phoneTap(page, 'Bhawna');   // the same face, now for Bhawna: allowed
+    await expect(page.getByTestId('att-done')).toContainText('Check In Successful', { timeout: 15000 });
+    await expect(page.getByTestId('att-face')).toContainText('Face registered');
+});

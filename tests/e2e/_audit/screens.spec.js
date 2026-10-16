@@ -81,7 +81,32 @@ for (const [label, width, height] of SIZES) {
             await first.click();
             await page.waitForTimeout(500);
             await scan(page, `${label}--attendance-home`);
+            await page.getByTestId('att-change').click();
         }
+        // edit form from the pencil on the list
+        const pencil = page.locator('[data-testid^="att-edit-"]').first();
+        if (await pencil.isVisible()) {
+            await pencil.click();
+            await page.waitForTimeout(500);
+            await scan(page, `${label}--attendance-edit-form`);
+            await page.keyboard.press('Escape');
+        }
+        // Face box from the yellow "Register face" box
+        await openAdmin(page);
+        const ws = page.getByTestId('nav-workforce');
+        if (await ws.isVisible()) {
+            await ws.click();
+            const reg = page.locator('[data-testid^="sd-register-face-"]').first();
+            if (await reg.isVisible().catch(() => false)) {
+                await reg.click();
+                await page.waitForTimeout(500);
+                await scan(page, `${label}--face-box`);
+                await page.keyboard.press('Escape');
+            }
+        }
+        await page.goto('/tv');
+        await page.waitForTimeout(1500);
+        await scan(page, `${label}--tv`);
         await ctx.close();
     });
 }

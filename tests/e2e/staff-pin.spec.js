@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 import { trackErrors, stubWindowOpen, openAdmin, adminTab, waitSaved } from './helpers';
 
 // Staff PINs (the same 4 digits as in TimeStation): set by the manager, asked before Edit / Re-scan / Delete
@@ -160,9 +161,12 @@ test('the PIN link on the panel checks in without the camera; the failure card o
     await expect(page.getByTestId('att-face-failed')).toContainText('Face not recognised');
     await expect(page.getByTestId('att-try-again')).toBeVisible();
     await expect(page.getByTestId('att-use-pin')).toBeVisible();
+    const a11y = async () => (await page.waitForTimeout(400), await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations.map(v => `${v.id}: ${v.nodes.slice(0, 2).map(n => n.target.join(' ')).join(' | ')}`);
+    expect(await a11y(), 'failure card').toEqual([]);
     // 5 wrong PINs: locked for a minute
     await page.getByTestId('att-use-pin').click();
     await expect(page.getByTestId('pin-badge')).toHaveText(/Check in with PIN/i);
+    expect(await a11y(), 'PIN pad').toEqual([]);
     for (let i = 0; i < 4; i++) { await typePin(page, '0000'); await expect(page.getByTestId('pin-error')).toContainText(`${4 - i} ${4 - i === 1 ? 'try' : 'tries'} left`); }
     await typePin(page, '0000');
     await expect(page.getByTestId('pin-locked')).toContainText('Locked');

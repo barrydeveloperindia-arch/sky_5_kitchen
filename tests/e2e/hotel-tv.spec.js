@@ -91,3 +91,20 @@ test('every row is on the screen - with 9 staff and with 20 staff', async ({ pag
     expect(await inView()).toBe(true);
     await expect(page.getByTestId('tv-staff')).toHaveText('20');
 });
+
+for (const [label, vp] of [['phone', { width: 390, height: 844 }], ['upright tablet', { width: 768, height: 1024 }]]) {
+    test(`on a ${label} the board is a clean list: nothing cut or squeezed, no sideways scroll, readable`, async ({ page }) => {
+        await page.setViewportSize(vp);
+        await expect(page.getByTestId('tv-row-Varun')).toBeVisible();
+        expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+        // the status pill is on one line and inside the screen
+        const pill = await page.getByTestId('tv-status-Varun').boundingBox();
+        expect(pill.height).toBeLessThan(40);
+        expect(pill.x + pill.width).toBeLessThanOrEqual(vp.width);
+        await expect(page.getByTestId('tv-clock')).toHaveText(/^\d\d:\d\d:\d\d$/);
+        const clock = await page.getByTestId('tv-clock').boundingBox();
+        expect(clock.x + clock.width).toBeLessThanOrEqual(vp.width);
+        const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+        expect(axe.violations.map(v => `${v.id}: ${v.nodes.slice(0, 3).map(n => n.target.join(' ')).join(' | ')}`)).toEqual([]);
+    });
+}

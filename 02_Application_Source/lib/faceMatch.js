@@ -134,12 +134,17 @@ export async function registeredFace(staff) {
 // Stops one person checking in on several names, and a look-alike being taken for the chosen person.
 export async function otherFace(live, staff) {
     await whenSignedIn();
-    const snap = await getDocs(collection(getServices().db, FACES));
+    const { db } = getServices();
+    const [snap, reg] = await Promise.all([getDocs(collection(db, FACES)), getDoc(doc(db, 'hotel_state', 'staffRegistry'))]);
+    // faces of people who left (or are no longer on the list) do not block anyone
+    const value = reg.exists() ? reg.data().value || {} : {};
+    const working = new Set(['reception', 'kitchen', 'housekeeping'].flatMap(d => (value[d] || []).filter(p => p && p.status !== 'Left').map(p => faceKey(p))));
     const self = faceKey(staff);
     let best = null;
     for (const d of snap.docs) {
         const rec = d.data();
         if (d.id === self || rec.reset || !Array.isArray(rec.descriptor) || rec.descriptor.length !== 128) continue;
+        if (reg.exists() && !working.has(d.id)) continue;
         const r = sameFace(live, rec.descriptor);
         if (r.match && (!best || r.distance < best.distance)) best = { staffName: rec.staffName, distance: r.distance };
     }
