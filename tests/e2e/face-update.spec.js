@@ -162,3 +162,19 @@ test('Staff Directory says clearly who has no face yet; "Register face" opens th
     await expect(page.getByTestId('sd-face-Ratnesh')).toContainText('Face from photo');
     await expect(page.getByTestId('sd-face-open-Ratnesh')).toHaveText(/^Face$/);
 });
+
+test('the manager can switch to the back camera (phone pointed at the person) and still register the face', async ({ page }) => {
+    await openFace(page, 'Ratnesh');
+    await page.getByTestId('face-take').click();
+    await expect.poll(() => page.getByTestId('face-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
+    await expect(page.getByTestId('face-switch')).toHaveText(/Back camera/);
+    await page.getByTestId('face-switch').click();
+    await expect(page.getByTestId('face-switch')).toHaveText(/Front camera/);
+    await expect.poll(() => page.getByTestId('face-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
+    await expect(page.getByTestId('face-video')).not.toHaveClass(/-scale-x-100/);   // the back camera is not mirrored
+    await who(page, 'V');
+    await page.getByTestId('face-scan').click();
+    await expect(page.getByTestId('face-new')).toBeVisible({ timeout: 15000 });
+    await page.getByTestId('face-save').click();
+    await expect(page.getByTestId('sd-face-Ratnesh')).toContainText('Face from photo');
+});

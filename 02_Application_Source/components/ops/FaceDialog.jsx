@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { Camera, CheckCircle2, RotateCcw, ScanFace, TriangleAlert } from 'lucide-react';
+import { Camera, CheckCircle2, RotateCcw, ScanFace, SwitchCamera, TriangleAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { getServices, whenSignedIn } from '../../lib/firebase';
@@ -13,13 +13,13 @@ import { findFaces, faceQuality, otherFace, saveStaffFace, resetFace, warmUpFace
 const PHOTOS = 'hotel_staff_photos';
 
 // Camera frame -> 3:4 JPEG for the staff photo (fits the database limit)
-function portrait(video) {
+function portrait(video, mirror) {
     const W = 300, H = 400;
     const scale = Math.max(W / video.videoWidth, H / video.videoHeight);
     const c = document.createElement('canvas');
     c.width = W; c.height = H;
     const g = c.getContext('2d');
-    g.translate(W, 0); g.scale(-1, 1);   // as the person saw themselves on the screen
+    if (mirror) { g.translate(W, 0); g.scale(-1, 1); }   // front camera: as the person saw themselves on the screen
     g.drawImage(video, (W - video.videoWidth * scale) / 2, (H - video.videoHeight * scale) / 2, video.videoWidth * scale, video.videoHeight * scale);
     for (const q of [0.8, 0.65, 0.5, 0.35]) { const url = c.toDataURL('image/jpeg', q); if (url.length <= MAX_PHOTO_CHARS) return url; }
     return null;
@@ -39,6 +39,8 @@ function FaceBody({ staff, face, photoSrc, onClose, onPhotoSaved, onFaceChanged 
     const [error, setError] = useState('');
     const [shot, setShot] = useState(null);      // { photo, descriptor }
     const [selfie, setSelfie] = useState(null);   // first check-in selfie of the registered face
+    // phone held by the manager and pointed at the person = back camera; the person facing the screen = front
+    const [facing, setFacing] = useState('user');
     const videoRef = useRef(null);
     const streamRef = useRef(null);
 
@@ -59,16 +61,19 @@ function FaceBody({ staff, face, photoSrc, onClose, onPhotoSaved, onFaceChanged 
         if (step !== 'camera' || !videoRef.current || !streamRef.current || videoRef.current.srcObject === streamRef.current) return;
         videoRef.current.srcObject = streamRef.current;
         videoRef.current.play().catch(() => {});
-    }, [step]);
+    }, [step, facing]);
 
-    const openCamera = async () => {
+    const openCamera = async (which = facing) => {
         setError(''); setShot(null);
         warmUpFaces().catch(() => {});
+        stop();
         try {
-            streamRef.current = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 } }, audio: false });
+            streamRef.current = await navigator.mediaDevices.getUserMedia({ video: { facingMode: which, width: { ideal: 640 } }, audio: false });
+            setFacing(which);
             setStep('camera');
         } catch { setError('Camera permission is needed to take the face.'); }
     };
+    const switchCamera = () => openCamera(facing === 'user' ? 'environment' : 'user');
 
     const scan = async () => {
         const v = videoRef.current;
@@ -77,7 +82,7 @@ function FaceBody({ staff, face, photoSrc, onClose, onPhotoSaved, onFaceChanged 
         const frame = document.createElement('canvas');
         frame.width = v.videoWidth; frame.height = v.videoHeight;
         frame.getContext('2d').drawImage(v, 0, 0);
-        const photo = portrait(v);
+        const photo = portrait(v, facing === 'user');
         let faces;
         try { faces = await findFaces(frame); } catch { setStep('camera'); setError('Face check could not start. Check internet and try again.'); return; }
         // the same strict check as a first check-in: one face, close, clear, looking straight
@@ -114,7 +119,7 @@ function FaceBody({ staff, face, photoSrc, onClose, onPhotoSaved, onFaceChanged 
         resetFace(staff).then(() => { onFaceChanged(staff, { reset: true, descriptor: [] }); onClose(); }).catch(() => setError('Could not reset. Check internet and try again.'));
     };
 
-    const sourceText = !face ? 'No face registered yet - the next good check-in registers it.'
+    const sourceText = !face ? 'No face registered yet. Tap "Take face now" with the person in front of the camera (or their first good check-in registers it).'
         : face.source === 'staff-photo' ? 'Registered from the staff photo / taken by the manager.'
             : 'Registered at their first check-in (the selfie below). If this is someone else, take the face again.';
 
@@ -138,11 +143,15 @@ function FaceBody({ staff, face, photoSrc, onClose, onPhotoSaved, onFaceChanged 
 
             {(step === 'camera' || step === 'checking') && (
                 <div className="relative overflow-hidden rounded-2xl bg-[#0a192f]">
-                    <video ref={videoRef} data-testid="face-video" playsInline muted className="aspect-[3/4] w-full -scale-x-100 object-cover" />
+                    <video ref={videoRef} data-testid="face-video" playsInline muted className={`aspect-[3/4] w-full object-cover ${facing === 'user' ? '-scale-x-100' : ''}`} />
+                    <button type="button" onClick={switchCamera} disabled={step === 'checking'} data-testid="face-switch" aria-label="Switch between front and back camera"
+                        className="absolute top-3 right-3 flex items-center gap-1.5 rounded-full bg-[#0a192f]/80 px-3 py-1.5 text-xs font-bold text-white ring-1 ring-white/30">
+                        <SwitchCamera className="size-4" />{facing === 'user' ? 'Back camera' : 'Front camera'}
+                    </button>
                     <div aria-hidden className="pointer-events-none absolute inset-[18%] rounded-[40%] border-2 border-dashed border-[#d4af37]/80" />
                     {step === 'checking' && <div className="absolute inset-0 grid place-items-center bg-[#0a192f]/55 text-sm font-bold text-white">Checking the face…</div>}
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#0a192f]/85 to-transparent p-3 text-center text-xs font-semibold text-white">
-                        {staff.name} close to the camera, looking straight, good light, nobody else in the picture
+                        {facing === 'user' ? `${staff.name} close to the camera` : `Point the phone at ${staff.name}, close`}, looking straight, good light, nobody else in the picture
                     </div>
                 </div>
             )}
@@ -159,14 +168,14 @@ function FaceBody({ staff, face, photoSrc, onClose, onPhotoSaved, onFaceChanged 
             <DialogFooter className="gap-2 sm:justify-between">
                 {step === 'view' && <>
                     <Button variant="outline" onClick={reset} disabled={!face} data-testid="face-reset"><RotateCcw />Reset</Button>
-                    <Button onClick={openCamera} data-testid="face-take" className="bg-[#0a192f] text-[#d4af37] hover:bg-[#0a192f]/90"><Camera />{face ? 'Take face again' : 'Take face now'}</Button>
+                    <Button onClick={() => openCamera()} data-testid="face-take" className="bg-[#0a192f] text-[#d4af37] hover:bg-[#0a192f]/90"><Camera />{face ? 'Take face again' : 'Take face now'}</Button>
                 </>}
                 {(step === 'camera' || step === 'checking') && <>
                     <Button variant="outline" onClick={() => { stop(); setStep('view'); setError(''); }}>Cancel</Button>
                     <Button onClick={scan} disabled={step === 'checking'} data-testid="face-scan" className="bg-[#0a192f] text-[#d4af37] hover:bg-[#0a192f]/90"><ScanFace />Scan face</Button>
                 </>}
                 {step === 'review' && <>
-                    <Button variant="outline" onClick={openCamera}>Take again</Button>
+                    <Button variant="outline" onClick={() => openCamera()}>Take again</Button>
                     <Button onClick={save} data-testid="face-save" className="bg-[#0a192f] text-[#d4af37] hover:bg-[#0a192f]/90"><CheckCircle2 />Save face</Button>
                 </>}
             </DialogFooter>
