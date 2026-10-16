@@ -35,19 +35,22 @@ test('guide screens', async ({ page }) => {
         { headers: { Authorization: 'Bearer owner' }, data: { fields: { value: val(reg) } } });
     expect(r.ok()).toBe(true);
 
+    // the manager registered Varun's face (Workforce -> Face)
+    const face = { staffName: val('Varun'), staffId: val(''), source: val('staff-photo'), photoId: val(''), at: val(new Date().toISOString()), reset: { booleanValue: false },
+        descriptor: { arrayValue: { values: Array.from({ length: 128 }, () => ({ doubleValue: 0.01 })) } } };
+    expect((await page.request.patch(`http://127.0.0.1:8181/v1/projects/${project}/databases/(default)/documents/hotel_staff_faces/name-varun`,
+        { headers: { Authorization: 'Bearer owner' }, data: { fields: face } })).ok()).toBe(true);
+
     await page.goto('/attendance');
-    await expect(page.getByTestId('att-pick-Varun')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('att-in')).toBeEnabled({ timeout: 15000 });
     await page.waitForTimeout(600);
-    await shot('s1_pick');
-    await page.getByTestId('att-pick-Varun').click();
-    await page.waitForTimeout(600);
-    await shot('s2_home');
-    await page.getByTestId('att-tap').click();
+    await shot('s1_start');
+    await page.getByTestId('att-in').click();
     await expect(page.getByTestId('att-countdown')).toBeVisible({ timeout: 15000 });
     await page.waitForTimeout(300);
-    await shot('s3_countdown');
+    await shot('s2_countdown');
     await expect(page.getByTestId('att-checking')).toBeVisible({ timeout: 15000 });
-    await shot('s3b_checking');
+    await shot('s3_checking');
     await expect(page.getByTestId('att-done')).toBeVisible({ timeout: 15000 });
     await page.waitForTimeout(800);
     await shot('s4_welcome');
@@ -55,21 +58,21 @@ test('guide screens', async ({ page }) => {
 
     // evening: CHECK OUT
     await page.clock.fastForward('09:00:30');
-    await expect(page.getByTestId('att-tap')).toHaveText(/CHECK OUT/, { timeout: 20000 });
-    await page.waitForTimeout(400);
-    await shot('s5_home_out');
-    await page.getByTestId('att-tap').click();
+    await expect(page.getByTestId('att-out')).toBeEnabled();
+    await page.getByTestId('att-out').click();
     await expect(page.getByTestId('att-done')).toBeVisible({ timeout: 20000 });
     await page.waitForTimeout(800);
-    await shot('s6_goodbye');
+    await shot('s5_goodbye');
     await page.getByRole('button', { name: 'Done' }).click();
 
-    // someone else on Varun's name: refused
+    // a face nobody registered: not recognised, PIN offered
     await page.evaluate(() => localStorage.setItem('faceTest', 'other'));
     await page.clock.fastForward('00:03:00');
-    await expect(page.getByTestId('att-tap')).toBeVisible();
-    await page.getByTestId('att-tap').click();
-    await expect(page.getByTestId('att-error')).toBeVisible({ timeout: 20000 });
+    await page.getByTestId('att-in').click();
+    await expect(page.getByTestId('att-face-failed')).toBeVisible({ timeout: 30000 });
     await page.waitForTimeout(500);
-    await shot('s7_blocked');
+    await shot('s6_not_recognised');
+    await page.getByTestId('att-use-pin').click();
+    await page.waitForTimeout(600);
+    await shot('s7_pin');
 });

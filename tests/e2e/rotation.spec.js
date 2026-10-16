@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { trackErrors, stubWindowOpen, openAdmin, adminTab } from './helpers';
+import { trackErrors, stubWindowOpen, openAdmin, adminTab, seedFace } from './helpers';
 
 // Turning the phone / tablet while using the app: the screen re-lays itself out, nothing is cut off or
 // scrolls sideways, the main button stays reachable and nothing that was going on is lost.
@@ -21,11 +21,6 @@ const inView = async (page, loc) => {
     const vp = page.viewportSize();
     return !!b && b.y >= 0 && b.y + b.height <= vp.height + 1 && b.x >= 0 && b.x + b.width <= vp.width + 1;
 };
-const onScreen = async (page, loc) => {
-    const box = await loc.boundingBox();
-    const vp = page.viewportSize();
-    return !!box && box.x >= 0 && box.x + box.width <= vp.width + 1;
-};
 
 let errors;
 test.beforeEach(async ({ page }) => {
@@ -39,56 +34,46 @@ test.beforeEach(async ({ page }) => {
         await openAdmin(page);
         await page.waitForTimeout(1500);
         await page.goto('/attendance');
-        await expect(page.getByTestId('att-pick-Varun')).toBeVisible({ timeout: 2000 });
+        await expect(page.getByTestId('att-in')).toBeEnabled({ timeout: 3000 });
     }).toPass({ timeout: 20000 });
+    await seedFace(page, 'Varun', 0.01);
 });
 test.afterEach(() => { expect(errors, 'no console errors').toEqual([]); });
 
-test('staff page: turning the phone at every step keeps the screen whole and the check-in going', async ({ page }) => {
-    for (const vp of [SIDEWAYS, PORTRAIT]) {
-        await page.setViewportSize(vp);
-        expect(await sideScroll(page), `name list ${vp.width}x${vp.height}`).toBeLessThanOrEqual(1);
-        await expect(page.getByTestId('att-pick-Varun')).toBeVisible();
-    }
-    await page.getByTestId('att-pick-Varun').click();
+test('staff terminal: turning the phone at every step keeps the screen whole and the check-in going', async ({ page }) => {
     for (const vp of [SIDEWAYS, PORTRAIT]) {
         await page.setViewportSize(vp);
         expect(await sideScroll(page), `start screen ${vp.width}x${vp.height}`).toBeLessThanOrEqual(1);
-        await page.getByTestId('att-tap').scrollIntoViewIfNeeded();
-        expect(await onScreen(page, page.getByTestId('att-tap'))).toBe(true);
+        expect(await inView(page, page.getByTestId('att-in')), `CHECK IN ${vp.width}x${vp.height}`).toBe(true);
+        expect(await inView(page, page.getByTestId('att-out')), `CHECK OUT ${vp.width}x${vp.height}`).toBe(true);
+        expect(await downScroll(page), `start screen ${vp.width}x${vp.height} needs no scrolling`).toBeLessThanOrEqual(1);
     }
-    // sideways = two columns: who / clock / times on the left, the big panel with both buttons on the right, no scrolling
+    // sideways = two columns: the clock on the left, the buttons on the right
     await page.setViewportSize(SIDEWAYS);
-    const me = await page.getByTestId('att-me').boundingBox();
-    const panel = await page.getByTestId('att-panel').boundingBox();
-    expect(panel.x, 'panel beside the name, not under it').toBeGreaterThan(me.x + me.width);
-    expect(panel.height, 'panel uses the screen height').toBeGreaterThan(SIDEWAYS.height * 0.6);
-    expect(await inView(page, page.getByTestId('att-tap'))).toBe(true);
-    expect(await inView(page, page.getByTestId('att-out'))).toBe(true);
-    expect(await downScroll(page), 'start screen sideways needs no scrolling').toBeLessThanOrEqual(1);
+    const clock = await page.getByTestId('att-clock').boundingBox();
+    const btn = await page.getByTestId('att-in').boundingBox();
+    expect(btn.x, 'buttons beside the clock, not under it').toBeGreaterThan(clock.x + clock.width);
     await page.setViewportSize(PORTRAIT);
-    // turn while the camera is open: the camera keeps running and the photo button stays on screen
-    await page.getByTestId('att-tap').click();
+    // turn while the camera is open: the camera keeps running and the scan button stays on screen
+    await page.getByTestId('att-in').click();
     await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
     await page.setViewportSize(SIDEWAYS);
     await expect(page.getByTestId('att-video')).toBeVisible();
-    expect(await inView(page, page.getByTestId('att-capture')), 'photo button visible sideways without scrolling').toBe(true);
+    expect(await inView(page, page.getByTestId('att-capture')), 'scan button visible sideways without scrolling').toBe(true);
     expect(await page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
     expect(await sideScroll(page)).toBeLessThanOrEqual(1);
-    await page.getByTestId('att-capture').scrollIntoViewIfNeeded();
-    expect(await onScreen(page, page.getByTestId('att-capture'))).toBe(true);
     await page.setViewportSize(PORTRAIT);
+    expect(await inView(page, page.getByTestId('att-capture'))).toBe(true);
     await page.getByTestId('att-capture').click();
     await expect(page.getByTestId('att-done')).toContainText('Check In Successful', { timeout: 15000 });
-    // and the success screen also fits both ways
+    // and the result screen also fits both ways
     for (const vp of [SIDEWAYS, PORTRAIT]) {
         await page.setViewportSize(vp);
-        expect(await sideScroll(page), `done screen ${vp.width}x${vp.height}`).toBeLessThanOrEqual(1);
-        if (vp === SIDEWAYS) expect(await inView(page, page.getByRole('button', { name: 'Done' })), 'done screen sideways: all on one screen').toBe(true);
-        await expect(page.getByRole('button', { name: 'Done' })).toBeVisible();
+        expect(await sideScroll(page), `result ${vp.width}x${vp.height}`).toBeLessThanOrEqual(1);
+        expect(await inView(page, page.getByRole('button', { name: 'Done' })), `result ${vp.width}x${vp.height}: all on one screen`).toBe(true);
     }
     await page.getByRole('button', { name: 'Done' }).click();
-    await expect(page.getByTestId('att-in-time')).not.toHaveText('--');   // the check-in was not lost
+    await expect(page.getByTestId('att-counts')).toContainText('1 in now');   // the check-in was not lost
 });
 
 for (const [name, a, b] of [['phone', PORTRAIT, SIDEWAYS], ['tablet', { width: 768, height: 1024 }, { width: 1024, height: 768 }]]) {

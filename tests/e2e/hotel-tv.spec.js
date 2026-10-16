@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { trackErrors, openAdmin, adminTab, waitSaved } from './helpers';
+import { trackErrors, openAdmin, adminTab, waitSaved, seedFace, scan } from './helpers';
 
 // The hotel TV board (/tv): every working staff member, phone check-ins and tablet face scans together,
 // live without refreshing, Hotel Sky 5 only (no other brand), fits a TV screen.
@@ -39,11 +39,10 @@ test('shows every staff member, the tablet scan, and a phone check-in arrives li
 
     // Varun checks in on his phone
     const phone = await context.newPage();
+    await seedFace(page, 'Varun', 0.01);
     await phone.goto('/attendance');
-    await phone.getByTestId('att-pick-Varun').click();
-    await phone.getByTestId('att-tap').click();
-    await expect.poll(() => phone.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
-    await phone.getByTestId('att-capture').click();
+    await expect(phone.getByTestId('att-in')).toBeEnabled();
+    await scan(phone, 'in');
     await expect(phone.getByTestId('att-done')).toBeVisible({ timeout: 15000 });
     const inTime = (await phone.getByTestId('att-done-time').innerText()).trim();
 

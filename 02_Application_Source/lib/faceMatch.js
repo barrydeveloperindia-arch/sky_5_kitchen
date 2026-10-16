@@ -171,3 +171,53 @@ export function resetFace(staff) {
     const { db } = getServices();
     return trackWrite(setDoc(doc(db, FACES, faceKey(staff)), { staffName: staff.name, staffId: staff.staffId || '', descriptor: [], source: 'reset', photoId: '', at: new Date().toISOString(), reset: true }));
 }
+
+// The picture the face is checked against, for the result screen (like an office terminal: registered photo + live photo):
+// the manager's staff photo, else the photo of the first check-in that registered the face; null when there is none.
+export async function registeredPhoto(staff) {
+    await whenSignedIn();
+    const { db } = getServices();
+    const pic = async (coll, id) => { if (!id) return null; const p = await getDoc(doc(db, coll, id)); return p.exists() ? p.data().data || null : null; };
+    const fromStaff = await pic('hotel_staff_photos', staff?.photoId);
+    if (fromStaff) return fromStaff;
+    const f = await getDoc(doc(db, FACES, faceKey(staff)));
+    const rec = f.exists() ? f.data() : null;
+    return rec && !rec.reset ? pic('hotel_attendance_photos', rec.photoId) : null;
+}
+
+// Two people this close to the live face = unsure: ask for a better photo instead of guessing
+export const MATCH_MARGIN = 0.05;
+
+// Who is in front of the camera? (like the AuraLock terminal: no name is chosen, the face says who it is)
+// Compares the live face with the registered face of everyone working here; the closest one within the limit
+// wins, unless a second person is nearly as close. Returns { staff, distance, source } | { staff: null, unsure? }.
+export async function identifyFace(live, staffList) {
+    await whenSignedIn();
+    const { db } = getServices();
+    const snap = await getDocs(collection(db, FACES));
+    const recs = new Map();
+    for (const d of snap.docs) {
+        const rec = d.data();
+        if (!rec.reset && Array.isArray(rec.descriptor) && rec.descriptor.length === 128) recs.set(d.id, rec);
+    }
+    // a staff photo from the manager that is not a face record yet: make it one now (saved for next time)
+    for (const s of staffList) {
+        if (!s.photoId || recs.get(faceKey(s))?.source === 'staff-photo') continue;
+        try { const r = await registeredFace(s); if (r) recs.set(faceKey(s), r); } catch { /* use what is there */ }
+    }
+    let best = null, second = null;
+    for (const s of staffList) {
+        const rec = recs.get(faceKey(s));
+        if (!rec) continue;
+        const d = distance(live, rec.descriptor);
+        if (!best || d < best.d) { second = best; best = { staff: s, d, rec }; } else if (!second || d < second.d) second = { staff: s, d };
+    }
+    if (!best || best.d > MATCH_DISTANCE) return { staff: null };
+    if (second && second.d <= MATCH_DISTANCE && second.d - best.d < MATCH_MARGIN) return { staff: null, unsure: true };
+    return { staff: best.staff, distance: Math.round(best.d * 1000) / 1000, source: best.rec.source };
+}
+
+// Does this person have a registered face (a face record or a usable staff photo)?
+export async function hasFace(staff) {
+    try { return !!(await registeredFace(staff)); } catch { return false; }
+}

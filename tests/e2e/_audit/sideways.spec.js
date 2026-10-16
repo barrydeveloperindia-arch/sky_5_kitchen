@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
-import { openAdmin } from '../helpers';
+import { openAdmin, fakeFaces, seedFace, showFace } from '../helpers';
 
 // On-demand: the staff attendance page with the phone turned sideways (and upright), every step,
 // a screenshot each plus what does not fit, for a person to look at.
@@ -36,28 +36,41 @@ async function look(page, name, keys) {
 for (const [label, width, height] of SIZES) {
     test(`attendance ${label}`, async ({ page }) => {
         test.setTimeout(120000);
-        await page.addInitScript(() => {
-            window.__FACE_TEST__ = { findFaces: () => [{ descriptor: Array.from({ length: 128 }, () => 0.01), score: 0.95, width: 400 }] };
-        });
+        await fakeFaces(page);
         await page.setViewportSize({ width, height });
         await expect(async () => {
             await openAdmin(page);
             await page.waitForTimeout(1500);
             await page.goto('/attendance');
-            await expect(page.getByTestId('att-pick-Varun')).toBeVisible({ timeout: 2000 });
+            await expect(page.getByTestId('att-in')).toBeEnabled({ timeout: 3000 });
         }).toPass({ timeout: 20000 });
-        await look(page, `${label}-1-names`, ['att-pick-Varun']);
-        await page.getByTestId('att-pick-Varun').click();
-        await expect(page.getByTestId('att-tap')).toBeVisible();
-        await look(page, `${label}-2-home`, ['att-tap', 'att-out']);
-        await page.getByTestId('att-tap').click();
+        await seedFace(page, 'Varun', 0.01);
+        await page.waitForTimeout(800);
+        await look(page, `${label}-1-start`, ['att-clock', 'att-in', 'att-out']);
+        await page.getByTestId('att-in').click();
         await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
-        await look(page, `${label}-3-camera`, ['att-video', 'att-capture']);
+        await look(page, `${label}-2-camera`, ['att-video', 'att-capture']);
         await page.getByTestId('att-capture').click();
         await expect(page.getByTestId('att-done')).toBeVisible({ timeout: 15000 });
-        await look(page, `${label}-4-done`, ['att-done', 'att-done-time']);
+        await page.waitForTimeout(700);
+        await look(page, `${label}-3-done`, ['att-done', 'att-done-time']);
         await page.getByRole('button', { name: 'Done' }).click();
-        await expect(page.getByTestId('att-in-time')).not.toHaveText('--');
-        await look(page, `${label}-5-checked-in`, ['att-in', 'att-tap-off-out', 'att-tap']);
+        await page.getByTestId('att-in').click();
+        await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
+        await page.getByTestId('att-capture').click();
+        await expect(page.getByTestId('att-notice')).toBeVisible({ timeout: 15000 });
+        await look(page, `${label}-4-note`, ['att-notice', 'att-in']);
+        await showFace(page, 0.9);
+        await page.getByTestId('att-out').click();
+        await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
+        await page.getByTestId('att-capture').click();
+        await expect(page.getByTestId('att-error')).toBeVisible();
+        await page.getByTestId('att-capture').click();
+        await expect(page.getByTestId('att-face-failed')).toBeVisible({ timeout: 15000 });
+        await look(page, `${label}-5-failed`, ['att-face-failed', 'att-in']);
+        await page.getByTestId('att-use-pin').click();
+        await expect(page.getByTestId('att-pin-pick')).toBeVisible();
+        await page.waitForTimeout(600);
+        await look(page, `${label}-6-pin-pick`, ['att-pin-pick']);
     });
 }

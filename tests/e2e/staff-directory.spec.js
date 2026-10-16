@@ -68,7 +68,8 @@ test('add staff with a photo: next SKY5 ID, saved everywhere, photo on the row, 
     await expect(page.getByTestId('sd-row-Mohammad Hafeez').getByRole('img', { name: 'Photo of Mohammad Hafeez' })).toBeVisible({ timeout: 15000 });
 
     await page.goto('/attendance');
-    await expect(page.getByTestId('att-pick-Mohammad Hafeez')).toBeVisible();
+    await page.getByTestId('att-pin-link').click();   // the terminal knows the new person (PIN list)
+    await expect(page.getByTestId('att-pin-name-Mohammad Hafeez')).toBeVisible();
 });
 
 test('form checks: required fields, 10-digit mobile, duplicate name and duplicate mobile', async ({ page }) => {
@@ -106,8 +107,10 @@ test('Left: last working day asked, hidden from the Active list and the attendan
     await waitSaved(page);
 
     await page.goto('/attendance');
-    await expect(page.getByTestId('att-pick-Varun')).toBeVisible();
-    await expect(page.getByTestId('att-pick-Karan')).toHaveCount(0);
+    await page.getByTestId('att-pin-link').click();
+    await expect(page.getByTestId('att-pin-name-Varun')).toBeVisible();
+    await expect(page.getByTestId('att-pin-name-Karan')).toHaveCount(0);
+    await page.keyboard.press('Escape');
 
     await openAdmin(page);
     await adminTab(page, 'workforce');

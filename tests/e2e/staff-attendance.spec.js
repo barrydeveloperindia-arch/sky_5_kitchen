@@ -1,94 +1,82 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { trackErrors, openAdmin, adminTab, waitSaved } from './helpers';
+import { trackErrors, openAdmin, adminTab, waitSaved, fakeFaces, showFace, seedFace, scan } from './helpers';
 
-// Staff self check-in / check-out on their own phone (/attendance): selfie + location with every tap.
-// Chromium's fake camera stands in for the phone camera; the location is a fixed test point.
+// Staff attendance terminal (/attendance), like the AuraLock face terminal: no name is chosen - the person presses
+// CHECK IN or CHECK OUT, looks at the camera, and the face says who it is. Photo + location with every entry.
+// Chromium's fake camera stands in for the phone camera; a stand-in face engine returns the face we ask for.
 test.use({
     launchOptions: { args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] },
     permissions: ['camera', 'geolocation'],
     geolocation: { latitude: 30.72135, longitude: 76.85260, accuracy: 15 },   // inside Hotel Sky 5 (about 10 m from the map pin)
 });
 
+// each person's face (registered by the manager); 0.9 is a face nobody registered
+const FACE = { Varun: 0.01, Bhawna: 0.2, Karan: 0.3, Ratnesh: 0.4, Veerwati: 0.5 };
+const STRANGER = 0.9;
+
 let errors;
 test.beforeEach(async ({ page }) => {
     errors = trackErrors(page);
     await page.clock.install();
-    // The face engine needs real faces; the fake camera has none. This stand-in returns one clear, close face
-    // ("me"), or what localStorage faceTest asks for: none / two / far / other (a different person).
-    await page.addInitScript(() => {
-        const face = (v) => ({ descriptor: Array.from({ length: 128 }, () => v), score: 0.95, width: 400 });
-        window.__FACE_TEST__ = { findFaces: () => {
-            const mode = localStorage.getItem('faceTest') || 'me';
-            if (mode === 'none') return [];
-            if (mode === 'two') return [face(0), face(0.5)];
-            if (mode === 'far') return [{ ...face(0), width: 20 }];
-            if (mode === 'other-far') return [{ ...face(0.5), width: 150 }];   // someone else, a bit far (not a clear photo)
-            return [face(mode === 'other' ? 0.5 : 0.01)];
-        } };
-    });
+    await fakeFaces(page);
     // Opening the OPS Center writes the staff register (test names) into this emulator project.
-    // That first write is not waited for by the page, so give it a moment and retry until it is there.
     await expect(async () => {
         await openAdmin(page);
         await page.waitForTimeout(1500);
         await page.goto('/attendance');
-        await expect(page.getByTestId('att-pick-Varun')).toBeVisible({ timeout: 2000 });
-    }).toPass({ timeout: 20000 });
+        await expect(page.getByTestId('att-in')).toBeEnabled({ timeout: 3000 });
+        await expect(page.getByTestId('att-counts')).toContainText(/[1-9]\d* staff/, { timeout: 3000 });
+    }).toPass({ timeout: 25000 });
+    for (const [name, v] of Object.entries(FACE)) await seedFace(page, name, v);
 });
 test.afterEach(() => { expect(errors, 'no console errors').toEqual([]); });
 
-const tapAndSnap = async (page) => {
-    await page.getByTestId('att-tap').click();
-    await expect(page.getByTestId('att-video')).toBeVisible();
-    await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
-    await page.getByTestId('att-capture').click();
-    await expect(page.getByTestId('att-done')).toBeVisible({ timeout: 15000 });
-};
+const done = async (page) => { await page.getByRole('button', { name: 'Done' }).click(); await expect(page.getByTestId('att-done')).toHaveCount(0); };
 
-test('fits the phone screen and lists the staff to choose from', async ({ page }) => {
-    await expect(page.getByTestId('att-pick-Varun')).toBeVisible();
-    await expect(page.getByTestId('att-pick-Veerwati')).toBeVisible();
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-    expect(overflow).toBeLessThanOrEqual(1);
+test('start screen: clock, CHECK IN + CHECK OUT, nothing to choose or edit, fits the phone', async ({ page }) => {
+    await expect(page.getByTestId('att-clock')).toBeVisible();
+    await expect(page.getByTestId('att-in')).toHaveText(/CHECK IN/);
+    await expect(page.getByTestId('att-out')).toHaveText(/CHECK OUT/);
+    // staff can only check in / out: no name list, no "Not you?", no edit / re-scan / delete / new staff
+    for (const id of ['att-pick-Varun', 'att-change', 'att-edit', 'att-rescan', 'att-delete', 'att-new-staff', 'att-edit-Varun']) await expect(page.getByTestId(id)).toHaveCount(0);
+    await expect(page.getByText('Varun')).toHaveCount(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+    expect((await page.locator('body').innerText()).toLowerCase()).not.toMatch(/englabs|auralock/);
 });
 
-test('check in, 2-minute guard, rolling check out; the register shows the selfie and location', async ({ page }) => {
-    await page.getByTestId('att-pick-Varun').click();
-    await expect(page.getByTestId('att-me')).toHaveText('Varun');
-    await expect(page.getByTestId('att-tap')).toHaveText(/CHECK IN/);
-
-    await tapAndSnap(page);
-    await expect(page.getByTestId('att-done')).toContainText('Check In Successful');
+test('the face says who it is: check in, notes instead of double entries, check out; the register has one row with both photos', async ({ page }) => {
+    await showFace(page, FACE.Varun);
+    await scan(page, 'in');
+    const result = page.getByTestId('att-done');
+    await expect(result).toContainText('Check In Successful', { timeout: 15000 });
+    await expect(page.getByTestId('att-done-name')).toHaveText('Varun');
+    await expect(page.getByTestId('att-face')).toContainText('Face verified');
     await expect(page.getByTestId('att-place')).toContainText('At Hotel Sky 5');
     const inTime = (await page.getByTestId('att-done-time').textContent()).trim();
-    await page.getByRole('button', { name: 'Done' }).click();
-    await expect(page.getByTestId('att-in-time')).toHaveText(inTime);
-    await expect(page.getByTestId('att-wait')).toBeVisible(); // a second tap right away does nothing
-    await expect(page.getByTestId('att-wait-count')).toHaveText(/in [12]:\d\d/); // the countdown is on the CHECK OUT button
-    await expect(page.getByTestId('att-tap-off-out')).toBeEnabled();   // both buttons always on (like AuraLock)
-    await page.getByTestId('att-tap-off-out').click();                   // too soon: a note, no camera, nothing saved
-    await expect(page.getByTestId('att-notice')).toContainText('Just saved');
-    await expect(page.getByTestId('att-video')).toHaveCount(0);
+    await done(page);
+    await expect(page.getByTestId('att-counts')).toContainText('1 in now');
 
-    // the phone remembers who this is
-    await page.reload();
-    await expect(page.getByTestId('att-me')).toHaveText('Varun');
-    await expect(page.getByTestId('att-in-time')).toHaveText(inTime);
+    // CHECK IN again: no second entry, a note with the name
+    await scan(page, 'in');
+    await expect(page.getByTestId('att-notice')).toContainText('Varun');
+    await expect(page.getByTestId('att-notice')).toContainText(`already checked in since ${inTime}`);
+    // CHECK OUT right away: the 2-minute guard
+    await scan(page, 'out');
+    await expect(page.getByTestId('att-notice')).toContainText('Just saved');
 
     await page.clock.fastForward('03:00');
-    await expect(page.getByTestId('att-tap')).toHaveText(/CHECK OUT/, { timeout: 20000 });
-    await tapAndSnap(page);
-    await expect(page.getByTestId('att-done')).toContainText('Check Out Successful');
-    await page.getByRole('button', { name: 'Done' }).click();
-    await expect(page.getByTestId('att-out-time')).not.toHaveText('--');
+    await scan(page, 'out');
+    await expect(result).toContainText('Check Out Successful', { timeout: 15000 });
+    await expect(page.getByTestId('att-done-name')).toHaveText('Varun');
+    await done(page);
+    await expect(page.getByTestId('att-counts')).toContainText('1 left');
 
-    // OPS Center register: one row for Varun today, marked as a phone check-in, with both selfies
+    // OPS Center register: one row for Varun today, marked as a phone check-in, with both photos
     await openAdmin(page);
     await adminTab(page, 'attendance');
-    const ledger = page.getByTestId('attendance-ledger');
-    const rowsForVarun = ledger.getByRole('row').filter({ hasText: 'Self check-in (phone)' });
-    await expect(rowsForVarun).toHaveCount(1, { timeout: 15000 });   // the register loads from the database
+    const rowsForVarun = page.getByTestId('attendance-ledger').getByRole('row').filter({ hasText: 'Self check-in (phone)' });
+    await expect(rowsForVarun).toHaveCount(1, { timeout: 15000 });
     await expect(rowsForVarun).toContainText('Varun');
     await expect(rowsForVarun).toContainText(inTime);
     await rowsForVarun.locator('[data-testid^="att-proof-in-"]').click();
@@ -96,6 +84,100 @@ test('check in, 2-minute guard, rolling check out; the register shows the selfie
     await page.keyboard.press('Escape');
     await expect(rowsForVarun.locator('[data-testid^="att-proof-out-"]')).toBeVisible();
     await expect(rowsForVarun.getByRole('link', { name: 'Location of Varun' }).first()).toHaveAttribute('href', 'https://www.google.com/maps?q=30.72135,76.8526');
+});
+
+test('CHECK OUT before any check-in today: a note, nothing saved', async ({ page }) => {
+    await showFace(page, FACE.Bhawna);
+    await scan(page, 'out');
+    await expect(page.getByTestId('att-notice')).toContainText('Bhawna');
+    await expect(page.getByTestId('att-notice')).toContainText('Not checked in yet');
+    await expect(page.getByTestId('att-counts')).toContainText('0 in now');
+});
+
+test('two people take turns on the same phone: each one is recognised and gets their own entry', async ({ page }) => {
+    await showFace(page, FACE.Varun);
+    await scan(page, 'in');
+    await expect(page.getByTestId('att-done-name')).toHaveText('Varun', { timeout: 15000 });
+    await done(page);
+    await showFace(page, FACE.Bhawna);
+    await scan(page, 'in');
+    await expect(page.getByTestId('att-done-name')).toHaveText('Bhawna', { timeout: 15000 });
+    await done(page);
+    await expect(page.getByTestId('att-counts')).toContainText('2 in now');
+});
+
+test('a face nobody registered: not recognised (said aloud), nothing saved; Try again and Use PIN are offered', async ({ page }) => {
+    await page.addInitScript(() => { window.__said = []; window.speechSynthesis.speak = (u) => window.__said.push(u.text); window.speechSynthesis.cancel = () => {}; });
+    await page.reload();
+    await expect(page.getByTestId('att-in')).toBeEnabled();
+    await showFace(page, STRANGER);
+    await page.getByTestId('att-in').click();
+    await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
+    await page.getByTestId('att-capture').click();
+    await expect(page.getByTestId('att-error')).toContainText('Face not recognised');   // asks once more on the camera
+    await page.getByTestId('att-capture').click();
+    await expect(page.getByTestId('att-face-failed')).toContainText('Face not recognised');
+    await expect(page.getByTestId('att-video')).toHaveCount(0);
+    await expect(page.getByTestId('att-try-again')).toBeVisible();
+    await expect(page.getByTestId('att-use-pin')).toBeVisible();
+    await expect.poll(() => page.evaluate(() => window.__said)).toContain('Face not recognised. Please try again.');
+    await expect(page.getByTestId('att-counts')).toContainText('0 in now');
+    // the right person tries again
+    await showFace(page, FACE.Karan);
+    await page.getByTestId('att-try-again').click();
+    await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
+    await page.getByTestId('att-capture').click();
+    await expect(page.getByTestId('att-done-name')).toHaveText('Karan', { timeout: 15000 });
+});
+
+test('two registered faces almost the same: no guess - asks for a better photo', async ({ page }) => {
+    await seedFace(page, 'Karan', 0.02);   // nearly the same face as Varun (0.01)
+    await showFace(page, 0.015);
+    await scan(page, 'in');
+    await expect(page.getByTestId('att-error')).toContainText('Come closer and look straight');
+    await expect(page.getByTestId('att-video')).toBeVisible();
+    await expect(page.getByTestId('att-done')).toHaveCount(0);
+});
+
+for (const [mode, faces, msg] of [['no face', 'none', 'No face found']]) {
+    test(`a photo with ${mode} is not saved, the camera asks again`, async ({ page }) => {
+        await showFace(page, faces);
+        await scan(page, 'in');
+        await expect(page.getByTestId('att-error')).toContainText(msg);
+        await expect(page.getByTestId('att-video')).toBeVisible();
+        await expect(page.getByTestId('att-countdown')).toBeVisible({ timeout: 10000 });   // counting down again
+        await showFace(page, FACE.Veerwati);
+        await expect(page.getByTestId('att-done')).toBeVisible({ timeout: 15000 });          // the automatic photo
+        await expect(page.getByTestId('att-done-name')).toHaveText('Veerwati');
+    });
+}
+
+test('nobody in front of the camera: after a few tries it closes by itself, nothing saved', async ({ page }) => {
+    await showFace(page, 'none');
+    await page.getByTestId('att-in').click();
+    await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
+    for (let i = 0; i < 4; i++) {
+        await page.getByTestId('att-capture').click();
+        if (i < 3) await expect(page.getByTestId('att-countdown')).toBeVisible({ timeout: 10000 });
+    }
+    await expect(page.getByTestId('att-video')).toHaveCount(0);
+    await expect(page.getByTestId('att-face-failed')).toBeVisible();
+    await expect(page.getByTestId('att-counts')).toContainText('0 in now');
+});
+
+test('someone marked Left is not recognised any more', async ({ page, context }) => {
+    const admin = await context.newPage();
+    await openAdmin(admin);
+    await adminTab(admin, 'workforce');
+    await admin.getByTestId('sd-left-Karan').click();
+    await admin.getByTestId('sd-left-confirm').click();
+    await waitSaved(admin);
+    await admin.close();
+    await showFace(page, FACE.Karan);
+    await page.getByTestId('att-in').click();
+    await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
+    await page.getByTestId('att-capture').click();
+    await expect(page.getByTestId('att-error')).toContainText('Face not recognised');
 });
 
 test('a row the manager already made for today is used, not duplicated', async ({ page }) => {
@@ -109,63 +191,44 @@ test('a row the manager already made for today is used, not duplicated', async (
     await waitSaved(page);
     const karanToday = page.getByTestId('attendance-ledger').getByRole('row').filter({ hasText: 'Karan' }).filter({ hasText: today });
     await expect(karanToday).toHaveCount(1);
-    await expect(karanToday.getByRole('button', { name: 'CHECK-IN', exact: true })).toBeVisible();
 
     await page.goto('/attendance');
-    await page.getByTestId('att-pick-Karan').click();
-    await expect(page.getByTestId('att-tap')).toHaveText(/CHECK IN/);
-    await tapAndSnap(page);
-    await page.getByRole('button', { name: 'Done' }).click();
-    await expect(page.getByTestId('att-in-time')).not.toHaveText('--');
+    await showFace(page, FACE.Karan);
+    await expect(page.getByTestId('att-in')).toBeEnabled();
+    await scan(page, 'in');
+    await expect(page.getByTestId('att-done')).toContainText('Check In Successful', { timeout: 15000 });
+    await done(page);
     await openAdmin(page);
     await adminTab(page, 'attendance');
     await expect(karanToday).toHaveCount(1);
-    await expect(karanToday.getByRole('button', { name: 'CHECK-IN', exact: true })).toHaveCount(0); // the staff tap filled that row
+    await expect(karanToday.getByRole('button', { name: 'CHECK-IN', exact: true })).toHaveCount(0);   // the scan filled that row
     await expect(karanToday.locator('[data-testid^="att-proof-in-"]')).toBeVisible();
-    await expect(karanToday).toContainText('Self check-in (phone)');
 });
 
-test('night shift: next morning the tap is the CHECK OUT of last night, on the same row', async ({ page }) => {
-    // start at 19:00 so +13 h is always the next morning, whatever time the test runs
+test('night shift: next morning CHECK OUT closes last night, on the same row', async ({ page }) => {
     const evening = new Date(); evening.setHours(19, 0, 0, 0);
     await page.clock.setSystemTime(evening);
-    await page.getByTestId('att-pick-Ratnesh').click();
-    await tapAndSnap(page);
-    await page.getByRole('button', { name: 'Done' }).click();
-    const inDate = await page.evaluate(() => `${String(new Date().getDate()).padStart(2, '0')}-${new Date().toLocaleString('en-US', { month: 'short' })}`);
-    await page.clock.fastForward('13:00:00'); // into the next calendar day, inside the 16 h shift limit
-    await expect(page.getByTestId('att-tap')).toHaveText(/CHECK OUT/, { timeout: 20000 });
-    await expect(page.getByTestId('att-night')).toContainText(inDate);
-    await tapAndSnap(page);
-    await expect(page.getByTestId('att-done')).toContainText('Check Out Successful');
+    await showFace(page, FACE.Ratnesh);
+    await scan(page, 'in');
+    await expect(page.getByTestId('att-done')).toContainText('Check In Successful', { timeout: 15000 });
+    await done(page);
+    await page.clock.fastForward('13:00:00');   // into the next day, inside the 16 h shift limit
+    await scan(page, 'out');
+    await expect(page.getByTestId('att-done')).toContainText('Check Out Successful', { timeout: 15000 });
     await expect(page.getByTestId('att-done')).toContainText('13h 00m');
 });
 
-test('name list is grouped by department and the search finds a name', async ({ page }) => {
-    for (const h of ['Front Desk & Management', 'Kitchen', 'Housekeeping']) await expect(page.getByRole('heading', { name: h, exact: true })).toBeVisible();
-    await page.getByTestId('att-search').fill('bhaw');
-    await expect(page.getByTestId('att-pick-Bhawna')).toBeVisible();
-    await expect(page.getByTestId('att-pick-Varun')).toHaveCount(0);
-    await page.getByTestId('att-search').fill('zzz');
-    await expect(page.getByTestId('att-no-match')).toBeVisible();
-    await page.getByTestId('att-search').fill('');
-    await expect(page.getByTestId('att-pick-Varun')).toBeVisible();
-});
-
-test('every button: Not you? changes the name, Cancel closes the camera without saving', async ({ page }) => {
-    await page.getByTestId('att-pick-Bhawna').click();
-    await expect(page.getByTestId('att-me')).toHaveText('Bhawna');
-    await page.getByTestId('att-change').click();
-    await expect(page.getByTestId('att-pick-Varun')).toBeVisible();
-    await page.reload();
-    await expect(page.getByTestId('att-pick-Varun')).toBeVisible(); // forgotten on this phone too
-    await page.getByTestId('att-pick-Varun').click();
-    await page.getByTestId('att-tap').click();
+test('Cancel closes the camera without saving; the photo is taken by itself after 3-2-1', async ({ page }) => {
+    await page.getByTestId('att-in').click();
     await expect(page.getByTestId('att-video')).toBeVisible();
-    await page.getByRole('button', { name: 'Cancel' }).click();
-    await expect(page.getByTestId('att-in-time')).toHaveText('--');
-    await expect(page.getByTestId('att-tap')).toHaveText(/CHECK IN/);
-    expect(await page.evaluate(() => [...document.querySelectorAll('video')].filter(v => v.srcObject).length)).toBe(0); // camera really off
+    await page.getByTestId('att-cancel').click();
+    await expect(page.getByTestId('att-video')).toHaveCount(0);
+    expect(await page.evaluate(() => [...document.querySelectorAll('video')].filter(v => v.srcObject).length)).toBe(0);   // camera really off
+    await showFace(page, FACE.Bhawna);
+    await page.getByTestId('att-in').click();
+    await expect(page.getByTestId('att-countdown')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('att-done')).toBeVisible({ timeout: 15000 });   // nobody pressed the scan button
+    await expect(page.getByTestId('att-done-name')).toHaveText('Bhawna');
 });
 
 test('no accessibility / colour-contrast issues on any screen (WCAG 2 AA)', async ({ page }) => {
@@ -174,40 +237,45 @@ test('no accessibility / colour-contrast issues on any screen (WCAG 2 AA)', asyn
         const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).exclude('[aria-hidden="true"]').analyze();
         for (const v of r.violations) found.push(`${name}: ${v.id} -> ${v.nodes[0].target.join(' ')}`);
     };
-    await check('choose name');
-    await page.getByTestId('att-pick-Varun').click();
-    await check('check-in screen');
-    await page.getByTestId('att-tap').click();
+    await check('start');
+    await showFace(page, FACE.Varun);
+    await page.getByTestId('att-in').click();
     await expect(page.getByTestId('att-video')).toBeVisible();
     await check('camera');
     await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
     await page.getByTestId('att-capture').click();
     await expect(page.getByTestId('att-done')).toBeVisible({ timeout: 15000 });
-    await check('check-in done');
-    await page.getByRole('button', { name: 'Done' }).click();
-    await check('wait screen');
+    await page.waitForTimeout(600);   // the tick has popped in
+    await check('result');
+    await done(page);
+    await scan(page, 'in');
+    await expect(page.getByTestId('att-notice')).toBeVisible();
+    await check('note');
+    await showFace(page, STRANGER);
+    await scan(page, 'out');
+    await page.getByTestId('att-capture').click();
+    await expect(page.getByTestId('att-face-failed')).toBeVisible();
+    await check('not recognised');
     expect(found).toEqual([]);
 });
 
 for (const [w, h, label] of [[320, 568, 'small phone'], [360, 740, 'normal phone'], [430, 932, 'big phone'], [740, 360, 'phone sideways']]) {
-    test(`${label} ${w}x${h}: nothing cut off, no sideways scroll, main buttons on screen`, async ({ page }) => {
+    test(`${label} ${w}x${h}: nothing cut off, no sideways scroll, buttons on screen`, async ({ page }) => {
         await page.setViewportSize({ width: w, height: h });
         const noOverflow = async () => expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
         await noOverflow();
-        await page.getByTestId('att-pick-Varun').click();
-        await noOverflow();
-        for (const id of ['att-me', 'att-clock', 'att-tap', 'att-in-time', 'att-change']) {
+        for (const id of ['att-clock', 'att-in', 'att-out']) {
             const box = await page.getByTestId(id).boundingBox();
             expect(box, id).not.toBeNull();
             expect(box.x, `${id} left edge`).toBeGreaterThanOrEqual(0);
             expect(box.x + box.width, `${id} right edge`).toBeLessThanOrEqual(w + 1);
         }
-        // the clock text fits its box (no clipped digits)
         expect(await page.getByTestId('att-clock').evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
-        await page.getByTestId('att-tap').scrollIntoViewIfNeeded();
-        await page.getByTestId('att-tap').click();
+        await showFace(page, FACE.Varun);
+        await page.getByTestId('att-in').scrollIntoViewIfNeeded();
+        await page.getByTestId('att-in').click();
         await expect(page.getByTestId('att-video')).toBeVisible();
-        await expect(page.getByTestId('att-capture')).toBeInViewport(); // on screen without scrolling, also sideways
+        await expect(page.getByTestId('att-capture')).toBeInViewport();   // full-screen camera: always on screen
         await noOverflow();
         await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
         await page.getByTestId('att-capture').click();
@@ -218,23 +286,13 @@ for (const [w, h, label] of [[320, 568, 'small phone'], [360, 740, 'normal phone
     });
 }
 
-test('after choosing a name the screen starts at the top and the title bar does not cover the panel', async ({ page }) => {
-    await page.setViewportSize({ width: 740, height: 360 }); // phone sideways: the name list is long
-    await page.getByTestId('att-pick-Amresh Kumar').scrollIntoViewIfNeeded();
-    await page.getByTestId('att-pick-Amresh Kumar').click();
-    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
-    const pos = await page.getByRole('banner').evaluate(el => getComputedStyle(el).position);
-    expect(pos).not.toBe('sticky');
-    expect(pos).not.toBe('fixed');
-});
-
-test('a tap away from the hotel is saved but flagged: staff see it, the register shows OUTSIDE with the distance', async ({ page, context }) => {
+test('a scan away from the hotel is saved but flagged: the result says so, the register shows OUTSIDE with the distance', async ({ page, context }) => {
     await context.setGeolocation({ latitude: 30.69421, longitude: 76.86068, accuracy: 15 });   // about 3.4 km away
-    await page.getByTestId('att-pick-Varun').click();
-    await tapAndSnap(page);
-    await expect(page.getByTestId('att-place')).toContainText('Outside the hotel');
+    await showFace(page, FACE.Varun);
+    await scan(page, 'in');
+    await expect(page.getByTestId('att-place')).toContainText('Outside the hotel', { timeout: 15000 });
     await expect(page.getByTestId('att-place')).toContainText('km away');
-    await page.getByRole('button', { name: 'Done' }).click();
+    await done(page);
     await openAdmin(page);
     await adminTab(page, 'attendance');
     const row = page.getByTestId('attendance-ledger').getByRole('row').filter({ hasText: 'Self check-in (phone)' });
@@ -244,18 +302,9 @@ test('a tap away from the hotel is saved but flagged: staff see it, the register
 test('the hotel app has an Attendance button that opens this page, and this page links back', async ({ page }) => {
     await page.getByTestId('att-back').click();
     await expect(page.locator('.modern-item-card').first()).toBeVisible();
-    // phone: bottom bar; wide screen: top menu
     await page.getByText('Attendance', { exact: true }).filter({ visible: true }).first().click();
     await expect(page).toHaveURL(/\/attendance$/);
     await expect(page.getByTestId('staff-attendance')).toBeVisible();
-});
-
-test('the selfie is taken automatically after a 3-2-1 countdown (no button needed)', async ({ page }) => {
-    await page.getByTestId('att-pick-Bhawna').click();
-    await page.getByTestId('att-tap').click();
-    await expect(page.getByTestId('att-countdown')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByTestId('att-done')).toBeVisible({ timeout: 15000 });   // nobody pressed the photo button
-    await expect(page.getByTestId('att-done')).toContainText('Check In Successful');
 });
 
 test('the face scans of today from the attendance terminal show in the register (read only) and in Present Today', async ({ page }) => {
@@ -267,7 +316,7 @@ test('the face scans of today from the attendance terminal show in the register 
     await adminTab(page, 'attendance');
     const row = page.getByTestId('attendance-ledger').getByRole('row').filter({ hasText: 'Board Person' });
     await expect(row).toContainText('Face scan (terminal) · SKY5-099');
-    await expect(row.getByRole('button', { name: 'CHECK-OUT', exact: true })).toHaveCount(0);   // nothing to press on a scan
+    await expect(row.getByRole('button', { name: 'CHECK-OUT', exact: true })).toHaveCount(0);
     await expect(page.getByTestId('attendance-ledger').getByRole('row').filter({ hasText: 'Zed Notscanned' })).toHaveCount(0);
     await expect(page.getByTestId('att-present-today')).toHaveText('1 STAFF');
 });
@@ -276,102 +325,8 @@ test('camera refused: clear message, nothing saved', async ({ page, context }) =
     await context.clearPermissions();
     await page.addInitScript(() => { navigator.mediaDevices.getUserMedia = () => Promise.reject(new DOMException('denied', 'NotAllowedError')); });
     await page.reload();
-    await page.getByTestId('att-pick-Varun').click();
-    await page.getByTestId('att-tap').click();
-    await expect(page.getByTestId('att-error')).toContainText('Camera permission is needed');
-    await expect(page.getByTestId('att-in-time')).toHaveText('--');
-});
-
-test('face check: the first check-in registers the face; someone else cannot check in or out on that name', async ({ page }) => {
-    await page.getByTestId('att-pick-Varun').click();
-    await tapAndSnap(page);
-    await expect(page.getByTestId('att-face')).toContainText('Face registered');
-    await page.getByRole('button', { name: 'Done' }).click();
-    const inTime = (await page.getByTestId('att-in-time').textContent()).trim();
-
-    // another person picks Varun and tries the check-out
-    await page.evaluate(() => localStorage.setItem('faceTest', 'other'));
-    await page.clock.fastForward('03:00');
-    await expect(page.getByTestId('att-tap')).toHaveText(/CHECK OUT/, { timeout: 20000 });
-    await page.getByTestId('att-tap').click();
-    await expect(page.getByTestId('att-video')).toBeVisible();
-    await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
-    await page.getByTestId('att-capture').click();
-    await expect(page.getByTestId('att-error')).toContainText('This face does not match Varun');
-    await expect(page.getByTestId('att-done')).toHaveCount(0);
-    await expect(page.getByTestId('att-out-time')).toHaveText('--');   // nothing saved
-    await expect(page.getByTestId('att-in-time')).toHaveText(inTime);
-
-    // Varun himself: matches
-    await page.evaluate(() => localStorage.setItem('faceTest', 'me'));
-    await tapAndSnap(page);
-    await expect(page.getByTestId('att-done')).toContainText('Check Out Successful');
-    await expect(page.getByTestId('att-face')).toContainText('Face verified');
-});
-
-for (const [mode, msg] of [['none', 'No face found'], ['two', 'More than one face'], ['far', 'Come closer']]) {
-    test(`face check: a photo with ${mode === 'none' ? 'no face' : mode === 'two' ? 'two faces' : 'a face too far'} is not saved, the camera asks again`, async ({ page }) => {
-        await page.evaluate((m) => localStorage.setItem('faceTest', m), mode);
-        await page.getByTestId('att-pick-Veerwati').click();
-        await page.getByTestId('att-tap').click();
-        await expect(page.getByTestId('att-video')).toBeVisible();
-        await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
-        await page.getByTestId('att-capture').click();
-        await expect(page.getByTestId('att-error')).toContainText(msg);
-        await expect(page.getByTestId('att-video')).toBeVisible();          // still on the camera
-        await expect(page.getByTestId('att-countdown')).toBeVisible({ timeout: 10000 });   // and counting down again
-        await page.evaluate(() => localStorage.setItem('faceTest', 'me'));
-        await expect(page.getByTestId('att-done')).toBeVisible({ timeout: 15000 });
-        await expect(page.getByTestId('att-done')).toContainText('Check In Successful');
-    });
-}
-
-test('face check: nobody in front of the camera - after 5 tries the camera closes by itself, nothing saved', async ({ page }) => {
-    await page.evaluate(() => localStorage.setItem('faceTest', 'none'));
-    await page.getByTestId('att-pick-Veerwati').click();
-    await page.getByTestId('att-tap').click();
-    await expect(page.getByTestId('att-video')).toBeVisible();
-    await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
-    for (let i = 0; i < 5; i++) {
-        await page.getByTestId('att-capture').click();
-        if (i < 4) await expect(page.getByTestId('att-countdown')).toBeVisible({ timeout: 10000 });
-    }
-    await expect(page.getByTestId('att-video')).toHaveCount(0);
-    await expect(page.getByTestId('att-error')).toContainText('Tap CHECK IN to try again');
-    await expect(page.getByTestId('att-in-time')).toHaveText('--');
-});
-
-test('face check: one face cannot be registered on two names', async ({ page }) => {
-    await page.getByTestId('att-pick-Varun').click();
-    await tapAndSnap(page);
-    await expect(page.getByTestId('att-face')).toContainText('Face registered');
-    await page.getByRole('button', { name: 'Done' }).click();
-    // the same person now picks another name
-    await page.getByTestId('att-change').click();
-    await page.getByTestId('att-pick-Bhawna').click();
-    await page.getByTestId('att-tap').click();
-    await expect(page.getByTestId('att-video')).toBeVisible();
-    await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
-    await page.getByTestId('att-capture').click();
-    await expect(page.getByTestId('att-error')).toContainText('This face is already registered for Varun');
-    await expect(page.getByTestId('att-in-time')).toHaveText('--');
-});
-
-test('face check: a far photo that does not match asks for a closer one first (no false refusal)', async ({ page }) => {
-    await page.getByTestId('att-pick-Varun').click();
-    await tapAndSnap(page);
-    await page.getByRole('button', { name: 'Done' }).click();
-    await page.evaluate(() => localStorage.setItem('faceTest', 'other-far'));
-    await page.clock.fastForward('03:00');
-    await expect(page.getByTestId('att-tap')).toHaveText(/CHECK OUT/, { timeout: 20000 });
-    await page.getByTestId('att-tap').click();
-    await expect(page.getByTestId('att-video')).toBeVisible();
-    await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
-    await page.getByTestId('att-capture').click();
-    await expect(page.getByTestId('att-error')).toContainText('Come closer and look straight');
-    await expect(page.getByTestId('att-video')).toBeVisible();   // still on the camera, asking again
-    await page.evaluate(() => localStorage.setItem('faceTest', 'other'));   // a clear photo of someone else: refused
-    await page.getByTestId('att-capture').click();
-    await expect(page.getByTestId('att-error')).toContainText('This face does not match Varun');
-    await expect(page.getByTestId('att-out-time')).toHaveText('--');
+    await expect(page.getByTestId('att-in')).toBeEnabled();
+    await page.getByTestId('att-in').click();
+    await expect(page.getByTestId('att-face-failed')).toContainText('Camera permission is needed');
+    await expect(page.getByTestId('att-counts')).toContainText('0 in now');
 });

@@ -75,20 +75,13 @@ for (const [label, width, height] of SIZES) {
         }
         await page.goto('/attendance');
         await page.waitForTimeout(800);
-        await scan(page, `${label}--attendance-pick`);
-        const first = page.locator('[data-testid^="att-pick-"]').first();
-        if (await first.isVisible()) {
-            await first.click();
-            await page.waitForTimeout(500);
-            await scan(page, `${label}--attendance-home`);
-            await page.getByTestId('att-change').click();
-        }
-        // edit form from the pencil on the list
-        const pencil = page.locator('[data-testid^="att-edit-"]').first();
-        if (await pencil.isVisible()) {
-            await pencil.click();
-            await page.waitForTimeout(500);
-            await scan(page, `${label}--attendance-edit-form`);
+        await scan(page, `${label}--attendance-start`);
+        // the PIN name list (the only list on the terminal)
+        const pinLink = page.getByTestId('att-pin-link');
+        if (await pinLink.isEnabled().catch(() => false)) {
+            await pinLink.click();
+            await page.waitForTimeout(600);
+            await scan(page, `${label}--attendance-pin-list`);
             await page.keyboard.press('Escape');
         }
         // Face box from the yellow "Register face" box

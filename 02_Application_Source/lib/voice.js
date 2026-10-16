@@ -39,4 +39,38 @@ export async function speak(text) {
         }
     } catch { /* no voice on this phone: stay silent */ }
 }
-export const speakAttendance = (name, kind) => speak(buildAttendanceSpeech(name, kind));
+// A short tone first, like an office face terminal: two rising beeps = done, two low beeps = not accepted.
+// The sound must be allowed by a tap first (phones block sound until the person touches the screen).
+let ctx = null;
+export function unlockSound() {
+    if (!isVoiceOn() || typeof window === 'undefined') return;
+    try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        if (!ctx) ctx = new AC();
+        if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    } catch { /* no sound on this phone */ }
+}
+export function chime(ok = true) {
+    if (!isVoiceOn()) return;
+    try {
+        unlockSound();
+        if (!ctx) return;
+        const notes = ok ? [[880, 0], [1320, 0.13]] : [[330, 0], [262, 0.18]];
+        for (const [hz, start] of notes) {
+            const o = ctx.createOscillator(), g = ctx.createGain();
+            o.type = ok ? 'sine' : 'square';
+            o.frequency.value = hz;
+            const t = ctx.currentTime + start;
+            g.gain.setValueAtTime(0.0001, t);
+            g.gain.exponentialRampToValueAtTime(ok ? 0.35 : 0.12, t + 0.02);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + 0.15);
+            o.connect(g).connect(ctx.destination);
+            o.start(t); o.stop(t + 0.16);
+        }
+    } catch { /* no sound on this phone */ }
+}
+export const FAIL_SPEECH = 'Face not recognised. Please try again.';
+
+export const speakAttendance = (name, kind) => { chime(true); setTimeout(() => speak(buildAttendanceSpeech(name, kind)), 350); };
+export const speakFailed = () => { chime(false); setTimeout(() => speak(FAIL_SPEECH), 400); };
