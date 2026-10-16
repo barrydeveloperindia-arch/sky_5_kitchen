@@ -57,11 +57,11 @@ function PinBody({ title, description, person, badge, onSubmit }) {
     const wait = Math.max(0, Math.ceil((lockedUntil - now) / 1000));
 
     return (
-        <DialogContent className="ui max-w-xs bg-white text-[#0a192f]" data-testid="pin-dialog"
+        <DialogContent className="ui max-h-[94dvh] max-w-xs overflow-y-auto bg-white text-[#0a192f]" data-testid="pin-dialog"
             onKeyDown={(e) => { if (/^\d$/.test(e.key)) press(e.key); if (e.key === 'Backspace') setPin(p => p.slice(0, -1)); }}>
             {person ? (
                 <div className="flex flex-col items-center gap-2 pt-1 text-center">
-                    <span aria-hidden className="grid size-14 place-items-center rounded-full bg-[#0a192f] text-lg font-black text-[#d4af37] ring-4 ring-[#d4af37]/30">{initials(person)}</span>
+                    <span aria-hidden className="grid size-14 land:size-10 place-items-center rounded-full bg-[#0a192f] text-lg font-black text-[#d4af37] ring-4 ring-[#d4af37]/30">{initials(person)}</span>
                     <DialogTitle className="text-lg font-black text-[#0a192f]">{person}</DialogTitle>
                     {badge && <span data-testid="pin-badge" className="rounded-full bg-[#d4af37]/20 px-3 py-0.5 text-[11px] font-black tracking-widest text-[#5c4708] uppercase">{badge}</span>}
                     <DialogDescription className="text-sm">{description || 'Enter your 4-digit PIN'}</DialogDescription>
@@ -83,7 +83,7 @@ function PinBody({ title, description, person, badge, onSubmit }) {
                     <button key={i} type="button" disabled={busy || locked} data-testid={k === 'del' ? 'pin-del' : `pin-${k}`}
                         aria-label={k === 'del' ? 'Delete last digit' : k}
                         onClick={() => (k === 'del' ? setPin(p => p.slice(0, -1)) : press(k))}
-                        className="grid h-14 place-items-center rounded-2xl border border-slate-200 bg-slate-50 text-xl font-black active:bg-[#d4af37]/30 disabled:opacity-40">
+                        className="grid h-14 land:h-10 place-items-center rounded-2xl border border-slate-200 bg-slate-50 text-xl font-black active:bg-[#d4af37]/30 disabled:opacity-40">
                         {k === 'del' ? <Delete className="size-5" /> : k}
                     </button>
                 )))}

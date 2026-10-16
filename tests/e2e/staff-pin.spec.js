@@ -190,3 +190,26 @@ test('the name list for the PIN: readable (WCAG AA) and searchable', async ({ pa
     await expect(page.getByTestId('att-pin-name-Bhawna')).toBeVisible();
     await expect(page.getByTestId('att-pin-name-Varun')).toHaveCount(0);
 });
+
+test('phone turned sideways (740x360): the name list and the PIN pad stay inside the screen and can be scrolled to every key', async ({ page }) => {
+    await personWithPin(page, 'Pin Person', '4321');
+    await page.setViewportSize({ width: 740, height: 360 });
+    await toTerminal(page);
+    await page.getByTestId('att-pin-link').click();
+    const pick = page.getByTestId('att-pin-pick');
+    await expect(pick).toBeVisible();
+    await page.waitForTimeout(500);
+    let box = await pick.boundingBox();
+    expect(box.y, 'name list top on screen').toBeGreaterThanOrEqual(-1);
+    expect(box.y + box.height, 'name list bottom on screen').toBeLessThanOrEqual(361);
+    await page.getByTestId('att-pin-name-Pin Person').scrollIntoViewIfNeeded();
+    await page.getByTestId('att-pin-name-Pin Person').click();
+    const pad = page.getByTestId('pin-dialog');
+    await expect(pad).toBeVisible();
+    await page.waitForTimeout(500);
+    box = await pad.boundingBox();
+    expect(box.y, 'PIN pad top on screen').toBeGreaterThanOrEqual(-1);
+    expect(box.y + box.height, 'PIN pad bottom on screen').toBeLessThanOrEqual(361);
+    for (const d of '4321') { await page.getByTestId(`pin-${d}`).scrollIntoViewIfNeeded(); await page.getByTestId(`pin-${d}`).click(); }
+    await expect(page.getByTestId('att-done')).toContainText('Check In Successful', { timeout: 15000 });
+});

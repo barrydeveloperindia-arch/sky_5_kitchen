@@ -93,6 +93,7 @@ export default function StaffAttendance() {
     const busyRef = useRef(false);
     const captureRef = useRef(null);
     const unknownRef = useRef(0);
+    const runRef = useRef(0);   // changes on every new press / cancel: a scan that was cancelled must not save anything
     const lastRef = useRef({ photo: null, face: null, at: 0 });   // the last camera photo + its face (for a PIN entry right after)
     const today = dayKey(new Date(now));
     const yesterday = dayKey(new Date(now - 86400000));
@@ -172,6 +173,7 @@ export default function StaffAttendance() {
         unlockSound();
         setFailed(null); setNote(null); setError('');
         setKind(k);
+        runRef.current += 1;
         setAttempt(0); unknownRef.current = 0;
         lastRef.current = { photo: null, face: null, at: 0 };
         locRef.current = locate();   // ask for location while the camera opens
@@ -184,7 +186,7 @@ export default function StaffAttendance() {
             setFailed({ msg: 'Camera permission is needed. Allow the camera for this app and try again.' });
         }
     };
-    const cancel = () => { stopCamera(); setStep('home'); };
+    const cancel = () => { runRef.current += 1; busyRef.current = false; setChecking(false); stopCamera(); setStep('home'); };
     // the face did not work: close the camera, say so, offer Try again / PIN
     const fail = (msg) => { stopCamera(); setChecking(false); busyRef.current = false; setStep('home'); speakFailed(); setFailed({ msg, face: true }); };
 
@@ -236,7 +238,10 @@ export default function StaffAttendance() {
         if (!video || !video.videoWidth) { setError('Camera is starting…'); return; }
         busyRef.current = true;
         setChecking(true);
+        const run = runRef.current;
+        const cancelled = () => run !== runRef.current;   // the person pressed Cancel while the face was being checked
         const retry = (msg) => {
+            if (cancelled()) return;
             setChecking(false); busyRef.current = false;
             if (attempt + 1 >= MAX_FACE_TRIES) { fail(msg); return; }
             setError(msg); setAttempt(a => a + 1);
@@ -246,12 +251,14 @@ export default function StaffAttendance() {
         if (!photo) { retry('Photo could not be saved, try again.'); return; }
         let faces;
         try { faces = await findFaces(frame); } catch { retry('Face check could not start. Check internet.'); return; }
+        if (cancelled()) return;
         const quality = faceQuality(faces, frame.width);
         if (!quality.ok) { retry(quality.reason); return; }
         const live = quality.face.descriptor;
         lastRef.current = { photo, face: faceQuality(faces, frame.width, { register: true }).ok ? live : null, at: Date.now() };
         let found;
         try { found = await identifyFace(live, staff); } catch { retry('Could not check the face. Check internet.'); return; }
+        if (cancelled()) return;
         if (!found.staff) {
             unknownRef.current += 1;
             if (found.unsure) { retry('Come closer and look straight at the camera.'); return; }
@@ -265,7 +272,7 @@ export default function StaffAttendance() {
     useEffect(() => { captureRef.current = capture; });
 
     // "Use PIN": choose your name, type your PIN. No face registered yet + a clear photo = the face is registered too.
-    const pinFor = (rec) => { setPicking(false); setSearch(''); setPinAsk({ rec }); };
+    const pinFor = (rec) => { setPicking(false); setSearch(''); locRef.current = locate(); setPinAsk({ rec }); };   // a fresh location for this entry
     const afterPin = async (rec) => {
         setPinAsk(null);
         setFailed(null);
@@ -481,7 +488,7 @@ export default function StaffAttendance() {
 
             {/* ---------- "Use PIN": choose your name, then the PIN pad ---------- */}
             <Dialog open={picking} onOpenChange={(o) => { if (!o) { setPicking(false); setSearch(''); } }}>
-                <DialogContent className="ui max-w-sm bg-white text-[#0a192f]" data-testid="att-pin-pick">
+                <DialogContent className="ui max-h-[94dvh] max-w-sm overflow-y-auto bg-white text-[#0a192f]" data-testid="att-pin-pick">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2 text-[#0a192f]"><KeyRound className="size-5" />{kind === 'out' ? 'Check out with PIN' : 'Check in with PIN'}</DialogTitle>
                         <DialogDescription>Choose your name, then type your 4-digit PIN.</DialogDescription>
@@ -499,7 +506,7 @@ export default function StaffAttendance() {
                                 className="h-10 w-full rounded-xl border border-slate-200 pr-3 pl-9 text-sm outline-none focus:border-[#d4af37]" />
                         </div>
                     )}
-                    <div tabIndex={0} role="group" aria-label="Staff names" className="max-h-[50dvh] divide-y divide-slate-100 overflow-y-auto rounded-xl border border-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-[#d4af37]">
+                    <div tabIndex={0} role="group" aria-label="Staff names" className="max-h-[50dvh] land:max-h-[34dvh] divide-y divide-slate-100 overflow-y-auto rounded-xl border border-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-[#d4af37]">
                         {pinList.map(s => {
                             const rec = pinRecord(s);
                             const ok = !!(rec?.pinSet && rec.staffId);

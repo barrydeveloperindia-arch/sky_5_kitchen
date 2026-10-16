@@ -330,3 +330,29 @@ test('camera refused: clear message, nothing saved', async ({ page, context }) =
     await expect(page.getByTestId('att-face-failed')).toContainText('Camera permission is needed');
     await expect(page.getByTestId('att-counts')).toContainText('0 in now');
 });
+
+test('Cancel while the face is being checked: nothing is saved afterwards', async ({ page }) => {
+    // a slow face check (2 s), so there is time to press Cancel while "Identifying..." is on screen
+    await page.evaluate(() => {
+        const face = { descriptor: Array.from({ length: 128 }, () => 0.01), score: 0.95, width: 400 };
+        window.__FACE_TEST__.findFaces = () => new Promise(r => setTimeout(() => r([face]), 2000));
+    });
+    await showFace(page, FACE.Varun);
+    await page.getByTestId('att-in').click();
+    await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
+    await page.getByTestId('att-capture').click();
+    await expect(page.getByTestId('att-checking')).toBeVisible();
+    await page.getByTestId('att-cancel').click();
+    await expect(page.getByTestId('att-video')).toHaveCount(0);
+    await page.waitForTimeout(3500);   // the slow check finishes now ...
+    await expect(page.getByTestId('att-done')).toHaveCount(0);   // ... and must not save or show anything
+    await expect(page.getByTestId('att-counts')).toContainText('0 in now');
+    const project = await page.evaluate(() => localStorage.getItem('sky5_emu_project'));
+    const r = await page.request.get(`http://127.0.0.1:8181/v1/projects/${project}/databases/(default)/documents/hotel_attendance?pageSize=50`, { headers: { Authorization: 'Bearer owner' } });
+    const mine = ((await r.json()).documents || []).filter(d => d.fields?.source?.stringValue === 'staff-web');
+    expect(mine.length).toBe(0);   // (the OPS Center's own sample rows are not from the terminal)
+    // and a new scan right after works
+    await page.evaluate(() => { window.__FACE_TEST__.findFaces = () => [{ descriptor: Array.from({ length: 128 }, () => 0.01), score: 0.95, width: 400 }]; });
+    await scan(page, 'in');
+    await expect(page.getByTestId('att-done-name')).toHaveText('Varun', { timeout: 15000 });
+});

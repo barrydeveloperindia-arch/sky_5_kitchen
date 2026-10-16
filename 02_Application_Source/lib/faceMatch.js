@@ -195,6 +195,7 @@ export const MATCH_MARGIN = 0.05;
 // Who is in front of the camera? (like the AuraLock terminal: no name is chosen, the face says who it is)
 // Compares the live face with the registered face of everyone working here; the closest one within the limit
 // wins, unless a second person is nearly as close. Returns { staff, distance, source } | { staff: null, unsure? }.
+const photoTried = new Set();
 export async function identifyFace(live, staffList) {
     await whenSignedIn();
     const { db } = getServices();
@@ -206,8 +207,9 @@ export async function identifyFace(live, staffList) {
     }
     // a staff photo from the manager that is not a face record yet: make it one now (saved for next time)
     for (const s of staffList) {
-        if (!s.photoId || recs.get(faceKey(s))?.source === 'staff-photo') continue;
-        try { const r = await registeredFace(s); if (r) recs.set(faceKey(s), r); } catch { /* use what is there */ }
+        if (!s.photoId || recs.get(faceKey(s))?.source === 'staff-photo' || photoTried.has(s.photoId)) continue;
+        photoTried.add(s.photoId);   // once per photo: a photo with no usable face must not slow down every scan
+        try { const r = await registeredFace(s); if (r) recs.set(faceKey(s), r); } catch { photoTried.delete(s.photoId); }
     }
     let best = null, second = null;
     for (const s of staffList) {
