@@ -92,8 +92,8 @@ export default function HotelTv() {
                 <div className="flex min-w-0 items-center gap-2.5">
                     <Logo size={34} noBorder />
                     <div className="min-w-0">
-                        <h1 className="truncate text-base font-black tracking-wide">STAFF ATTENDANCE</h1>
-                        <p className="truncate text-[11px] text-slate-200">Hotel Sky 5 · Panchkula · Live</p>
+                        <h1 className="text-base leading-tight font-black tracking-wide">ATTENDANCE</h1>
+                        <p className="text-[11px] text-slate-200">Hotel Sky 5 · Live</p>
                     </div>
                 </div>
                 <div className="shrink-0 text-right">
