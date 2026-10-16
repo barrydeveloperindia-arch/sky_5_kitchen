@@ -218,7 +218,7 @@ test('night shift: next morning CHECK OUT closes last night, on the same row', a
     await expect(page.getByTestId('att-done')).toContainText('13h 00m');
 });
 
-test('Cancel closes the camera without saving; the photo is taken by itself after 3-2-1', async ({ page }) => {
+test('Cancel closes the camera without saving; the photo is taken by itself after a 2-second countdown', async ({ page }) => {
     await page.getByTestId('att-in').click();
     await expect(page.getByTestId('att-video')).toBeVisible();
     await page.getByTestId('att-cancel').click();
@@ -226,7 +226,7 @@ test('Cancel closes the camera without saving; the photo is taken by itself afte
     expect(await page.evaluate(() => [...document.querySelectorAll('video')].filter(v => v.srcObject).length)).toBe(0);   // camera really off
     await showFace(page, FACE.Bhawna);
     await page.getByTestId('att-in').click();
-    await expect(page.getByTestId('att-countdown')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('att-countdown')).toHaveText('2', { timeout: 10000 });   // 2 seconds, then the photo
     await expect(page.getByTestId('att-done')).toBeVisible({ timeout: 15000 });   // nobody pressed the scan button
     await expect(page.getByTestId('att-done-name')).toHaveText('Bhawna');
 });

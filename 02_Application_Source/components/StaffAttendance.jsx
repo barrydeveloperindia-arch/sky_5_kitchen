@@ -26,7 +26,7 @@ const DEPTS = [['reception', 'Front Desk & Management'], ['kitchen', 'Kitchen'],
 const NO_NET = 'No internet. Connect and open the link again.';
 const DONE_SECONDS = 10;          // the result screen goes back to the start by itself
 const NOTE_SECONDS = 6;           // a short note (already checked in...) disappears by itself
-const AUTO_PHOTO_SECONDS = 3;     // the photo is taken by itself after this countdown
+const AUTO_PHOTO_SECONDS = 2;     // the photo is taken by itself after this countdown (owner: 2 s)
 const MAX_FACE_TRIES = 4;         // photos without a usable face before the camera closes by itself
 const MAX_UNKNOWN_TRIES = 2;      // clear photos of a face nobody registered: then "not recognised"
 const PHOTO_FRESH_MS = 60000;     // a PIN entry uses the camera photo only if it was taken this recently
@@ -143,7 +143,7 @@ export default function StaffAttendance() {
         return () => clearTimeout(t);
     }, [note]);
 
-    // Automatic photo: once the camera shows a picture, count 3-2-1 and take it
+    // Automatic photo: once the camera shows a picture, count 2-1 and take it
     useEffect(() => {
         if (step !== 'camera') return undefined;
         let leftS = null, stopped = false;
