@@ -368,15 +368,23 @@ export default function StaffAttendance() {
                                 <div key={dept} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                                     <h3 className="border-b border-slate-100 bg-slate-50 px-4 py-2 text-[10px] font-black tracking-[0.15em] text-slate-600 uppercase">{label}</h3>
                                     {list.map(n => (
-                                        <button key={n.name} type="button" data-testid={`att-pick-${n.name}`} onClick={() => choose(n.name)}
-                                            className="flex w-full items-center gap-3 border-b border-slate-100 px-4 py-3 text-left last:border-b-0 hover:bg-[#d4af37]/10 active:bg-[#d4af37]/20">
-                                            <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-full bg-[#0a192f] text-xs font-black text-[#d4af37]">{initials(n.name)}</span>
-                                            <span className="min-w-0 flex-1">
-                                                <span className="block truncate font-bold text-slate-900">{n.name}</span>
-                                                <span className="block truncate text-xs text-slate-600">{n.role || label}</span>
-                                            </span>
-                                            <ChevronRight aria-hidden className="size-4 text-slate-600" />
-                                        </button>
+                                        <div key={n.name} className="flex items-center border-b border-slate-100 last:border-b-0">
+                                            <button type="button" data-testid={`att-pick-${n.name}`} onClick={() => choose(n.name)}
+                                                className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left hover:bg-[#d4af37]/10 active:bg-[#d4af37]/20">
+                                                <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-full bg-[#0a192f] text-xs font-black text-[#d4af37]">{initials(n.name)}</span>
+                                                <span className="min-w-0 flex-1">
+                                                    <span className="block truncate font-bold text-slate-900">{n.name}</span>
+                                                    <span className="block truncate text-xs text-slate-600">{n.role || label}</span>
+                                                </span>
+                                                <ChevronRight aria-hidden className="size-4 text-slate-600" />
+                                            </button>
+                                            {/* edit this person's details straight from the list */}
+                                            <button type="button" data-testid={`att-edit-${n.name}`} aria-label={`Edit details of ${n.name}`}
+                                                onClick={() => { const r = registry ? allStaff(registry).find(x => x.name === n.name) : null; if (r) setEditing(r); }}
+                                                className="mr-2 grid size-10 shrink-0 place-items-center rounded-xl border border-slate-200 text-slate-700 hover:bg-[#d4af37]/10 active:bg-[#d4af37]/20">
+                                                <Pencil className="size-4" />
+                                            </button>
+                                        </div>
                                     ))}
                                 </div>
                             );
@@ -393,7 +401,7 @@ export default function StaffAttendance() {
                         const renamed = editing && allStaff(next).find(x => x.id === editing.id);
                         saveRegistry(next);
                         if (added) choose(added.name);
-                        else if (renamed && renamed.name !== me) choose(renamed.name);   // the name itself was corrected
+                        else if (renamed && me && editing.name === me && renamed.name !== me) choose(renamed.name);   // own name corrected
                     }} />
                 <FaceDialog staff={faceBox?.staff || null} face={faceBox?.face || null} photoSrc={faceBox?.photo || null}
                     onClose={() => setFaceBox(null)}

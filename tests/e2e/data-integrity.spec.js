@@ -426,3 +426,19 @@ test('name corrected after the check-in: the next tap is the CHECK OUT on the sa
     expect(rows[0].staffId).toMatch(/^SKY5-\d{3}$/);
     expect(rows[0].checkOut).not.toBe('--');
 });
+
+test('name list: the pencil next to a name edits that person (saved in the database), without choosing the name', async ({ page }) => {
+    await openAttendance(page);
+    await page.getByTestId('att-edit-Bhawna').click();
+    const form = page.getByTestId('staff-form');
+    await expect(form).toBeVisible();
+    await expect(form.getByLabel('Full name (as on Aadhaar)', { exact: true })).toHaveValue('Bhawna');
+    await form.getByLabel('Post', { exact: true }).fill('Housekeeping Lead');
+    await form.getByLabel('Mobile', { exact: true }).fill('9999900003');
+    await page.getByTestId('sf-save').click();
+    await expect(form).toHaveCount(0);
+    await expect(page.getByTestId('att-pick-Bhawna')).toContainText('Housekeeping Lead');   // still on the list, not chosen
+    await expect(page.getByTestId('att-me')).toHaveCount(0);
+    await expect.poll(async () => ((await readDoc(page, 'hotel_state/staffRegistry'))?.value?.housekeeping || []).find(s => s.name === 'Bhawna'), { timeout: 15000 })
+        .toMatchObject({ role: 'Housekeeping Lead', phone: '9999900003' });
+});
