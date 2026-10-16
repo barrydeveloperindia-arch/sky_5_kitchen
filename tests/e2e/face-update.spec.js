@@ -143,3 +143,22 @@ test('Reset: the face is forgotten and the next check-in registers again', async
     await phoneTap(page, 'Varun');
     await expect(page.getByTestId('att-face')).toContainText('Face registered', { timeout: 15000 });
 });
+
+test('Staff Directory says clearly who has no face yet; "Register face" opens the camera box and the name goes off the list', async ({ page }) => {
+    await openAdmin(page);
+    await adminTab(page, 'workforce');
+    const box = page.getByTestId('sd-faces-missing');
+    await expect(box).toContainText('Face not registered');
+    await expect(page.getByTestId('sd-register-face-Ratnesh')).toBeVisible();
+    await expect(page.getByTestId('sd-face-open-Ratnesh')).toHaveText(/Register face/);
+    await expect(page.getByTestId('sd-face-Ratnesh')).toContainText('Register');
+    await page.getByTestId('sd-register-face-Ratnesh').click();
+    await expect(page.getByTestId('face-dialog')).toContainText('Face of Ratnesh');
+    await who(page, 'V');
+    await takeFace(page);
+    await expect(page.getByTestId('face-new')).toBeVisible({ timeout: 15000 });
+    await page.getByTestId('face-save').click();
+    await expect(page.getByTestId('sd-register-face-Ratnesh')).toHaveCount(0);
+    await expect(page.getByTestId('sd-face-Ratnesh')).toContainText('Face from photo');
+    await expect(page.getByTestId('sd-face-open-Ratnesh')).toHaveText(/^Face$/);
+});

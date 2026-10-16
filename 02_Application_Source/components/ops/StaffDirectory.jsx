@@ -249,6 +249,24 @@ export default function StaffDirectory({ registry, onChange, onAdd, onEdit }) {
                 ))}
             </div>
 
+            {/* who still has no face: only a registered face can check in on the staff app */}
+            {(() => {
+                const missing = list.filter(p => !isLeft(p) && !faceOf(p));
+                if (!list.some(p => !isLeft(p))) return null;
+                return missing.length ? (
+                    <div data-testid="sd-faces-missing" className="rounded-xl border border-amber-300 bg-amber-50 p-3">
+                        <div className="flex items-center gap-2 text-sm font-bold text-amber-900"><ScanFace className="size-4" />Face not registered: {missing.length} staff</div>
+                        <p className="mt-0.5 text-xs text-amber-900">Register each face here with the camera (the person in front of the camera). Then they can check in on the staff app.</p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                            {missing.map(p => (
+                                <Button key={p.id} size="sm" onClick={() => setFaceFor(p)} data-testid={`sd-register-face-${p.name}`}
+                                    className="bg-[#0a192f] text-[#d4af37] hover:bg-[#0a192f]/90"><ScanFace />Register face · {p.name}</Button>
+                            ))}
+                        </div>
+                    </div>
+                ) : <p data-testid="sd-faces-all" className="flex items-center gap-1.5 text-sm font-semibold text-emerald-800"><ScanFace className="size-4" />Every staff member has a registered face.</p>;
+            })()}
+
             <div className="flex flex-wrap items-center gap-2">
                 <div className="relative min-w-48 flex-1">
                     <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
@@ -289,15 +307,21 @@ export default function StaffDirectory({ registry, onChange, onAdd, onEdit }) {
                                 <TableCell className="text-sm whitespace-nowrap text-slate-700">{fmtDate(s.joinDate)}</TableCell>
                                 <TableCell>
                                     <Badge variant="outline" className={isLeft(s) ? 'border-slate-300 text-slate-600' : 'border-emerald-300 bg-emerald-50 text-emerald-800'}>{isLeft(s) ? `LEFT${s.leftDate ? ` ${fmtDate(s.leftDate)}` : ''}` : 'ACTIVE'}</Badge>
-                                    {!isLeft(s) && <div data-testid={`sd-face-${s.name}`} className={cn('mt-1 flex items-center gap-1 text-[11px] font-semibold whitespace-nowrap', faceOf(s) ? 'text-emerald-800' : 'text-amber-800')}>
-                                        <ScanFace className="size-3.5" />{faceOf(s) ? (faceOf(s).source === 'staff-photo' ? 'Face from photo' : 'Face from 1st check-in') : 'Face not set yet'}
-                                    </div>}
+                                    {!isLeft(s) && (faceOf(s)
+                                        ? <div data-testid={`sd-face-${s.name}`} className="mt-1 flex items-center gap-1 text-[11px] font-semibold whitespace-nowrap text-emerald-800">
+                                            <ScanFace className="size-3.5" />{faceOf(s).source === 'staff-photo' ? 'Face from photo' : 'Face from 1st check-in'}
+                                        </div>
+                                        : <button type="button" data-testid={`sd-face-${s.name}`} onClick={() => setFaceFor(s)} aria-label={`Register face of ${s.name}`}
+                                            className="mt-1 flex items-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[11px] font-bold whitespace-nowrap text-amber-900 hover:bg-amber-100">
+                                            <ScanFace className="size-3.5" />Face not set yet · Register
+                                        </button>)}
                                 </TableCell>
                                 <TableCell>
                                     <div className="flex justify-end gap-1">
                                         <Button size="xs" variant="outline" onClick={() => onEdit(s)} aria-label={`Edit ${s.name}`} data-testid={`sd-edit-${s.name}`}><Pencil />Edit</Button>
                                         <Button size="xs" variant="outline" onClick={() => idCard(s)} aria-label={`ID card of ${s.name}`} data-testid={`sd-card-${s.name}`}><IdCard />ID card</Button>
-                                        {!isLeft(s) && <Button size="xs" variant="outline" onClick={() => setFaceFor(s)} aria-label={`Face of ${s.name}`} data-testid={`sd-face-open-${s.name}`}><ScanFace />Face</Button>}
+                                        {!isLeft(s) && <Button size="xs" variant="outline" onClick={() => setFaceFor(s)} aria-label={`Face of ${s.name}`} data-testid={`sd-face-open-${s.name}`}
+                                            className={faceOf(s) ? '' : 'border-amber-400 bg-amber-50 font-bold text-amber-900'}><ScanFace />{faceOf(s) ? 'Face' : 'Register face'}</Button>}
                                         <Button size="xs" variant="ghost" onClick={() => toggleLeft(s)} aria-label={isLeft(s) ? `Mark ${s.name} active again` : `Mark ${s.name} as left`} data-testid={`sd-left-${s.name}`}>
                                             {isLeft(s) ? <><UserRoundCheck />Rejoin</> : <><UserMinus />Left</>}
                                         </Button>
