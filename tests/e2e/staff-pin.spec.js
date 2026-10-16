@@ -16,7 +16,7 @@ test.beforeEach(async ({ page }) => {
     await stubWindowOpen(page);
     await page.addInitScript(() => {
         const face = (v) => ({ descriptor: Array.from({ length: 128 }, () => v), score: 0.95, width: 400 });
-        window.__FACE_TEST__ = { findFaces: () => [face(localStorage.getItem('faceTest') === 'other' ? 0.5 : 0.01)] };
+        window.__FACE_TEST__ = { findFaces: () => { const m = localStorage.getItem('faceTest'); return m === 'none' ? [] : [face(m === 'other' ? 0.5 : 0.01)]; } };
     });
     await page.clock.install();
     await expect(async () => {
@@ -94,7 +94,8 @@ test('Edit details, the pencil on the list, Re-scan face and Delete all ask the 
     await page.goto('/attendance');
     // the pencil on the list
     await page.getByTestId('att-edit-Pin Person').click();
-    await expect(page.getByTestId('pin-dialog')).toContainText('PIN of Pin Person');
+    await expect(page.getByTestId('pin-dialog')).toContainText('Pin Person');
+    await expect(page.getByTestId('pin-badge')).toHaveText(/Edit details/i);
     await typePin(page, '9999');
     await expect(page.getByTestId('pin-error')).toContainText('Wrong PIN');
     await expect(page.getByTestId('staff-form')).toHaveCount(0);
@@ -142,4 +143,56 @@ test('Change PIN needs the current PIN; the new PIN works and the old one no lon
     const reg = JSON.stringify(await readAll(page, 'hotel_state'));
     expect(reg).not.toContain('2468');
     expect(reg).toContain('pinSet');
+});
+
+test('the PIN link on the panel checks in without the camera; the failure card offers Try again / Use PIN; 5 wrong PINs lock it', async ({ page }) => {
+    await personWithPin(page, 'Pin Person', '4321');
+    await page.goto('/attendance');
+    await page.getByTestId('att-pick-Pin Person').click();
+    // the face fails -> a clear card with two ways on
+    await page.evaluate(() => localStorage.setItem('faceTest', 'none'));
+    for (let i = 0; i < 5; i++) {
+        if (i === 0) await page.getByTestId('att-tap').click();
+        await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
+        await page.getByTestId('att-capture').click();
+        if (i < 4) await expect(page.getByTestId('att-countdown')).toBeVisible({ timeout: 10000 });
+    }
+    await expect(page.getByTestId('att-face-failed')).toContainText('Face not recognised');
+    await expect(page.getByTestId('att-try-again')).toBeVisible();
+    await expect(page.getByTestId('att-use-pin')).toBeVisible();
+    // 5 wrong PINs: locked for a minute
+    await page.getByTestId('att-use-pin').click();
+    await expect(page.getByTestId('pin-badge')).toHaveText(/Check in with PIN/i);
+    for (let i = 0; i < 4; i++) { await typePin(page, '0000'); await expect(page.getByTestId('pin-error')).toContainText(`${4 - i} ${4 - i === 1 ? 'try' : 'tries'} left`); }
+    await typePin(page, '0000');
+    await expect(page.getByTestId('pin-locked')).toContainText('Locked');
+    await expect(page.getByTestId('pin-1')).toBeDisabled();
+    await page.clock.fastForward('01:05');
+    await expect(page.getByTestId('pin-1')).toBeEnabled();
+    await typePin(page, '4321');
+    await expect(page.getByTestId('att-done')).toContainText('Check In Successful', { timeout: 15000 });
+    await expect(page.getByTestId('att-face')).toContainText('Checked with your PIN');
+    await page.getByRole('button', { name: 'Done' }).click();
+    // later: the small link under the buttons, straight to the PIN (no camera)
+    await page.clock.fastForward('03:00');
+    await expect(page.getByTestId('att-pin-link')).toContainText('Check out with PIN', { timeout: 20000 });
+    await page.getByTestId('att-pin-link').click();
+    await expect(page.getByTestId('att-video')).toHaveCount(0);
+    await typePin(page, '4321');
+    await expect(page.getByTestId('att-done')).toContainText('Check Out Successful', { timeout: 15000 });
+});
+
+test('someone without a PIN sees no PIN link, and the failure card says the manager sets the PIN', async ({ page }) => {
+    await page.getByTestId('att-pick-Bhawna').click();
+    await expect(page.getByTestId('att-tap')).toBeVisible();
+    await expect(page.getByTestId('att-pin-link')).toHaveCount(0);
+    await page.evaluate(() => localStorage.setItem('faceTest', 'none'));
+    await page.getByTestId('att-tap').click();
+    for (let i = 0; i < 5; i++) {
+        await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
+        await page.getByTestId('att-capture').click();
+        if (i < 4) await expect(page.getByTestId('att-countdown')).toBeVisible({ timeout: 10000 });
+    }
+    await expect(page.getByTestId('att-no-pin')).toContainText('manager sets it');
+    await expect(page.getByTestId('att-use-pin')).toHaveCount(0);
 });

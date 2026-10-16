@@ -175,13 +175,13 @@ export default function StaffAttendance() {
     const myRecord = () => (registry ? allStaff(registry).find(x => x.name === me) : null);
     const recordOf = (name) => (registry ? allStaff(registry).find(x => x.name === name) : null);
     // someone with a PIN (the same as in TimeStation) must type it first; without a PIN it goes straight on
-    const requirePin = (rec, title, then) => {
+    const requirePin = (rec, badge, then) => {
         if (!rec?.pinSet || !rec.staffId) { then(); return; }
-        setPinAsk({ rec, title, then });
+        setPinAsk({ rec, badge, then });
     };
-    const editMe = () => { const r = myRecord(); if (r) requirePin(r, `PIN of ${r.name}`, () => setEditing(r)); };
-    const editFromList = (name) => { const r = recordOf(name); if (r) requirePin(r, `PIN of ${r.name}`, () => setEditing(r)); };
-    const rescanMe = () => { const r = myRecord(); if (r) requirePin(r, `PIN of ${r.name}`, () => openRescan(r)); };
+    const editMe = () => { const r = myRecord(); if (r) requirePin(r, 'Edit details', () => setEditing(r)); };
+    const editFromList = (name) => { const r = recordOf(name); if (r) requirePin(r, 'Edit details', () => setEditing(r)); };
+    const rescanMe = () => { const r = myRecord(); if (r) requirePin(r, 'Re-scan face', () => openRescan(r)); };
     const openRescan = async (r) => {
         let face = null;
         try {
@@ -197,7 +197,7 @@ export default function StaffAttendance() {
         setFaceBox({ staff: r, face, photo });
     };
     // "Delete" = this person has left: off the list, the TV and the counts; their old attendance stays
-    const removeMe = () => { const r = myRecord(); if (r) requirePin(r, `PIN of ${r.name}`, () => doRemove(r)); };
+    const removeMe = () => { const r = myRecord(); if (r) requirePin(r, 'Delete', () => doRemove(r)); };
     const doRemove = (r) => {
         if (!r || !window.confirm(`Delete ${r.name} from the staff list? (Marked as left today - old attendance is kept.)`)) return;
         const d = new Date();
@@ -323,7 +323,7 @@ export default function StaffAttendance() {
     const checkInWithPin = () => {
         const r = myRecord();
         if (!r) return;
-        requirePin(r, `PIN of ${r.name}`, () => saveTap(lastPhotoRef.current, { check: 'pin' }, null));
+        requirePin(r, action === 'out' ? 'Check out with PIN' : 'Check in with PIN', () => saveTap(lastPhotoRef.current, { check: 'pin' }, null));
     };
 
     const stamp = (iso) => new Date(iso).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
@@ -367,13 +367,21 @@ export default function StaffAttendance() {
             <div className="mx-auto max-w-md space-y-4 p-3 min-[360px]:p-4 [@media(max-height:520px)]:space-y-2 [@media(max-height:520px)]:pt-2">
                 {/* top bar, like the AuraLock terminal */}
                 {/* while the camera is open the advice is shown on the camera itself (that is where the person looks) */}
-                {error && step !== 'camera' && <div role="alert" data-testid="att-error" className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</div>}
-                {pinFallback && step === 'home' && myRecord()?.pinSet && (
-                    <Button data-testid="att-use-pin" onClick={checkInWithPin} className="h-12 w-full rounded-2xl bg-[#0a192f] text-sm font-black text-[#d4af37] hover:bg-[#0a192f]/90">
-                        <KeyRound />Face not working? {action === 'out' ? 'Check out' : 'Check in'} with your PIN
-                    </Button>
-                )}
-                <PinDialog open={!!pinAsk} title={pinAsk?.title || ''} description="The same 4-digit PIN as in TimeStation."
+                {/* the face did not work: one clear card with the two ways on (try again / PIN) */}
+                {error && step === 'home' && pinFallback ? (
+                    <div data-testid="att-face-failed" className="rounded-2xl border border-amber-300 bg-amber-50 p-3">
+                        <div className="flex items-center gap-2 text-sm font-black text-amber-900"><ScanFace className="size-4" />Face not recognised</div>
+                        <p role="alert" data-testid="att-error" className="mt-1 text-sm text-amber-900">{error}</p>
+                        <div className="mt-3 grid grid-cols-2 gap-2">
+                            <Button variant="outline" onClick={() => { setError(''); setPinFallback(false); openCamera(); }} data-testid="att-try-again" className="h-11 rounded-xl border-amber-300 bg-white font-bold"><RefreshCw />Try again</Button>
+                            {myRecord()?.pinSet
+                                ? <Button onClick={checkInWithPin} data-testid="att-use-pin" className="h-11 rounded-xl bg-[#0a192f] font-black text-[#d4af37] hover:bg-[#0a192f]/90"><KeyRound />Use PIN</Button>
+                                : <p data-testid="att-no-pin" className="self-center text-xs text-amber-900">No PIN yet - the manager sets it in OPS Center → Workforce.</p>}
+                        </div>
+                    </div>
+                ) : error && step !== 'camera' && <div role="alert" data-testid="att-error" className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</div>}
+                <PinDialog open={!!pinAsk} title={pinAsk ? `${pinAsk.rec.name} ${pinAsk.badge}` : ''} person={pinAsk?.rec.name} badge={pinAsk?.badge}
+                    description="Enter your 4-digit PIN (the same as in TimeStation)"
                     onClose={() => setPinAsk(null)}
                     onSubmit={async (pin) => {
                         const ok = await verifyPin(pinAsk.rec.staffId, pin);
@@ -525,6 +533,12 @@ export default function StaffAttendance() {
                                     </p>
                                     {nightShift && <div data-testid="att-night" className="mb-3 rounded-lg bg-white/10 px-3 py-1.5 text-center text-[11px] font-semibold text-amber-200">Night shift from {log.date} is still open: CHECK OUT closes it.</div>}
                                     <div className="grid w-full max-w-xs grid-cols-2 gap-3">{tapButton('in')}{tapButton('out')}</div>
+                                    {ready && action !== 'wait' && myRecord()?.pinSet && (
+                                        <button type="button" onClick={checkInWithPin} data-testid="att-pin-link"
+                                            className="mt-4 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold text-[#e6c65c] underline-offset-4 hover:underline [@media(max-height:520px)]:mt-2">
+                                            <KeyRound className="size-3.5" />Face not working? {action === 'out' ? 'Check out' : 'Check in'} with PIN
+                                        </button>
+                                    )}
                                 </div>
                             )}
                         </div>
