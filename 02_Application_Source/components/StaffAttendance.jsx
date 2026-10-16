@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { collection, doc, getDoc, onSnapshot, query, setDoc, where } from 'firebase/firestore';
-import { Camera, CheckCircle2, ChevronLeft, ChevronRight, Clock, LogIn, LogOut, MapPin, Pencil, RefreshCw, ScanFace, Search, Trash2, UserPlus } from 'lucide-react';
+import { Camera, CheckCircle2, ChevronLeft, ChevronRight, Clock, KeyRound, LogIn, LogOut, MapPin, Pencil, RefreshCw, ScanFace, Search, Trash2, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getServices, whenSignedIn } from '../lib/firebase';
@@ -8,6 +8,8 @@ import { normalizeRegistry } from '../lib/staff';
 import { toFirestore, trackWrite, useOnline } from '../lib/syncedState';
 import { StaffFormDialog } from './ops/StaffDirectory';
 import FaceDialog from './ops/FaceDialog';
+import PinDialog from './ops/PinDialog';
+import { verifyPin } from '../lib/staffPin';
 import { allStaff, setStaffStatus } from '../lib/staffDirectory';
 import { faceKey, FACES, findFaces, faceQuality, registeredFace, registerFace, sameFace, otherFace, warmUpFaces } from '../lib/faceMatch';
 import {
@@ -63,6 +65,9 @@ export default function StaffAttendance() {
     const [adding, setAdding] = useState(false);   // "New staff register" form open
     const [editing, setEditing] = useState(null);  // staff record whose details are being edited
     const [faceBox, setFaceBox] = useState(null);  // { staff, face } while "Re-scan face" is open
+    const [pinAsk, setPinAsk] = useState(null);    // { rec, title, then } while a PIN is asked
+    const [pinFallback, setPinFallback] = useState(false);   // the face did not work: offer the PIN
+    const lastPhotoRef = useRef(null);             // the last camera photo (kept for a PIN check-in)
     const [logs, setLogs] = useState([]);
     const [ready, setReady] = useState(false);
     const [me, setMe] = useState(readSaved);
@@ -168,10 +173,16 @@ export default function StaffAttendance() {
         setRegistry(next);
     };
     const myRecord = () => (registry ? allStaff(registry).find(x => x.name === me) : null);
-    const editMe = () => { const r = myRecord(); if (r) setEditing(r); };
-    const rescanMe = async () => {
-        const r = myRecord();
-        if (!r) return;
+    const recordOf = (name) => (registry ? allStaff(registry).find(x => x.name === name) : null);
+    // someone with a PIN (the same as in TimeStation) must type it first; without a PIN it goes straight on
+    const requirePin = (rec, title, then) => {
+        if (!rec?.pinSet || !rec.staffId) { then(); return; }
+        setPinAsk({ rec, title, then });
+    };
+    const editMe = () => { const r = myRecord(); if (r) requirePin(r, `PIN of ${r.name}`, () => setEditing(r)); };
+    const editFromList = (name) => { const r = recordOf(name); if (r) requirePin(r, `PIN of ${r.name}`, () => setEditing(r)); };
+    const rescanMe = () => { const r = myRecord(); if (r) requirePin(r, `PIN of ${r.name}`, () => openRescan(r)); };
+    const openRescan = async (r) => {
         let face = null;
         try {
             await whenSignedIn();
@@ -186,8 +197,8 @@ export default function StaffAttendance() {
         setFaceBox({ staff: r, face, photo });
     };
     // "Delete" = this person has left: off the list, the TV and the counts; their old attendance stays
-    const removeMe = () => {
-        const r = myRecord();
+    const removeMe = () => { const r = myRecord(); if (r) requirePin(r, `PIN of ${r.name}`, () => doRemove(r)); };
+    const doRemove = (r) => {
         if (!r || !window.confirm(`Delete ${r.name} from the staff list? (Marked as left today - old attendance is kept.)`)) return;
         const d = new Date();
         saveRegistry(setStaffStatus(registry, r.id, 'Left', `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`));
@@ -228,13 +239,14 @@ export default function StaffAttendance() {
         const retry = (msg) => {
             setChecking(false); busyRef.current = false;
             // nobody in front of the camera for a while: close it (battery) and wait for a new tap
-            if (attempt + 1 >= MAX_FACE_TRIES) { stopCamera(); setStep('home'); setError(`${msg} Tap ${action === 'in' ? 'CHECK IN' : 'CHECK OUT'} to try again.`); return; }
+            if (attempt + 1 >= MAX_FACE_TRIES) { stopCamera(); setStep('home'); setError(`${msg} Tap ${action === 'in' ? 'CHECK IN' : 'CHECK OUT'} to try again.`); setPinFallback(true); return; }
             setError(msg); setAttempt(a => a + 1);
         };
         const frame = fullFrame(video);
         const shot = snap(video);
         if (!shot.url) { retry('Photo could not be saved, try again.'); return; }
         const photo = shot.url;
+        lastPhotoRef.current = photo;
         // 1. one clear face, close enough
         let faces;
         try { faces = await findFaces(frame); } catch { retry('Face check could not start. Check internet and try again.'); return; }
@@ -244,7 +256,7 @@ export default function StaffAttendance() {
         const staff = names.find(n => n.name === me) || { name: me };
         let registered;
         try { registered = await registeredFace(staff); } catch { retry('Could not check your face. Check internet and try again.'); return; }
-        const refuse = (msg) => { stopCamera(); setChecking(false); busyRef.current = false; setStep('home'); setError(msg); };
+        const refuse = (msg) => { stopCamera(); setChecking(false); busyRef.current = false; setStep('home'); setError(msg); setPinFallback(true); };
         const live = quality.face.descriptor;
         let face = { check: 'registered' };
         if (registered) {
@@ -270,6 +282,13 @@ export default function StaffAttendance() {
         stopCamera();
         setChecking(false);
         busyRef.current = false;
+        await saveTap(photo, face, face.check === 'registered' ? { staff, descriptor: quality.face.descriptor } : null);
+    };
+
+    // Save one tap (check in, or move the check-out): the selfie, the row, and on a first check-in the face.
+    // Used after the face check, and after a right PIN when the face did not work.
+    const saveTap = async (photo, face, register) => {
+        setPinFallback(false);
         setStep('saving');
         const { loc, error: locError } = await (locRef.current || locate());
         const at = new Date();
@@ -278,7 +297,7 @@ export default function StaffAttendance() {
         const kind = nextAction(row0, at.getTime());
         if (kind === 'wait') { setStep('home'); return; }
         const id = row0 ? String(row0.id) : logIdFor(me, isoDate(at));
-        const photoId = `${id}-${kind}-${at.getTime()}`;
+        const photoId = photo ? `${id}-${kind}-${at.getTime()}` : null;   // a PIN tap with no camera photo has no selfie
         const fields = tapUpdate(row0, kind, { at, photoId, loc });
         fields[kind === 'in' ? 'inFace' : 'outFace'] = face;
         if (!loc) fields[kind === 'in' ? 'inLocError' : 'outLocError'] = locError;
@@ -288,8 +307,8 @@ export default function StaffAttendance() {
         const row = row0 ? fields : { id, staffName: me, date: dayKey(at), dateISO: isoDate(at), checkOut: '--', _order: at.getTime(), ...fields };
         try {
             const { db } = getServices();
-            await trackWrite(setDoc(doc(db, 'hotel_attendance_photos', photoId), { logId: id, kind, staffName: me, at: at.toISOString(), data: photo }));
-            if (face.check === 'registered') await registerFace(staff, quality.face.descriptor, photoId);   // first time: this face is now theirs
+            if (photo) await trackWrite(setDoc(doc(db, 'hotel_attendance_photos', photoId), { logId: id, kind, staffName: me, at: at.toISOString(), data: photo }));
+            if (register) await registerFace(register.staff, register.descriptor, photoId);   // first time: this face is now theirs
             await trackWrite(setDoc(doc(db, 'hotel_attendance', id), toFirestore(row), { merge: true }));
             const saved = { ...(row0 || {}), ...row };
             setResult({ kind, photo, loc, locError, face, at: at.toISOString(), time: kind === 'in' ? saved.checkIn : saved.checkOut, checkIn: saved.checkIn, hours: workedHours(saved) });
@@ -300,6 +319,12 @@ export default function StaffAttendance() {
         }
     };
     useEffect(() => { captureRef.current = capture; });   // the countdown always calls the latest capture
+    // the face did not work: the person's PIN (as in TimeStation) checks them in / out instead
+    const checkInWithPin = () => {
+        const r = myRecord();
+        if (!r) return;
+        requirePin(r, `PIN of ${r.name}`, () => saveTap(lastPhotoRef.current, { check: 'pin' }, null));
+    };
 
     const stamp = (iso) => new Date(iso).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
     const tapButton = (kind) => {
@@ -343,6 +368,21 @@ export default function StaffAttendance() {
                 {/* top bar, like the AuraLock terminal */}
                 {/* while the camera is open the advice is shown on the camera itself (that is where the person looks) */}
                 {error && step !== 'camera' && <div role="alert" data-testid="att-error" className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</div>}
+                {pinFallback && step === 'home' && myRecord()?.pinSet && (
+                    <Button data-testid="att-use-pin" onClick={checkInWithPin} className="h-12 w-full rounded-2xl bg-[#0a192f] text-sm font-black text-[#d4af37] hover:bg-[#0a192f]/90">
+                        <KeyRound />Face not working? {action === 'out' ? 'Check out' : 'Check in'} with your PIN
+                    </Button>
+                )}
+                <PinDialog open={!!pinAsk} title={pinAsk?.title || ''} description="The same 4-digit PIN as in TimeStation."
+                    onClose={() => setPinAsk(null)}
+                    onSubmit={async (pin) => {
+                        const ok = await verifyPin(pinAsk.rec.staffId, pin);
+                        if (!ok) return 'Wrong PIN. Try again.';
+                        const then = pinAsk.then;
+                        setPinAsk(null);
+                        then();
+                        return null;
+                    }} />
 
                 {!registry && !error && <p className="p-10 text-center text-sm text-slate-600">Loading…</p>}
 
@@ -380,7 +420,7 @@ export default function StaffAttendance() {
                                             </button>
                                             {/* edit this person's details straight from the list */}
                                             <button type="button" data-testid={`att-edit-${n.name}`} aria-label={`Edit details of ${n.name}`}
-                                                onClick={() => { const r = registry ? allStaff(registry).find(x => x.name === n.name) : null; if (r) setEditing(r); }}
+                                                onClick={() => editFromList(n.name)}
                                                 className="mr-2 grid size-10 shrink-0 place-items-center rounded-xl border border-slate-200 text-slate-700 hover:bg-[#d4af37]/10 active:bg-[#d4af37]/20">
                                                 <Pencil className="size-4" />
                                             </button>
@@ -512,7 +552,9 @@ export default function StaffAttendance() {
                 {step === 'done' && result && (
                     <section data-testid="att-done" className="flex min-h-[80dvh] flex-col items-center justify-center gap-6 text-center">
                         <div className={cn('relative w-64 max-w-[80vw] overflow-hidden rounded-2xl border-4 bg-black shadow-xl', result.kind === 'in' ? 'border-[#d4af37]' : 'border-[#0a192f]')}>
-                            <img src={result.photo} alt="Your selfie" className="block h-auto w-full -scale-x-100" />
+                            {result.photo
+                                ? <img src={result.photo} alt="Your selfie" className="block h-auto w-full -scale-x-100" />
+                                : <div className="grid h-48 place-items-center bg-[#0a192f] text-[#d4af37]"><KeyRound className="size-12" /></div>}
                             <div className="absolute inset-x-0 bottom-0 bg-black/70 px-3 py-2 text-left">
                                 <div className="truncate text-sm font-bold text-white">{me}</div>
                                 <div className={cn('text-[11px] font-black tracking-wider', result.kind === 'in' ? 'text-[#e6c65c]' : 'text-sky-200')}>{result.kind === 'in' ? 'CHECK IN' : 'CHECK OUT'}  {stamp(result.at)} IST</div>
@@ -536,7 +578,7 @@ export default function StaffAttendance() {
                             )}
                             {result.face && (
                                 <div data-testid="att-face" className="mt-3 text-xs font-semibold text-emerald-800">
-                                    <div className="flex items-center justify-center gap-1"><CheckCircle2 aria-hidden className="size-3.5" />{result.face.check === 'matched' ? 'Face verified ✓' : 'Face registered ✓ (first check-in) - next time it must match'}</div>
+                                    <div className="flex items-center justify-center gap-1"><CheckCircle2 aria-hidden className="size-3.5" />{result.face.check === 'matched' ? 'Face verified ✓' : result.face.check === 'pin' ? 'Checked with your PIN ✓' : 'Face registered ✓ (first check-in) - next time it must match'}</div>
                                     {result.face.check === 'registered' && <div className="mt-0.5 font-normal text-slate-600">Saved as a match code, used only for Hotel Sky 5 attendance.</div>}
                                 </div>
                             )}

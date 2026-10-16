@@ -92,3 +92,20 @@ test('attendance rows: need a staff name; hours must be a real number of hours; 
     expect((await put(request, 'hotel_attendance/a8', { ...row, inLoc: 'Panchkula' })).status()).toBe(403);
     expect((await request.delete(`${base}/hotel_attendance/a1`, { headers: { Authorization: `Bearer ${user}` } })).status()).toBe(403);
 });
+
+test('staff PINs: nobody can read them; a check succeeds only with the right hash; first PIN once; a change needs the old PIN', async ({ request }) => {
+    const H = (c) => c.repeat(64);
+    expect((await put(request, 'hotel_staff_pins/SKY5-030', { h: H('a'), at: 'x' })).status()).toBe(200);
+    expect((await request.get(`${base}/hotel_staff_pins/SKY5-030`, { headers: { Authorization: `Bearer ${user}` } })).status()).toBe(403);   // never readable
+    expect((await put(request, 'hotel_pin_checks/c1', { staffId: 'SKY5-030', h: H('a'), at: 'x' })).status()).toBe(200);   // right PIN
+    expect((await put(request, 'hotel_pin_checks/c2', { staffId: 'SKY5-030', h: H('b'), at: 'x' })).status()).toBe(403);   // wrong PIN
+    expect((await put(request, 'hotel_pin_checks/c3', { staffId: 'SKY5-031', h: H('a'), at: 'x' })).status()).toBe(403);   // nobody's PIN
+    expect((await request.get(`${base}/hotel_pin_checks/c1`, { headers: { Authorization: `Bearer ${user}` } })).status()).toBe(403);
+    expect((await put(request, 'hotel_staff_pins/SKY5-030', { h: H('c'), at: 'x' })).status()).toBe(403);                   // overwrite without the old PIN
+    expect((await put(request, 'hotel_staff_pins/SKY5-030', { h: H('c'), at: 'x', old: H('b') })).status()).toBe(403);      // wrong old PIN
+    expect((await put(request, 'hotel_staff_pins/SKY5-030', { h: H('c'), at: 'x', old: H('a') })).status()).toBe(200);      // right old PIN
+    expect((await put(request, 'hotel_pin_checks/c4', { staffId: 'SKY5-030', h: H('c'), at: 'x' })).status()).toBe(200);
+    expect((await put(request, 'hotel_staff_pins/bad', { h: H('a'), at: 'x' })).status()).toBe(403);
+    expect((await put(request, 'hotel_staff_pins/SKY5-032', { h: '1234', at: 'x' })).status()).toBe(403);                   // a plain PIN is refused
+    expect((await request.delete(`${base}/hotel_staff_pins/SKY5-030`, { headers: { Authorization: `Bearer ${user}` } })).status()).toBe(403);
+});

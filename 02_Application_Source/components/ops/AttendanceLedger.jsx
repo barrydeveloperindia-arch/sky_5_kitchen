@@ -97,7 +97,7 @@ export default function AttendanceLedger({
                                                 <Avatar name={log.staffName} photo={info?.photo} />
                                                 <div>
                                                     <div className="font-semibold text-primary">{log.staffName}</div>
-                                                    <div className="text-[11px] text-muted-foreground">{log.source === 'face-scan' ? `Face scan (terminal) · ${log.staffId}` : log.source === 'staff-web' ? 'Self check-in (phone)' : `Log #${String(log.id).padStart(3, '0')}`}</div>
+                                                    <div className="text-[11px] text-muted-foreground">{log.source === 'face-scan' ? `Face scan (terminal) · ${log.staffId}` : log.source === 'staff-web' ? `Self check-in (phone)${log.inFace?.check === 'pin' || log.outFace?.check === 'pin' ? ' · PIN' : ''}` : `Log #${String(log.id).padStart(3, '0')}`}</div>
                                                 </div>
                                             </div>
                                         </TableCell>

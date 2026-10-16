@@ -60,6 +60,28 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Staff PINs: only a hash of "staff ID + PIN"; no device may ever read it. A first PIN can be saved once;
+    // a change must carry the hash of the old PIN. Never deleted.
+    match /hotel_staff_pins/{id} {
+      allow read, delete: if false;
+      allow create: if signedIn() && id.matches('SKY5-[0-9]{3}')
+        && request.resource.data.keys().hasOnly(['h', 'at'])
+        && request.resource.data.h is string && request.resource.data.h.size() == 64;
+      allow update: if signedIn()
+        && request.resource.data.keys().hasOnly(['h', 'at', 'old'])
+        && request.resource.data.h is string && request.resource.data.h.size() == 64
+        && request.resource.data.old == resource.data.h;
+    }
+    // A PIN check: the write is allowed only when the hash matches the saved PIN (right PIN = success).
+    match /hotel_pin_checks/{id} {
+      allow read, update, delete: if false;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['staffId', 'h', 'at'])
+        && request.resource.data.staffId is string
+        && exists(/databases/$(database)/documents/hotel_staff_pins/$(request.resource.data.staffId))
+        && request.resource.data.h == get(/databases/$(database)/documents/hotel_staff_pins/$(request.resource.data.staffId)).data.h;
+    }
+
     // Money fields must be real, non-negative numbers when present
     function okMoney(d, k) { return !(k in d) || (d[k] is number && d[k] >= 0); }
     // Basic shape checks so a bad or garbled save can never corrupt a room bill or a settlement

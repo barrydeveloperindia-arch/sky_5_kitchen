@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { collection, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
-import { Camera, IdCard, Pencil, Phone, ScanFace, Search, UserMinus, UserPlus, UserRoundCheck } from 'lucide-react';
+import { Camera, IdCard, KeyRound, Pencil, Phone, ScanFace, Search, UserMinus, UserPlus, UserRoundCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,8 @@ import { trackWrite } from '../../lib/syncedState';
 import { MAX_PHOTO_CHARS } from '../../lib/staffAttendance';
 import { resetFace, faceKey, FACES } from '../../lib/faceMatch';
 import FaceDialog from './FaceDialog';
+import PinDialog from './PinDialog';
+import { savePin, verifyPin } from '../../lib/staffPin';
 import {
     DEPARTMENTS, deptLabel, allStaff, isLeft, nextStaffId, validateStaff, addStaff, updateStaff, setStaffStatus, filterStaff, staffCounts, EMPTY_FORM,
 } from '../../lib/staffDirectory';
@@ -209,6 +211,27 @@ export default function StaffDirectory({ registry, onChange, onAdd, onEdit }) {
     }, []);
     const faceOf = (s) => { const f = faces[faceKey(s)]; return f && !f.reset && f.descriptor?.length === 128 ? f : null; };
     const [faceFor, setFaceFor] = useState(null);   // the person whose Face box is open
+    // PIN set / change: { staff, step: 'old' | 'new' | 'again', old, pin }
+    const [pinFlow, setPinFlow] = useState(null);
+    const markPinSet = (st) => {
+        const next = { ...registry };
+        for (const d of DEPARTMENTS) next[d.key] = (registry[d.key] || []).map(p => (p.id === st.id ? { ...p, pinSet: true } : p));
+        onChange(next);
+    };
+    const pinStep = async (pin) => {
+        const f = pinFlow;
+        if (f.step === 'old') {
+            if (!(await verifyPin(f.staff.staffId, pin))) return 'Wrong current PIN.';
+            setPinFlow({ ...f, step: 'new', old: pin }); return null;
+        }
+        if (f.step === 'new') { setPinFlow({ ...f, step: 'again', pin }); return null; }
+        if (pin !== f.pin) return 'Not the same as the first time. Type it again (or close and start over).';
+        const ok = await savePin(f.staff.staffId, pin, f.old ?? null);
+        if (!ok) return f.old ? 'Could not change the PIN.' : 'A PIN is already saved for this person - use Change PIN.';
+        markPinSet(f.staff);
+        setPinFlow(null);
+        return null;
+    };
     const faceChanged = (s, rec) => setFaces(f => ({ ...f, [faceKey(s)]: rec }));
     // a face taken in the Face box is also the person's staff photo
     const photoSaved = (s, data) => {
@@ -322,6 +345,7 @@ export default function StaffDirectory({ registry, onChange, onAdd, onEdit }) {
                                         <Button size="xs" variant="outline" onClick={() => idCard(s)} aria-label={`ID card of ${s.name}`} data-testid={`sd-card-${s.name}`}><IdCard />ID card</Button>
                                         {!isLeft(s) && <Button size="xs" variant="outline" onClick={() => setFaceFor(s)} aria-label={`Face of ${s.name}`} data-testid={`sd-face-open-${s.name}`}
                                             className={faceOf(s) ? '' : 'border-amber-400 bg-amber-50 font-bold text-amber-900'}><ScanFace />{faceOf(s) ? 'Face' : 'Register face'}</Button>}
+                                        {!isLeft(s) && s.staffId && <Button size="xs" variant="outline" onClick={() => setPinFlow({ staff: s, step: s.pinSet ? 'old' : 'new' })} aria-label={`PIN of ${s.name}`} data-testid={`sd-pin-${s.name}`}><KeyRound />{s.pinSet ? 'Change PIN' : 'Set PIN'}</Button>}
                                         <Button size="xs" variant="ghost" onClick={() => toggleLeft(s)} aria-label={isLeft(s) ? `Mark ${s.name} active again` : `Mark ${s.name} as left`} data-testid={`sd-left-${s.name}`}>
                                             {isLeft(s) ? <><UserRoundCheck />Rejoin</> : <><UserMinus />Left</>}
                                         </Button>
@@ -357,6 +381,11 @@ export default function StaffDirectory({ registry, onChange, onAdd, onEdit }) {
                     </ul>
                 </div>
             )}
+
+            <PinDialog open={!!pinFlow}
+                title={!pinFlow ? '' : pinFlow.step === 'old' ? `Current PIN of ${pinFlow.staff.name}` : pinFlow.step === 'new' ? `New PIN for ${pinFlow.staff.name}` : 'Type the new PIN again'}
+                description="4 digits - the same PIN as in TimeStation. Used when the face does not work and to edit / delete."
+                onClose={() => setPinFlow(null)} onSubmit={pinStep} />
 
             <FaceDialog staff={faceFor} face={faceFor ? faceOf(faceFor) : null}
                 photoSrc={faceFor ? (faceFor.photoId && photoCache.get(faceFor.photoId)) || faceFor.photo || null : null}
