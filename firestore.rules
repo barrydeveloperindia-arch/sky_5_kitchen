@@ -53,8 +53,9 @@ service cloud.firestore {
     match /hotel_staff_faces/{id} {
       allow read: if signedIn();
       allow create, update: if signedIn()
-        && request.resource.data.keys().hasOnly(['staffName', 'staffId', 'descriptor', 'source', 'photoId', 'at', 'reset'])
+        && request.resource.data.keys().hasOnly(['staffName', 'staffId', 'descriptor', 'source', 'photoId', 'at', 'reset', 'samples'])
         && request.resource.data.descriptor is list
+        && (!('samples' in request.resource.data) || (request.resource.data.samples is list && request.resource.data.samples.size() <= 4))
         && ((request.resource.data.reset == false && request.resource.data.descriptor.size() == 128 && request.resource.data.source in ['staff-photo', 'first-check-in'])
             || (request.resource.data.reset == true && request.resource.data.descriptor.size() == 0 && request.resource.data.source == 'reset'));
       allow delete: if false;

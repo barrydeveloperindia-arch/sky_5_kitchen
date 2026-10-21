@@ -356,3 +356,15 @@ test('Cancel while the face is being checked: nothing is saved afterwards', asyn
     await scan(page, 'in');
     await expect(page.getByTestId('att-done-name')).toHaveText('Varun', { timeout: 15000 });
 });
+
+test('one scan looks at several camera frames: a blink / no face in the first frame does not fail the scan', async ({ page }) => {
+    await page.evaluate(() => {
+        let n = 0;
+        const face = { descriptor: Array.from({ length: 128 }, () => 0.01), score: 0.95, width: 400 };
+        window.__FACE_TEST__.findFaces = () => (n++ === 0 ? [] : [face]);   // first frame: no face
+    });
+    await page.getByTestId('att-in').click();
+    await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
+    await page.getByTestId('att-capture').click();
+    await expect(page.getByTestId('att-done-name')).toHaveText('Varun', { timeout: 15000 });
+});

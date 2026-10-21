@@ -104,6 +104,13 @@ export function sameFace(live, registered) {
     return { match: d <= MATCH_DISTANCE, distance: Number.isFinite(d) ? Math.round(d * 1000) / 1000 : null };
 }
 
+// A face record holds the registered face plus up to MAX_SAMPLES faces learned later (like AuraLock: the face of
+// someone who had to use the PIN is added, so the next scan recognises how they look now - other light, beard...).
+export const MAX_SAMPLES = 4;
+export const faceSet = (rec) => (!rec || rec.reset ? [] : [rec.descriptor, ...(Array.isArray(rec.samples) ? rec.samples.map(x => x?.d) : [])].filter(d => Array.isArray(d) && d.length === 128));
+// distance from a live face to the nearest picture of this person
+export const nearest = (live, rec) => faceSet(rec).reduce((m, d) => Math.min(m, distance(live, d)), Infinity);
+
 // One face record per person: staff ID when there is one, else the name
 export const faceKey = (staff) => (staff?.staffId ? staff.staffId : `name-${String(staff?.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`);
 
@@ -147,10 +154,10 @@ export async function otherFace(live, staff) {
     let best = null;
     for (const d of snap.docs) {
         const rec = d.data();
-        if (d.id === self || rec.reset || !Array.isArray(rec.descriptor) || rec.descriptor.length !== 128) continue;
+        if (d.id === self || !faceSet(rec).length) continue;
         if (reg.exists() && !working.has(d.id)) continue;
-        const r = sameFace(live, rec.descriptor);
-        if (r.match && (!best || r.distance < best.distance)) best = { staffName: rec.staffName, distance: r.distance, same: r.distance < DUPLICATE_BLOCK };
+        const dist = Math.round(nearest(live, rec) * 1000) / 1000;
+        if (dist <= MATCH_DISTANCE && (!best || dist < best.distance)) best = { staffName: rec.staffName, distance: dist, same: dist < DUPLICATE_BLOCK };
     }
     return best;
 }
@@ -203,7 +210,7 @@ export async function identifyFace(live, staffList) {
     const recs = new Map();
     for (const d of snap.docs) {
         const rec = d.data();
-        if (!rec.reset && Array.isArray(rec.descriptor) && rec.descriptor.length === 128) recs.set(d.id, rec);
+        if (faceSet(rec).length) recs.set(d.id, rec);
     }
     // a staff photo from the manager that is not a face record yet: make it one now (saved for next time)
     for (const s of staffList) {
@@ -215,12 +222,26 @@ export async function identifyFace(live, staffList) {
     for (const s of staffList) {
         const rec = recs.get(faceKey(s));
         if (!rec) continue;
-        const d = distance(live, rec.descriptor);
+        const d = nearest(live, rec);
         if (!best || d < best.d) { second = best; best = { staff: s, d, rec }; } else if (!second || d < second.d) second = { staff: s, d };
     }
     if (!best || best.d > MATCH_DISTANCE) return { staff: null };
     if (second && second.d <= MATCH_DISTANCE && second.d - best.d < MATCH_MARGIN) return { staff: null, unsure: true };
     return { staff: best.staff, distance: Math.round(best.d * 1000) / 1000, source: best.rec.source };
+}
+
+// Learn how this person looks now: add the live face to their record (newest MAX_SAMPLES kept). Only called when
+// it is certain who it is (their PIN was right) and the face is not closer to anyone else.
+export async function learnFace(staff, live) {
+    await whenSignedIn();
+    const { db } = getServices();
+    const ref = doc(db, FACES, faceKey(staff));
+    const snap = await getDoc(ref);
+    const rec = snap.exists() ? snap.data() : null;
+    if (!rec || rec.reset || !Array.isArray(rec.descriptor) || rec.descriptor.length !== 128) return null;
+    const samples = [...(Array.isArray(rec.samples) ? rec.samples : []), { d: live, at: new Date().toISOString() }].slice(-MAX_SAMPLES);
+    await trackWrite(setDoc(ref, { samples }, { merge: true }));
+    return samples.length;
 }
 
 // Does this person have a registered face (a face record or a usable staff photo)?

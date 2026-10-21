@@ -76,6 +76,11 @@ test('staff faces: 128 numbers from a staff photo or a first check-in, or an emp
     expect((await put(request, 'hotel_staff_faces/SKY5-023', { ...face, source: 'hacker' })).status()).toBe(403);
     expect((await put(request, 'hotel_staff_faces/SKY5-024', { ...face, aadhaar: '1234' })).status()).toBe(403);
     expect((await put(request, 'hotel_staff_faces/SKY5-025', face, null)).status()).toBe(403);   // signed in only
+    // faces learned later (PIN entries): up to 4 samples, never more
+    const sample = { d: Array.from({ length: 128 }, () => 0.2), at: '2026-10-21T10:00:00Z' };
+    expect((await put(request, 'hotel_staff_faces/SKY5-026', { ...face, samples: [sample, sample, sample, sample] })).status()).toBe(200);
+    expect((await put(request, 'hotel_staff_faces/SKY5-027', { ...face, samples: [sample, sample, sample, sample, sample] })).status()).toBe(403);
+    expect((await put(request, 'hotel_staff_faces/SKY5-028', { ...face, samples: 'lots' })).status()).toBe(403);
 });
 
 test('attendance rows: need a staff name; hours must be a real number of hours; no garbage in the flags', async ({ request }) => {

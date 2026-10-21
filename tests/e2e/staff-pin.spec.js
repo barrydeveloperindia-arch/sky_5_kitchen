@@ -213,3 +213,45 @@ test('phone turned sideways (740x360): the name list and the PIN pad stay inside
     for (const d of '4321') { await page.getByTestId(`pin-${d}`).scrollIntoViewIfNeeded(); await page.getByTestId(`pin-${d}`).click(); }
     await expect(page.getByTestId('att-done')).toContainText('Check In Successful', { timeout: 15000 });
 });
+
+test('a registered face that looks different today: after one PIN entry the face is learned and the next scan recognises the person; a stranger with that PIN teaches nothing', async ({ page }) => {
+    await personWithPin(page, 'Pin Person', '4321');
+    const staffId = (await page.getByTestId('sd-row-Pin Person').innerText()).match(/SKY5-\d{3}/)[0];
+    await seedFace(page, 'Pin Person', 0.30, staffId);   // registered some time ago
+    await toTerminal(page);
+    // today the same person looks a bit different (0.68 away: not recognised)
+    await showFace(page, 0.36);
+    await scan(page, 'in');
+    await expect(page.getByTestId('att-error')).toContainText('Face not recognised');
+    await page.getByTestId('att-capture').click();
+    await expect(page.getByTestId('att-face-failed')).toBeVisible();
+    await page.getByTestId('att-use-pin').click();
+    await page.getByTestId('att-pin-name-Pin Person').click();
+    await typePin(page, '4321');
+    await expect(page.getByTestId('att-face')).toContainText('face updated', { timeout: 15000 });
+    await page.getByRole('button', { name: 'Done' }).click();
+    const rec = (await readAll(page, 'hotel_staff_faces')).find(r => r.id === staffId);
+    expect(rec.f.samples.arrayValue.values).toHaveLength(1);
+
+    // next time: the face alone is enough
+    await page.clock.fastForward('03:00');
+    await scan(page, 'out');
+    await expect(page.getByTestId('att-done')).toContainText('Check Out Successful', { timeout: 15000 });
+    await expect(page.getByTestId('att-done-name')).toHaveText('Pin Person');
+    await expect(page.getByTestId('att-face')).toContainText('Face verified');
+    await page.getByRole('button', { name: 'Done' }).click();
+
+    // someone else who knows the PIN: the entry is saved (PIN), but their face is NOT added to Pin Person
+    await page.clock.fastForward('03:00');
+    await showFace(page, 0.9);
+    await scan(page, 'in');
+    await page.getByTestId('att-capture').click();
+    await expect(page.getByTestId('att-face-failed')).toBeVisible();
+    await page.getByTestId('att-use-pin').click();
+    await page.getByTestId('att-pin-name-Pin Person').click();
+    await typePin(page, '4321');
+    await expect(page.getByTestId('att-face')).toContainText('Checked with your PIN', { timeout: 15000 });
+    await expect(page.getByTestId('att-face')).not.toContainText('face updated');
+    const rec2 = (await readAll(page, 'hotel_staff_faces')).find(r => r.id === staffId);
+    expect(rec2.f.samples.arrayValue.values).toHaveLength(1);
+});
