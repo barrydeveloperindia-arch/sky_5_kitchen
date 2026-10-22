@@ -79,7 +79,6 @@ test('kitchen status, logs, attendance, settlements and staff edits are all save
     await page.locator('tr', { hasText: 'ORD-8241' }).getByRole('button', { name: 'PREPARE' }).click();
 
     await adminTab(page, 'attendance');
-    await page.locator('tr', { hasText: 'Arjun Tiwari' }).getByRole('button', { name: 'CHECK-OUT' }).click();
 
     await adminTab(page, 'workforce');
     await page.getByTestId('sd-edit-Gaurav Panchal').click();
@@ -99,7 +98,6 @@ test('kitchen status, logs, attendance, settlements and staff edits are all save
     await adminTab(page, 'kitchen');
     await expect(page.locator('tr', { hasText: 'ORD-8241' })).toContainText('Preparing', { timeout: 15000 });
     await adminTab(page, 'attendance');
-    await expect(page.locator('tr', { hasText: 'Arjun Tiwari' }).getByRole('button', { name: 'CHECK-OUT' })).toHaveCount(0);
     await adminTab(page, 'workforce');
     await expect(page.getByTestId('sd-row-Gaurav Panchal')).toContainText('9111111111');
     await adminTab(page, 'checkouts');

@@ -88,22 +88,15 @@ test('cleaning a dirty room frees it and the next guest starts with no food bill
     expect(errors).toEqual([]);
 });
 
-test('attendance quick CHECK-OUT updates the clicked row', async ({ page }) => {
+test('attendance register: no quick CHECK-IN / CHECK-OUT buttons - staff check in / out themselves (scan or PIN)', async ({ page }) => {
     await openAdmin(page);
     await adminTab(page, 'attendance');
-    const row = page.locator('tr', { hasText: 'Arjun Tiwari' });
-    await row.getByRole('button', { name: 'CHECK-OUT' }).click();
-    await expect(row.getByRole('button', { name: 'CHECK-OUT' })).toHaveCount(0);
-    await expect(row).toContainText(/\d{2}:\d{2}\s?(AM|PM)/);
-});
-
-test('attendance quick CHECK-IN updates the row instead of adding a duplicate', async ({ page }) => {
-    await openAdmin(page);
-    await adminTab(page, 'attendance');
-    await expect(page.locator('tr', { hasText: 'Amresh Kumar' })).toHaveCount(1);
-    await page.locator('tr', { hasText: 'Amresh Kumar' }).getByRole('button', { name: 'CHECK-IN' }).click();
-    await expect(page.locator('tr', { hasText: 'Amresh Kumar' })).toHaveCount(1);
-    await expect(page.locator('tr', { hasText: 'Amresh Kumar' }).getByRole('button', { name: 'CHECK-IN' })).toHaveCount(0);
+    await page.getByTestId('att-scope-all').click();
+    const ledger = page.getByTestId('attendance-ledger');
+    await expect(ledger.locator('tr', { hasText: 'Arjun Tiwari' }).first()).toBeVisible();
+    await expect(ledger.getByRole('button', { name: 'CHECK-OUT', exact: true })).toHaveCount(0);
+    await expect(ledger.getByRole('button', { name: 'CHECK-IN', exact: true })).toHaveCount(0);
+    await expect(ledger.getByRole('button', { name: '+ MANUAL LOG' })).toBeVisible();   // corrections: by the manager, with the real time
 });
 
 test('menu config: hidden item disappears from the shop, price change shows up', async ({ page }) => {

@@ -1,6 +1,6 @@
-import { describe, test, expect } from 'vitest';
+import { describe, test, it, expect } from 'vitest';
 import {
-    dayKey, isoDate, staffNames, findTodayLog, findActiveLog, nextAction, waitRemainingMs, formatWait, distanceM, hotelCheck, formatDistance, HOTEL_LOCATION, tapUpdate, workedHours, formatHours, logIdFor, toLoc, mapLink, DUPLICATE_GUARD_MS,
+    dayKey, isoDate, staffNames, findTodayLog, findActiveLog, nextAction, waitRemainingMs, formatWait, distanceM, hotelCheck, formatDistance, HOTEL_LOCATION, tapUpdate, workedHours, formatHours, logIdFor, toLoc, mapLink, DUPLICATE_GUARD_MS, parseShift, shiftLabel, clockLabel,
 } from '../../02_Application_Source/lib/staffAttendance';
 
 const at = new Date(2026, 9, 13, 9, 5); // 13 Oct 2026, 09:05 local
@@ -175,5 +175,26 @@ describe('both buttons always on: what a press does', () => {
         expect(back).toMatchObject({ checkOut: '--', outAt: null, hours: 0 });
         expect(back.checkIn).toBeUndefined();
         expect(back.backs).toEqual([expect.objectContaining({ photoId: 'p2', afterOut: '01:00 PM' })]);
+    });
+});
+
+describe('shifts as typed by the manager', () => {
+    it('reads the common ways of writing a shift', () => {
+        expect(parseShift('07:00 AM - 11:00 AM')).toEqual({ start: 420, end: 660 });
+        expect(parseShift('10:00 AM - 07:00 PM')).toEqual({ start: 600, end: 1140 });
+        expect(parseShift('09:00 to 6:00pm')).toEqual({ start: 540, end: 1080 });
+        expect(parseShift('7:00am to 18:000pm')).toEqual({ start: 420, end: 1080 });   // a typo in the register
+        expect(parseShift('22:00-06:00')).toEqual({ start: 1320, end: 360 });
+        expect(parseShift('12:00 AM to 8 AM')).toEqual({ start: 0, end: 480 });
+        expect(parseShift('Flexible')).toBe(null);
+        expect(parseShift('')).toBe(null);
+    });
+    it('shows one clean format', () => {
+        expect(shiftLabel('7:00am to 18:000pm')).toBe('07:00 AM – 06:00 PM');
+        expect(shiftLabel('09:00 to 6:00pm')).toBe('09:00 AM – 06:00 PM');
+        expect(shiftLabel('Flexible')).toBe('Flexible');
+        expect(shiftLabel('from 9')).toBe('From 09:00 AM');
+        expect(clockLabel(0)).toBe('12:00 AM');
+        expect(clockLabel(12 * 60)).toBe('12:00 PM');
     });
 });

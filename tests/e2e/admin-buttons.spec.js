@@ -339,7 +339,11 @@ test('attendance: calendar shows the real month, prev/next work, a day filters t
     await expect(page.getByTestId('cal-month')).toHaveText(now.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }));
     while (!(await page.getByTestId('cal-month').innerText()).startsWith('May')) await page.getByTestId('cal-prev').click();
     await page.getByTestId('cal-day-07-May').click();
-    await expect(page.getByTestId('att-empty')).toContainText('07-May');
+    // a past day with no entries: every working staff member is listed as ABSENT (a blank day is absent)
+    const ledger = page.getByTestId('attendance-ledger');
+    await expect(ledger.locator('tbody tr[data-status="absent"]').first()).toBeVisible();
+    await expect(ledger.locator('tbody tr:not([data-status="absent"])')).toHaveCount(0);
+    for (const d of await ledger.locator('tbody tr td:nth-child(5)').allInnerTexts()) expect(d.trim()).toBe('07-May');
     await page.getByTestId('cal-day-06-May').click();
     await expect(page.locator('tr', { hasText: 'Gaurav Panchal' })).toHaveCount(1);
     await page.getByTestId('att-scope-all').click();

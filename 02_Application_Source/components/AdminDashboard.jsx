@@ -36,11 +36,6 @@ const formatStayDate = (value) => {
     const d = parseStayDate(value);
     return d ? d.toLocaleDateString('en-GB') : (value || '--');
 };
-const toMinutes = (t) => {
-    const m = /(\d{1,2}):(\d{2})\s*(AM|PM)/i.exec(t || '');
-    if (!m) return null;
-    return ((+m[1] % 12) + (/pm/i.test(m[3]) ? 12 : 0)) * 60 + +m[2];
-};
 
 // Sample logs exist only in the test environment; the live hotel starts with empty logs.
 const sample = (rows) => (IS_TEST_ENV ? rows : []);
@@ -272,7 +267,9 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
         window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
     };
 
-    const ledgerLogs = ledgerScope === 'day' ? attendanceLogs.filter(l => l.date === activeAttendanceDate) : attendanceLogs;
+    // the people on the register (working staff), with their department, for Absent rows and the filters
+    const registerStaff = useMemo(() => [['reception', 'Reception'], ['kitchen', 'Kitchen'], ['housekeeping', 'Housekeeping']]
+        .flatMap(([k, dept]) => (activeStaff[k] || []).map(s => ({ name: s.name, staffId: s.staffId || '', dept, role: s.role || '', shift: s.shift || '' }))), [activeStaff]);
 
     const liveFoodBill = editingRoom ? (rooms.find(r => r.id === editingRoom.id)?.foodBill || 0) : 0;
 
@@ -930,16 +927,6 @@ function AdminDashboard({ onNavigate, orders, setOrders, menuItems, setMenuItems
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-    };
-
-    const handleQuickCheckIn = (logId) => {
-        const timeStr = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-        setAttendanceLogs(prev => prev.map(l => l.id === logId ? { ...l, checkIn: timeStr, status: 'Present' } : l));
-    };
-
-    const handleQuickCheckOut = (logId) => {
-        const timeStr = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-        setAttendanceLogs(prev => prev.map(l => l.id === logId ? { ...l, checkOut: timeStr } : l));
     };
 
     const handleShareAttendanceWhatsApp = () => {
@@ -1909,15 +1896,14 @@ _Generated via Sky-Ops Center_`;
                 {activeTab === 'Attendance' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
                         <AttendanceLedger
-                            logs={ledgerLogs} registry={staffRegistry}
+                            logs={attendanceLogs} staff={registerStaff} registry={staffRegistry} selectedToday={dayKey()}
                             presentToday={presentNames(attendanceLogs, dayKey()).size}
                             leaveToday={attendanceLogs.filter(l => l.date === dayKey() && /leave/i.test(l.status)).length}
                             upcomingHoliday={upcomingHoliday}
                             auditDate={`${activeAttendanceDate}-${calMonth.getFullYear()}`} selectedDay={activeAttendanceDate}
                             scope={ledgerScope} onScope={setLedgerScope}
                             onExport={handleExportAttendance} onShare={handleShareAttendanceWhatsApp}
-                            onEnroll={() => setStaffDialog({ editing: null })} onManual={() => setShowAttendanceModal(true)}
-                            onQuickIn={handleQuickCheckIn} onQuickOut={handleQuickCheckOut} toMinutes={toMinutes} />
+                            onEnroll={() => setStaffDialog({ editing: null })} onManual={() => setShowAttendanceModal(true)} />
 
                         {/* Leaves & Holidays Grid */}
                         <div className="ops-split-12-1" style={{ display: 'grid', gap: '30px' }}>

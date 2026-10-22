@@ -169,3 +169,32 @@ export const mapLink = (loc) => (loc ? `https://www.google.com/maps?q=${loc.lat}
 
 // Photo size limit (the database rule checks the same number)
 export const MAX_PHOTO_CHARS = 150000;
+
+// A shift as the manager typed it ("07:00 AM - 11:00 AM", "09:00 to 6:00pm", "7:00am to 18:000pm", "22:00-06:00")
+// -> { start, end } in minutes after midnight (end may be null), or null for "Flexible" / nothing usable.
+export function parseShift(text) {
+    const found = [...String(text || '').matchAll(/(\d{1,2})(?:[:.](\d{2}))?\d*\s*(am|pm)?/gi)].slice(0, 2);
+    if (!found.length) return null;
+    const toMin = (m) => {
+        let h = Number(m[1]);
+        const min = Number(m[2] || 0), ap = (m[3] || '').toLowerCase();
+        if (h > 23 || min > 59) return null;
+        if (h <= 12 && ap === 'pm' && h !== 12) h += 12;
+        if (h === 12 && ap === 'am') h = 0;
+        return h * 60 + min;
+    };
+    const start = toMin(found[0]);
+    const end = found[1] ? toMin(found[1]) : null;
+    return start === null ? null : { start, end };
+}
+export const clockLabel = (min) => {
+    if (min == null) return '';
+    const h = Math.floor(min / 60) % 24, m = min % 60;
+    return `${String(((h + 11) % 12) + 1).padStart(2, '0')}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
+};
+// The shift the way the register shows it: "07:00 AM – 06:00 PM", or "Flexible"
+export function shiftLabel(text) {
+    const s = parseShift(text);
+    if (!s) return 'Flexible';
+    return s.end == null ? `From ${clockLabel(s.start)}` : `${clockLabel(s.start)} – ${clockLabel(s.end)}`;
+}
