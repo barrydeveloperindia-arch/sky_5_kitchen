@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openAdmin } from './helpers';
+import { openAdmin, unlockAdmin } from './helpers';
 
 // A phone or PC that kept the app open while a new version went live asks for screen files that no longer
 // exist. The app then reloads once by itself and opens the new version, instead of showing a broken screen.
@@ -16,6 +16,7 @@ test('OPS Center file missing after an update: the app reloads once and opens no
     await page.goto('/');
     await expect(page.locator('.modern-item-card').first()).toBeVisible();
     await page.getByText('Admin', { exact: true }).filter({ visible: true }).first().click();
+    await unlockAdmin(page);
     // the reload brings back the shop (the start page); opening the OPS Center now works
     await expect.poll(() => loads.length).toBeGreaterThanOrEqual(2);
     expect(failed).toBe(1);

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { trackErrors, stubWindowOpen, adminTab } from './helpers';
+import { trackErrors, stubWindowOpen, adminTab, unlockAdmin } from './helpers';
 
 test.beforeEach(async ({ page }) => {
     await stubWindowOpen(page);
@@ -54,6 +54,7 @@ test('guest orders food to a room: cart -> payment -> invoice -> kitchen + room 
 
     if (isMobile) return; // dashboard checks are desktop-only
     await page.getByText('Admin', { exact: true }).filter({ visible: true }).first().click();
+    await unlockAdmin(page);
     await adminTab(page, 'kitchen');
     await expect(page.locator('tr', { hasText: 'Room 5' }).first()).toContainText('2x Aloo Paratha Combo, 1x Tea');
 

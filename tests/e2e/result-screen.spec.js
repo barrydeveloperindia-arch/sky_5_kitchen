@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { trackErrors, stubWindowOpen, openAdmin, fakeFaces, showFace, seedFace } from './helpers';
+import { trackErrors, stubWindowOpen, openAdmin, fakeFaces, showFace, seedFace, cameraUp } from './helpers';
 
 // The screen after a scan, like an office face terminal: a clear status band, the registered photo next to the
 // live photo, name / ID / time / how it was verified / where, today's in-out-hours, a tone and a spoken line.
@@ -35,8 +35,7 @@ test.afterEach(() => { expect(errors, 'no console errors').toEqual([]); });
 
 const scan = async (page, kind = 'in') => {
     await page.getByTestId(`att-${kind}`).click();
-    await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
-    await page.getByTestId('att-capture').click();
+    await cameraUp(page);
 };
 
 test('check in, then check out: status band, live photo, name, details, today, tone and voice', async ({ page }) => {
@@ -88,7 +87,6 @@ test('a face nobody registered: the screen says so and the phone says "Face not 
     await showFace(page, 0.9);
     await scan(page);
     await expect(page.getByTestId('att-error')).toContainText('Face not recognised');
-    await page.getByTestId('att-capture').click();
     await expect(page.getByTestId('att-face-failed')).toBeVisible();
     await expect.poll(() => page.evaluate(() => window.__said)).toEqual(expect.arrayContaining(['Face not recognised. Please try again.']));
     await expect(page.getByTestId('att-done')).toHaveCount(0);

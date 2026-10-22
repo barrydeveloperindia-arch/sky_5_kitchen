@@ -10,7 +10,7 @@ import { toFirestore, trackWrite, useOnline } from '../lib/syncedState';
 import PinDialog from './ops/PinDialog';
 import { verifyPin } from '../lib/staffPin';
 import { speakAttendance, speakFailed, unlockSound } from '../lib/voice';
-import { findFaces, faceQuality, identifyFace, registeredFace, registeredPhoto, registerFace, otherFace, warmUpFaces, learnFace, nearest } from '../lib/faceMatch';
+import { FACES, faceSet, findFaces, faceQuality, identifyIn, preparePhotoFaces, registeredFace, registeredPhoto, registerFace, otherFace, warmUpFaces, learnFace, nearest } from '../lib/faceMatch';
 import {
     dayKey, isoDate, staffNames, hotelCheck, formatDistance, findActiveLog, pressDecision, timeLabel, tapUpdate, logIdFor, toLoc, workedHours, formatHours,
     MAX_PHOTO_CHARS,
@@ -26,13 +26,16 @@ const DEPTS = [['reception', 'Front Desk & Management'], ['kitchen', 'Kitchen'],
 const NO_NET = 'No internet. Connect and open the link again.';
 const DONE_SECONDS = 10;          // the result screen goes back to the start by itself
 const NOTE_SECONDS = 6;           // a short note (already checked in...) disappears by itself
-const AUTO_PHOTO_SECONDS = 2;     // the photo is taken by itself after this countdown (owner: 2 s)
-const MAX_FACE_TRIES = 4;         // photos without a usable face before the camera closes by itself
-const FRAMES_PER_SCAN = 4;       // one scan looks at up to 4 camera frames ...
-const AGREE_FRAMES = 2;          // ... and the same person must be recognised in 2 of them
+// The camera scans by itself as soon as it opens (no countdown, no button), like the AuraLock terminal:
+const AGREE_FRAMES = 2;           // the same person recognised in 2 frames = done (about 1-2 s on a phone)
+const UNKNOWN_FRAMES = 6;         // clear frames of a face nobody registered: then "not recognised"
+const SCAN_TIMEOUT_MS = 12000;    // nobody usable in front of the camera for this long: the camera closes
+const FRAME_GAP_MS = 60;          // a short breath between frames (keeps the phone cool)
+const CAMERA_WAIT_MS = 6000;      // a camera that has not started by then is asked again
+const LOC_FRESH_MS = 120000;      // a location found on the start screen is used if it is this recent
 const LEARN_LIMIT = 0.7;          // a PIN entry teaches the face only if it still resembles the person's own face
-const MAX_UNKNOWN_TRIES = 2;      // clear photos of a face nobody registered: then "not recognised"
 const PHOTO_FRESH_MS = 60000;     // a PIN entry uses the camera photo only if it was taken this recently
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const initials = (n) => String(n || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
 
 // The camera frame at full size, for the face check (a small photo loses face detail)
@@ -77,7 +80,6 @@ export default function StaffAttendance() {
     const [ready, setReady] = useState(false);
     const [step, setStep] = useState('home');      // home | camera | saving | done
     const [kind, setKind] = useState(null);        // the button pressed: 'in' | 'out'
-    const [error, setError] = useState('');        // shown on the camera while trying
     const [failed, setFailed] = useState(null);    // { msg } the face did not work: Try again / Use PIN
     const [note, setNote] = useState(null);        // { name, msg } e.g. "already checked in" - no new entry
     const [result, setResult] = useState(null);
@@ -86,16 +88,14 @@ export default function StaffAttendance() {
     const [search, setSearch] = useState('');
     const [pinAsk, setPinAsk] = useState(null);       // { rec } while the PIN is asked
     const [now, setNow] = useState(() => Date.now());
-    const [autoIn, setAutoIn] = useState(null);
-    const [attempt, setAttempt] = useState(0);
-    const [checking, setChecking] = useState(false);
+    const [scanMsg, setScanMsg] = useState('');      // what the camera sees right now (e.g. "Come closer")
     const online = useOnline();
     const videoRef = useRef(null);
     const streamRef = useRef(null);
     const locRef = useRef(null);
-    const busyRef = useRef(false);
-    const captureRef = useRef(null);
-    const unknownRef = useRef(0);
+    const facesRef = useRef(new Map());   // every registered face, kept live on the phone (scan without network)
+    const staffRef = useRef([]);
+    const locCache = useRef(null);       // { at, value } a location found while on the start screen
     const runRef = useRef(0);   // changes on every new press / cancel: a scan that was cancelled must not save anything
     const lastRef = useRef({ photo: null, face: null, at: 0 });   // the last camera photo + its face (for a PIN entry right after)
     const today = dayKey(new Date(now));
@@ -110,6 +110,11 @@ export default function StaffAttendance() {
             const { db } = getServices();
             unsubs.push(onSnapshot(doc(db, 'hotel_state', 'staffRegistry'), s => setRegistry(normalizeRegistry(s.exists() ? s.data().value : {})),
                 () => setFailed({ msg: NO_NET })));
+            unsubs.push(onSnapshot(collection(db, FACES), s => {
+                const m = new Map();
+                for (const d of s.docs) { const rec = d.data(); if (faceSet(rec).length) m.set(d.id, rec); }
+                facesRef.current = m;
+            }, () => {}));
             unsubs.push(onSnapshot(query(collection(db, 'hotel_attendance'), where('date', 'in', [today, yesterday])), s => {
                 setLogs(s.docs.map(d => d.data()));
                 setReady(true);
@@ -125,10 +130,15 @@ export default function StaffAttendance() {
     useEffect(() => {
         if (step !== 'home') return undefined;
         const t = setTimeout(() => { warmUpFaces().catch(() => {}); }, 1200);
-        return () => clearTimeout(t);
+        // know where the phone is before anybody presses a button (saving then never waits for GPS)
+        const fetchLoc = () => locate().then(v => { if (v.loc) locCache.current = { at: Date.now(), value: v }; });
+        fetchLoc();
+        const l = setInterval(fetchLoc, 90000);
+        return () => { clearTimeout(t); clearInterval(l); };
     }, [step]);
 
     const staff = registry ? staffNames(registry) : [];
+    useEffect(() => { staffRef.current = staff; preparePhotoFaces(facesRef.current, staff).catch(() => {}); });
     const deptLabel = (dept) => DEPTS.find(([k]) => k === dept)?.[1] || '';
     // who is in right now (today's rows plus a night shift still open)
     const present = staff.filter(s => { const l = findActiveLog(logs, s, new Date(now)); return l && has(l.checkIn) && !has(l.checkOut); }).length;
@@ -147,23 +157,6 @@ export default function StaffAttendance() {
         return () => clearTimeout(t);
     }, [note]);
 
-    // Automatic photo: once the camera shows a picture, count 2-1 and take it
-    useEffect(() => {
-        if (step !== 'camera') return undefined;
-        let leftS = null, stopped = false;
-        const t = setInterval(() => {
-            if (stopped) return;
-            if (leftS === null) {
-                if (videoRef.current?.videoWidth) { leftS = AUTO_PHOTO_SECONDS; setAutoIn(leftS); }
-                return;
-            }
-            leftS -= 1;
-            setAutoIn(leftS);
-            if (leftS <= 0) { stopped = true; clearInterval(t); captureRef.current?.(); }
-        }, 1000);
-        return () => { stopped = true; clearInterval(t); setAutoIn(null); };
-    }, [step, attempt]);
-
     // Put the camera on screen once the video box exists
     useEffect(() => {
         const video = videoRef.current, stream = streamRef.current;
@@ -174,24 +167,37 @@ export default function StaffAttendance() {
 
     const press = async (k) => {
         unlockSound();
-        setFailed(null); setNote(null); setError('');
+        setFailed(null); setNote(null);
         setKind(k);
         runRef.current += 1;
-        setAttempt(0); unknownRef.current = 0;
+        setScanMsg('');
         lastRef.current = { photo: null, face: null, at: 0 };
-        locRef.current = locate();   // ask for location while the camera opens
+        // a recent location from the start screen at once; a fresh one is asked for as well
+        const cached = locCache.current && Date.now() - locCache.current.at < LOC_FRESH_MS ? locCache.current.value : null;
+        const fresh = locate();
+        locRef.current = cached ? Promise.race([fresh, sleep(1500).then(() => cached)]) : fresh;
         warmUpFaces().catch(() => {});
+        const run = runRef.current;
+        // a camera that does not answer is asked once more; if it still does not start, say so (never wait silently)
+        const open = () => new Promise((resolve, reject) => {
+            const late = setTimeout(() => reject(new Error('timeout')), CAMERA_WAIT_MS);
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 } }, audio: false })
+                .then(s => { clearTimeout(late); if (run !== runRef.current) { s.getTracks().forEach(t => t.stop()); reject(new Error('cancelled')); } else resolve(s); },
+                    e => { clearTimeout(late); reject(e); });
+        });
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 } }, audio: false });
+            let stream;
+            try { stream = await open(); } catch (e) { if (e?.message !== 'timeout') throw e; stream = await open(); }
             streamRef.current = stream;
             setStep('camera');
-        } catch {
-            setFailed({ msg: 'Camera permission is needed. Allow the camera for this app and try again.' });
+        } catch (e) {
+            if (e?.message === 'cancelled') return;
+            setFailed({ msg: e?.message === 'timeout' ? 'Camera did not start. Close other camera apps and try again.' : 'Camera permission is needed. Allow the camera for this app and try again.' });
         }
     };
-    const cancel = () => { runRef.current += 1; busyRef.current = false; setChecking(false); stopCamera(); setStep('home'); };
+    const cancel = () => { runRef.current += 1; stopCamera(); setStep('home'); };
     // the face did not work: close the camera, say so, offer Try again / PIN
-    const fail = (msg) => { stopCamera(); setChecking(false); busyRef.current = false; setStep('home'); speakFailed(); setFailed({ msg, face: true }); };
+    const fail = (msg) => { runRef.current += 1; stopCamera(); setStep('home'); speakFailed(); setFailed({ msg, face: true }); };
 
 
     // Save one tap for this person: the photo, the row, and (PIN + no face yet) their face
@@ -235,63 +241,56 @@ export default function StaffAttendance() {
         }
     };
 
-    const capture = async () => {
-        const video = videoRef.current;
-        if (step !== 'camera' || busyRef.current) return;
-        if (!video || !video.videoWidth) { setError('Camera is starting…'); return; }
-        busyRef.current = true;
-        setChecking(true);
+    // The scan: frames one after another while the camera is open; the same person in AGREE_FRAMES frames = done.
+    // Faces are compared on the phone (live list), so a frame takes only the face engine's time.
+    useEffect(() => {
+        if (step !== 'camera') return undefined;
         const run = runRef.current;
-        const cancelled = () => run !== runRef.current;   // the person pressed Cancel while the face was being checked
-        const retry = (msg) => {
-            if (cancelled()) return;
-            setChecking(false); busyRef.current = false;
-            if (attempt + 1 >= MAX_FACE_TRIES) { fail(msg); return; }
-            setError(msg); setAttempt(a => a + 1);
-        };
-        // look at up to FRAMES_PER_SCAN frames; the SAME person must be recognised in AGREE_FRAMES of them (like the
-        // AuraLock streak rule) - one lucky frame never decides, and a blink or a shadow spoils only one frame
-        let found = { staff: null }, photo = null, why = 'Face not recognised - look straight at the camera.', clear = false, unsure = false;
-        const hits = new Map();   // name -> { n, best }
-        for (let f = 0; f < FRAMES_PER_SCAN && !found.staff; f++) {
-            if (f > 0) await new Promise(r => setTimeout(r, 250));
-            if (cancelled()) return;
-            if (!video.videoWidth) break;
-            const frame = fullFrame(video);
-            const shot = snap(video);
-            if (!shot) { why = 'Photo could not be saved, try again.'; continue; }
-            let faces;
-            try { faces = await findFaces(frame); } catch { retry('Face check could not start. Check internet.'); return; }
-            if (cancelled()) return;
-            const quality = faceQuality(faces, frame.width);
-            if (!quality.ok) { why = quality.reason; continue; }
-            const live = quality.face.descriptor;
-            lastRef.current = { photo: shot, face: faceQuality(faces, frame.width, { register: true }).ok ? live : null, at: Date.now() };
-            let r;
-            try { r = await identifyFace(live, staff); } catch { retry('Could not check the face. Check internet.'); return; }
-            if (cancelled()) return;
-            clear = true;
-            if (r.unsure || r.near) unsure = true;
-            if (!r.staff) continue;
-            const h = hits.get(r.staff.name) || { n: 0, best: null, photo: null };
-            h.n += 1;
-            if (!h.best || r.distance < h.best.distance) { h.best = r; h.photo = shot; }
-            hits.set(r.staff.name, h);
-            if (hits.size > 1) { unsure = true; break; }   // two different people in one scan: never guess
-            if (h.n >= AGREE_FRAMES) { found = h.best; photo = h.photo; }
-        }
-        if (!found.staff) {
-            if (!clear) { retry(why); return; }   // no usable face in any frame: ask again on the camera
-            unknownRef.current += 1;
-            if (unsure || hits.size) { retry('Hold still, come closer and look straight at the camera.'); return; }
-            if (unknownRef.current >= MAX_UNKNOWN_TRIES) { fail('Look straight at the camera in good light and try again - or use your PIN.'); return; }
-            retry('Face not recognised - look straight at the camera.');
-            return;
-        }
-        stopCamera(); setChecking(false); busyRef.current = false;
-        await saveTap(found.staff, photo, { check: 'matched', distance: found.distance, source: found.source }, null);
-    };
-    useEffect(() => { captureRef.current = capture; });
+        let stopped = false;
+        const alive = () => !stopped && run === runRef.current;
+        (async () => {
+            const t0 = Date.now();
+            const hits = new Map();   // name -> { n, best, photo }
+            let unknown = 0, why = 'Look straight at the camera in good light.';
+            while (alive()) {
+                const video = videoRef.current;
+                if (!video?.videoWidth) { await sleep(80); continue; }
+                if (Date.now() - t0 > SCAN_TIMEOUT_MS) { fail(why); return; }
+                const frame = fullFrame(video);
+                let faces;
+                try { faces = await findFaces(frame); } catch { if (alive()) fail('Face check could not start. Check internet and try again.'); return; }
+                if (!alive()) return;
+                const q = faceQuality(faces, frame.width);
+                if (!q.ok) { why = q.reason; setScanMsg(q.reason); hits.clear(); await sleep(FRAME_GAP_MS * 2); continue; }
+                const live = q.face.descriptor;
+                const shot = snap(video);
+                if (shot) lastRef.current = { photo: shot, face: faceQuality(faces, frame.width, { register: true }).ok ? live : null, at: Date.now() };
+                const r = identifyIn(facesRef.current, live, staffRef.current);
+                if (!r.staff) {
+                    hits.clear();
+                    if (r.unsure || r.near) { why = 'Hold still, come closer and look straight at the camera.'; setScanMsg(why); }
+                    else if (++unknown >= UNKNOWN_FRAMES) { fail('Face not recognised. Look straight at the camera in good light and try again - or use your PIN.'); return; }
+                    else setScanMsg('Face not recognised - look straight at the camera.');
+                    await sleep(FRAME_GAP_MS);
+                    continue;
+                }
+                const prev = hits.get(r.staff.name);
+                if (!prev) hits.clear();   // another person than in the last frame: start counting again
+                const h = prev || { n: 0, best: null, photo: null };
+                h.n += 1;
+                if (!h.best || r.distance < h.best.distance) { h.best = r; h.photo = shot; }
+                hits.set(r.staff.name, h);
+                if (h.n >= AGREE_FRAMES) {
+                    stopCamera();
+                    await saveTap(h.best.staff, h.photo, { check: 'matched', distance: h.best.distance, source: h.best.source }, null);
+                    return;
+                }
+                setScanMsg('Identifying…');
+                await sleep(FRAME_GAP_MS);
+            }
+        })();
+        return () => { stopped = true; };
+    }, [step]);   // eslint-disable-line react-hooks/exhaustive-deps
 
     // "Use PIN": choose your name, type your PIN. No face registered yet + a clear photo = the face is registered too.
     const pinFor = (rec) => { setPicking(false); setSearch(''); locRef.current = locate(); setPinAsk({ rec }); };   // a fresh location for this entry
@@ -413,26 +412,16 @@ export default function StaffAttendance() {
                         <span className={cn('rounded-full px-3 py-1 text-xs font-black tracking-widest', kind === 'out' ? 'bg-white text-[#0a192f]' : 'bg-[#d4af37] text-[#0a192f]')}>{kind === 'out' ? 'CHECK OUT' : 'CHECK IN'}</span>
                         <span className="text-sm font-bold text-white tabular-nums">{clock.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
-                    {checking && (
-                        <div data-testid="att-checking" className="absolute inset-0 grid place-items-center bg-[#06101f]/50">
-                            <div className="flex items-center gap-2 rounded-full bg-[#0a192f] px-5 py-2.5 text-sm font-bold"><RefreshCw aria-hidden className="size-4 animate-spin text-[#d4af37]" />Identifying…</div>
-                        </div>
-                    )}
-                    {autoIn > 0 && !checking && (
-                        <div aria-hidden className="pointer-events-none absolute inset-0 grid place-items-center">
-                            <div data-testid="att-countdown" className="grid size-24 place-items-center rounded-full border-4 border-[#d4af37] bg-[#0a192f]/60 text-5xl font-black tabular-nums">{autoIn}</div>
-                        </div>
-                    )}
-                    {autoIn > 0 && <span aria-live="polite" className="sr-only">Photo in {autoIn}</span>}
+                    {/* status under the face frame: scanning all the time, the advice when a frame was not usable */}
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/60 to-transparent px-4 pt-10 pb-5">
                         <div className="mx-auto max-w-md text-center">
-                            {error
-                                ? <div role="alert" data-testid="att-error" className="mx-auto mb-3 w-fit max-w-full rounded-full bg-[#0a192f]/90 px-4 py-1.5 text-sm font-bold text-[#ffd666]">{error}</div>
-                                : <div className="mb-3 text-sm font-bold text-white">Look at the camera · keep your face inside the frame</div>}
-                            <div className="grid grid-cols-[1fr_auto] gap-2">
-                                <Button data-testid="att-capture" onClick={capture} className="h-14 rounded-2xl bg-[#d4af37] text-base font-black tracking-wider text-[#0a192f] uppercase hover:bg-[#e6c65c]"><Camera className="size-5" />{autoIn > 0 ? `Scan in ${autoIn}…` : 'Scan now'}</Button>
-                                <Button variant="outline" aria-label="Cancel" onClick={cancel} data-testid="att-cancel" className="h-14 w-14 rounded-2xl border-white/30 bg-black/40 text-white hover:bg-white/10"><X className="size-6" /></Button>
+                            <div data-testid="att-checking" aria-live="polite" className="mx-auto mb-2 flex w-fit items-center gap-2 rounded-full bg-[#0a192f]/90 px-4 py-1.5 text-sm font-bold text-white">
+                                <RefreshCw aria-hidden className="size-4 animate-spin text-[#d4af37]" />{scanMsg === 'Identifying…' ? 'Identifying…' : 'Scanning…'}
                             </div>
+                            {scanMsg && scanMsg !== 'Identifying…'
+                                ? <div role="alert" data-testid="att-error" className="mx-auto mb-3 w-fit max-w-full rounded-full bg-[#0a192f]/90 px-4 py-1.5 text-sm font-bold text-[#ffd666]">{scanMsg}</div>
+                                : <div className="mb-3 text-sm font-bold text-white">Look at the camera · keep your face inside the frame</div>}
+                            <Button variant="outline" onClick={cancel} data-testid="att-cancel" className="h-12 w-full rounded-2xl border-white/30 bg-black/40 font-bold text-white hover:bg-white/10"><X className="size-5" />Cancel</Button>
                         </div>
                     </div>
                 </section>

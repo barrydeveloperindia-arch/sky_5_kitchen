@@ -168,7 +168,6 @@ test('a face nobody registered saves nothing: no attendance row, no photo, no fa
     await showFace(page, STRANGER);
     await scan(page, 'in');
     await expect(page.getByTestId('att-error')).toContainText('Face not recognised');
-    await page.getByTestId('att-capture').click();
     await expect(page.getByTestId('att-face-failed')).toBeVisible();
     await page.waitForTimeout(1500);
     expect((await readAll(page, 'hotel_attendance')).length).toBe(before.rows);

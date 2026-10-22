@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { trackErrors, stubWindowOpen, adminTab } from './helpers';
+import { trackErrors, stubWindowOpen, adminTab, unlockAdmin } from './helpers';
 
 // One test per shop button / control, so a broken button points straight at itself.
 
@@ -37,6 +37,7 @@ test('header: Menu Card and Admin links; ORDER NOW scrolls to menu', async ({ pa
 
     if (!isMobile) {
         await page.locator('.desktop-menu').getByText('Admin').click();
+        await unlockAdmin(page);
         await expect(page.getByRole('heading', { level: 1 })).toHaveText('Today');
     }
     expect(errors).toEqual([]);
@@ -74,6 +75,7 @@ test('bottom tabs: Home resets filters, Search focuses the search box, Bag / Men
     await page.getByRole('button', { name: /CLOSE PREVIEW/ }).click();
 
     await page.locator('.bottom-tabs').getByText('Admin').click();
+    await unlockAdmin(page);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Today');
 });
 
@@ -92,6 +94,7 @@ test('payment: UPI order is NOT added to the room bill (no double charge)', asyn
     await expect(page.getByTestId('invoice-payment')).toContainText('UPI');
     await page.getByRole('button', { name: 'BACK TO HOME' }).click();
     await page.locator('.desktop-menu').getByText('Admin').click();
+    await unlockAdmin(page);
     await adminTab(page, 'reception');
     await expect(page.getByTestId('room-card-5')).toContainText(/Food Bill:\s*₹0/);
     await adminTab(page, 'kitchen');
@@ -172,6 +175,7 @@ test('room booking is not sent to the kitchen', async ({ page, isMobile }) => {
     await expect(page.locator('#invoice-sheet')).toContainText('Deluxe Room');
     await page.getByRole('button', { name: 'BACK TO HOME' }).click();
     await page.locator('.desktop-menu').getByText('Admin').click();
+    await unlockAdmin(page);
     await adminTab(page, 'kitchen');
     await expect(page.locator('tr', { hasText: 'Walk-in' })).toHaveCount(0);
 });

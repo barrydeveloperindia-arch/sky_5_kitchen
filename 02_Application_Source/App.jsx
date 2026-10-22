@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, lazy, Suspense } from 'react';
 import ShopView from './components/ShopView';
+import AdminGate from './components/AdminGate';
 // Guests only need the shop: the OPS Center and the staff pages are fetched when they are opened.
 // A page left open across an update asks for old file names that are gone: reload once to get the new version.
 const lazyScreen = (load) => lazy(() => load().catch((err) => {
@@ -25,6 +26,9 @@ const isStaffInventory = staffPath === '/inventory';
 const isStaffAttendance = staffPath === '/attendance';
 // Staff attendance board for the hotel TV (read only)
 const isHotelTv = staffPath === '/tv';
+// OPS Center admin login (admin@sky5.com). Switched on once the admin user exists in Firebase Authentication;
+// a build with VITE_ADMIN_LOGIN=0 leaves the OPS Center open as before.
+const ADMIN_LOGIN_ON = import.meta.env.VITE_ADMIN_LOGIN !== '0';
 
 // Live data starts clean: every room free, no guests, no orders. The sample guests/orders
 // exist only in the test environment (E2E fixtures), never in the live hotel data.
@@ -81,6 +85,7 @@ function HotelApp() {
           liveRooms={roomList}
         />
       ) : (
+        <AdminGate enabled={ADMIN_LOGIN_ON} onCancel={() => setView('shop')}>
         <AdminDashboard
           onNavigate={setView}
           orders={orders}
@@ -91,6 +96,7 @@ function HotelApp() {
           setRooms={setRoomList}
           liveReady={roomsReady}
         />
+        </AdminGate>
       )}
     </>
   );

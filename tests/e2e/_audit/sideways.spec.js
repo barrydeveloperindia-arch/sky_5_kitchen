@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
-import { openAdmin, fakeFaces, seedFace, showFace } from '../helpers';
+import { openAdmin, fakeFaces, seedFace, showFace, cameraUp } from '../helpers';
 
 // On-demand: the staff attendance page with the phone turned sideways (and upright), every step,
 // a screenshot each plus what does not fit, for a person to look at.
@@ -48,7 +48,7 @@ for (const [label, width, height] of SIZES) {
         await page.waitForTimeout(800);
         await look(page, `${label}-1-start`, ['att-clock', 'att-in', 'att-out']);
         await page.getByTestId('att-in').click();
-        await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
+        await cameraUp(page);
         await look(page, `${label}-2-camera`, ['att-video', 'att-capture']);
         await page.getByTestId('att-capture').click();
         await expect(page.getByTestId('att-done')).toBeVisible({ timeout: 15000 });
@@ -56,13 +56,13 @@ for (const [label, width, height] of SIZES) {
         await look(page, `${label}-3-done`, ['att-done', 'att-done-time']);
         await page.getByRole('button', { name: 'Done' }).click();
         await page.getByTestId('att-in').click();
-        await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
+        await cameraUp(page);
         await page.getByTestId('att-capture').click();
         await expect(page.getByTestId('att-notice')).toBeVisible({ timeout: 15000 });
         await look(page, `${label}-4-note`, ['att-notice', 'att-in']);
         await showFace(page, 0.9);
         await page.getByTestId('att-out').click();
-        await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
+        await cameraUp(page);
         await page.getByTestId('att-capture').click();
         await expect(page.getByTestId('att-error')).toBeVisible();
         await page.getByTestId('att-capture').click();

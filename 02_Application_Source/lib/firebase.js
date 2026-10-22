@@ -66,3 +66,15 @@ export function whenSignedIn() {
     });
     return signInPromise;
 }
+
+// The admin login uses its OWN small Firebase connection: logging in never changes the user of the data connection
+// (a change of user restarts every live list and holds back entries that were not sent yet).
+let adminAuth = null;
+export function getAdminAuth() {
+    if (adminAuth) return adminAuth;
+    const { auth } = getServices();
+    const app = initializeApp(auth.app.options, 'sky5-admin');
+    adminAuth = getAuth(app);
+    if (IS_TEST_ENV) connectAuthEmulator(adminAuth, 'http://127.0.0.1:9199', { disableWarnings: true });
+    return adminAuth;
+}

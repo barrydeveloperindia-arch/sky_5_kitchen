@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { trackErrors, stubWindowOpen, openAdmin, adminTab, seedFace } from './helpers';
+import { trackErrors, stubWindowOpen, openAdmin, adminTab, seedFace, fakeFaces, cameraUp } from './helpers';
 
 // Turning the phone / tablet while using the app: the screen re-lays itself out, nothing is cut off or
 // scrolls sideways, the main button stays reachable and nothing that was going on is lost.
@@ -26,9 +26,7 @@ let errors;
 test.beforeEach(async ({ page }) => {
     errors = trackErrors(page);
     await stubWindowOpen(page);
-    await page.addInitScript(() => {
-        window.__FACE_TEST__ = { findFaces: () => [{ descriptor: Array.from({ length: 128 }, () => 0.01), score: 0.95, width: 400 }] };
-    });
+    await fakeFaces(page);
     await page.setViewportSize(PORTRAIT);
     await expect(async () => {
         await openAdmin(page);
@@ -55,16 +53,17 @@ test('staff terminal: turning the phone at every step keeps the screen whole and
     expect(btn.x, 'buttons beside the clock, not under it').toBeGreaterThan(clock.x + clock.width);
     await page.setViewportSize(PORTRAIT);
     // turn while the camera is open: the camera keeps running and the scan button stays on screen
+    await page.evaluate(() => localStorage.setItem('faceVal', 'none'));   // nobody yet: the camera stays open while the phone turns
     await page.getByTestId('att-in').click();
-    await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
+    await cameraUp(page);
     await page.setViewportSize(SIDEWAYS);
     await expect(page.getByTestId('att-video')).toBeVisible();
-    expect(await inView(page, page.getByTestId('att-capture')), 'scan button visible sideways without scrolling').toBe(true);
+    expect(await inView(page, page.getByTestId('att-cancel')), 'scan button visible sideways without scrolling').toBe(true);
     expect(await page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
     expect(await sideScroll(page)).toBeLessThanOrEqual(1);
     await page.setViewportSize(PORTRAIT);
-    expect(await inView(page, page.getByTestId('att-capture'))).toBe(true);
-    await page.getByTestId('att-capture').click();
+    expect(await inView(page, page.getByTestId('att-cancel'))).toBe(true);
+    await page.evaluate(() => localStorage.setItem('faceVal', '0.01'));   // now Varun looks at the camera
     await expect(page.getByTestId('att-done')).toContainText('Check In Successful', { timeout: 15000 });
     // and the result screen also fits both ways
     for (const vp of [SIDEWAYS, PORTRAIT]) {

@@ -210,6 +210,14 @@ export const MATCH_MARGIN = 0.1;
 // Compares the live face with the registered face of everyone working here; the closest one within the limit
 // wins, unless a second person is nearly as close. Returns { staff, distance, source } | { staff: null, unsure? }.
 const photoTried = new Set();
+// a staff photo from the manager that is not a face record yet: make it one (saved, so the live list gets it)
+export async function preparePhotoFaces(recs, staffList) {
+    for (const s of staffList) {
+        if (!s.photoId || recs.get(faceKey(s))?.source === 'staff-photo' || photoTried.has(s.photoId)) continue;
+        photoTried.add(s.photoId);   // once per photo: a photo with no usable face must not slow anything down
+        try { const r = await registeredFace(s); if (r) recs.set(faceKey(s), r); } catch { photoTried.delete(s.photoId); }
+    }
+}
 export async function identifyFace(live, staffList) {
     await whenSignedIn();
     const { db } = getServices();
@@ -219,12 +227,11 @@ export async function identifyFace(live, staffList) {
         const rec = d.data();
         if (faceSet(rec).length) recs.set(d.id, rec);
     }
-    // a staff photo from the manager that is not a face record yet: make it one now (saved for next time)
-    for (const s of staffList) {
-        if (!s.photoId || recs.get(faceKey(s))?.source === 'staff-photo' || photoTried.has(s.photoId)) continue;
-        photoTried.add(s.photoId);   // once per photo: a photo with no usable face must not slow down every scan
-        try { const r = await registeredFace(s); if (r) recs.set(faceKey(s), r); } catch { photoTried.delete(s.photoId); }
-    }
+    await preparePhotoFaces(recs, staffList);
+    return identifyIn(recs, live, staffList);
+}
+// The same decision on face records the phone already has (live list): no network, a few milliseconds
+export function identifyIn(recs, live, staffList) {
     let best = null, second = null;
     for (const s of staffList) {
         const rec = recs.get(faceKey(s));

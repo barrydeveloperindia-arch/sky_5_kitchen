@@ -59,7 +59,6 @@ async function notRecognised(page, kind = 'in') {
     await showFace(page, STRANGER);
     await scan(page, kind);
     await expect(page.getByTestId('att-error')).toContainText('Face not recognised');
-    await page.getByTestId('att-capture').click();
     await expect(page.getByTestId('att-face-failed')).toContainText('Face not recognised');
 }
 
@@ -223,7 +222,6 @@ test('a registered face that looks different today: after one PIN entry the face
     await showFace(page, 0.36);
     await scan(page, 'in');
     await expect(page.getByTestId('att-error')).toContainText('Face not recognised');
-    await page.getByTestId('att-capture').click();
     await expect(page.getByTestId('att-face-failed')).toBeVisible();
     await page.getByTestId('att-use-pin').click();
     await page.getByTestId('att-pin-name-Pin Person').click();
@@ -245,7 +243,6 @@ test('a registered face that looks different today: after one PIN entry the face
     await page.clock.fastForward('03:00');
     await showFace(page, 0.9);
     await scan(page, 'in');
-    await page.getByTestId('att-capture').click();
     await expect(page.getByTestId('att-face-failed')).toBeVisible();
     await page.getByTestId('att-use-pin').click();
     await page.getByTestId('att-pin-name-Pin Person').click();

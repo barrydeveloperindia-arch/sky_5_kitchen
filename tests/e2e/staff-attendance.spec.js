@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { trackErrors, openAdmin, adminTab, waitSaved, fakeFaces, showFace, seedFace, scan } from './helpers';
+import { trackErrors, openAdmin, adminTab, waitSaved, fakeFaces, showFace, seedFace, scan, cameraUp } from './helpers';
 
 // Staff attendance terminal (/attendance), like the AuraLock face terminal: no name is chosen - the person presses
 // CHECK IN or CHECK OUT, looks at the camera, and the face says who it is. Photo + location with every entry.
@@ -112,10 +112,8 @@ test('a face nobody registered: not recognised (said aloud), nothing saved; Try 
     await expect(page.getByTestId('att-in')).toBeEnabled();
     await showFace(page, STRANGER);
     await page.getByTestId('att-in').click();
-    await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
-    await page.getByTestId('att-capture').click();
+    await cameraUp(page);
     await expect(page.getByTestId('att-error')).toContainText('Face not recognised');   // asks once more on the camera
-    await page.getByTestId('att-capture').click();
     await expect(page.getByTestId('att-face-failed')).toContainText('Face not recognised');
     await expect(page.getByTestId('att-video')).toHaveCount(0);
     await expect(page.getByTestId('att-try-again')).toBeVisible();
@@ -125,8 +123,7 @@ test('a face nobody registered: not recognised (said aloud), nothing saved; Try 
     // the right person tries again
     await showFace(page, FACE.Karan);
     await page.getByTestId('att-try-again').click();
-    await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
-    await page.getByTestId('att-capture').click();
+    await cameraUp(page);
     await expect(page.getByTestId('att-done-name')).toHaveText('Karan', { timeout: 15000 });
 });
 
@@ -145,9 +142,8 @@ for (const [mode, faces, msg] of [['no face', 'none', 'No face found']]) {
         await scan(page, 'in');
         await expect(page.getByTestId('att-error')).toContainText(msg);
         await expect(page.getByTestId('att-video')).toBeVisible();
-        await expect(page.getByTestId('att-countdown')).toBeVisible({ timeout: 10000 });   // counting down again
         await showFace(page, FACE.Veerwati);
-        await expect(page.getByTestId('att-done')).toBeVisible({ timeout: 15000 });          // the automatic photo
+        await expect(page.getByTestId('att-done')).toBeVisible({ timeout: 15000 });          // the scan keeps going by itself
         await expect(page.getByTestId('att-done-name')).toHaveText('Veerwati');
     });
 }
@@ -155,11 +151,9 @@ for (const [mode, faces, msg] of [['no face', 'none', 'No face found']]) {
 test('nobody in front of the camera: after a few tries it closes by itself, nothing saved', async ({ page }) => {
     await showFace(page, 'none');
     await page.getByTestId('att-in').click();
-    await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
-    for (let i = 0; i < 4; i++) {
-        await page.getByTestId('att-capture').click();
-        if (i < 3) await expect(page.getByTestId('att-countdown')).toBeVisible({ timeout: 10000 });
-    }
+    await cameraUp(page);
+    await expect(page.getByTestId('att-error')).toContainText('No face found');
+    await page.clock.fastForward('00:13');   // nobody for 12 s
     await expect(page.getByTestId('att-video')).toHaveCount(0);
     await expect(page.getByTestId('att-face-failed')).toBeVisible();
     await expect(page.getByTestId('att-counts')).toContainText('0 in now');
@@ -175,8 +169,7 @@ test('someone marked Left is not recognised any more', async ({ page, context })
     await admin.close();
     await showFace(page, FACE.Karan);
     await page.getByTestId('att-in').click();
-    await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
-    await page.getByTestId('att-capture').click();
+    await cameraUp(page);
     await expect(page.getByTestId('att-error')).toContainText('Face not recognised');
 });
 
@@ -218,16 +211,18 @@ test('night shift: next morning CHECK OUT closes last night, on the same row', a
     await expect(page.getByTestId('att-done')).toContainText('13h 00m');
 });
 
-test('Cancel closes the camera without saving; the photo is taken by itself after a 2-second countdown', async ({ page }) => {
+test('Cancel closes the camera without saving; the scan runs by itself the moment the camera opens', async ({ page }) => {
+    await showFace(page, 'none');
     await page.getByTestId('att-in').click();
     await expect(page.getByTestId('att-video')).toBeVisible();
     await page.getByTestId('att-cancel').click();
     await expect(page.getByTestId('att-video')).toHaveCount(0);
     expect(await page.evaluate(() => [...document.querySelectorAll('video')].filter(v => v.srcObject).length)).toBe(0);   // camera really off
     await showFace(page, FACE.Bhawna);
+    const t0 = Date.now();
     await page.getByTestId('att-in').click();
-    await expect(page.getByTestId('att-countdown')).toHaveText('2', { timeout: 10000 });   // 2 seconds, then the photo
-    await expect(page.getByTestId('att-done')).toBeVisible({ timeout: 15000 });   // nobody pressed the scan button
+    await expect(page.getByTestId('att-done')).toBeVisible({ timeout: 15000 });   // no button, no countdown: it scans by itself
+    expect(Date.now() - t0, 'from CHECK IN to the result (test engine)').toBeLessThan(5000);
     await expect(page.getByTestId('att-done-name')).toHaveText('Bhawna');
 });
 
@@ -238,12 +233,12 @@ test('no accessibility / colour-contrast issues on any screen (WCAG 2 AA)', asyn
         for (const v of r.violations) found.push(`${name}: ${v.id} -> ${v.nodes[0].target.join(' ')}`);
     };
     await check('start');
-    await showFace(page, FACE.Varun);
+    await showFace(page, 'none');
     await page.getByTestId('att-in').click();
     await expect(page.getByTestId('att-video')).toBeVisible();
+    await expect(page.getByTestId('att-error')).toContainText('No face found');
     await check('camera');
-    await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
-    await page.getByTestId('att-capture').click();
+    await showFace(page, FACE.Varun);
     await expect(page.getByTestId('att-done')).toBeVisible({ timeout: 15000 });
     await page.waitForTimeout(600);   // the tick has popped in
     await check('result');
@@ -253,7 +248,6 @@ test('no accessibility / colour-contrast issues on any screen (WCAG 2 AA)', asyn
     await check('note');
     await showFace(page, STRANGER);
     await scan(page, 'out');
-    await page.getByTestId('att-capture').click();
     await expect(page.getByTestId('att-face-failed')).toBeVisible();
     await check('not recognised');
     expect(found).toEqual([]);
@@ -275,10 +269,9 @@ for (const [w, h, label] of [[320, 568, 'small phone'], [360, 740, 'normal phone
         await page.getByTestId('att-in').scrollIntoViewIfNeeded();
         await page.getByTestId('att-in').click();
         await expect(page.getByTestId('att-video')).toBeVisible();
-        await expect(page.getByTestId('att-capture')).toBeInViewport();   // full-screen camera: always on screen
+        await expect(page.getByTestId('att-cancel')).toBeInViewport();   // full-screen camera: always on screen
         await noOverflow();
-        await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
-        await page.getByTestId('att-capture').click();
+        await cameraUp(page);
         await expect(page.getByTestId('att-done')).toBeVisible({ timeout: 15000 });
         await noOverflow();
         await page.getByRole('button', { name: 'Done' }).scrollIntoViewIfNeeded();
@@ -288,6 +281,8 @@ for (const [w, h, label] of [[320, 568, 'small phone'], [360, 740, 'normal phone
 
 test('a scan away from the hotel is saved but flagged: the result says so, the register shows OUTSIDE with the distance', async ({ page, context }) => {
     await context.setGeolocation({ latitude: 30.69421, longitude: 76.86068, accuracy: 15 });   // about 3.4 km away
+    await page.reload();   // the phone is somewhere else from the start (its location is read on the start screen)
+    await expect(page.getByTestId('att-in')).toBeEnabled();
     await showFace(page, FACE.Varun);
     await scan(page, 'in');
     await expect(page.getByTestId('att-place')).toContainText('Outside the hotel', { timeout: 15000 });
@@ -339,8 +334,7 @@ test('Cancel while the face is being checked: nothing is saved afterwards', asyn
     });
     await showFace(page, FACE.Varun);
     await page.getByTestId('att-in').click();
-    await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
-    await page.getByTestId('att-capture').click();
+    await cameraUp(page);
     await expect(page.getByTestId('att-checking')).toBeVisible();
     await page.getByTestId('att-cancel').click();
     await expect(page.getByTestId('att-video')).toHaveCount(0);
@@ -364,16 +358,14 @@ test('one scan looks at several camera frames: a blink / no face in the first fr
         window.__FACE_TEST__.findFaces = () => (n++ === 0 ? [] : [face]);   // first frame: no face
     });
     await page.getByTestId('att-in').click();
-    await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
-    await page.getByTestId('att-capture').click();
+    await cameraUp(page);
     await expect(page.getByTestId('att-done-name')).toHaveText('Varun', { timeout: 15000 });
 });
 
 test('strict match: a face 0.55 away from Varun (accepted by the old 0.6 limit) is NOT taken as Varun', async ({ page }) => {
     await showFace(page, 0.01 + 0.55 / Math.sqrt(128));
     await page.getByTestId('att-in').click();
-    await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
-    await page.getByTestId('att-capture').click();
+    await cameraUp(page);
     await expect(page.getByTestId('att-error')).toContainText(/come closer/i);
     await expect(page.getByTestId('att-done')).toHaveCount(0);
     await page.getByTestId('att-cancel').click();
