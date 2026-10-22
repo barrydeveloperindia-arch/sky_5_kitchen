@@ -18,7 +18,7 @@ describe('PDF file (jsPDF)', () => {
         for (const r of rows) expect(raw).toContain(r.code);
         expect(raw).toContain('Hotel Soap');
         expect(raw).toContain('Veerwati');
-        expect(raw).toContain(String.raw`(Full stock \(83 items\))`); // PDF escapes ( )
+        expect(raw).toContain(String.raw`(Full stock \(132 items\))`); // PDF escapes ( )
     });
 
     test('works with an empty register', () => {
@@ -28,18 +28,18 @@ describe('PDF file (jsPDF)', () => {
 });
 
 describe('HTML report + WhatsApp text', () => {
-    test('report escapes user text and lists all 83 items', () => {
+    test('report escapes user text and lists all 132 items', () => {
         const html = reportHTML(rows, tx, meta);
         expect(html).toContain('Room 5, 7 &lt;b&gt;');
         expect(html).not.toContain('<b>"');
-        expect((html.match(/<td class="mono">SKY-/g) || []).length).toBe(83);
+        expect((html.match(/<td class="mono">SKY-/g) || []).length).toBe(132);
         expect(html).toContain('Print / Save as PDF');
         expect(reportHTML(rows, tx, { ...meta, embedded: true })).not.toContain('Print / Save as PDF');
     });
 
     test('WhatsApp summary has every item and the alert list', () => {
         const text = whatsappSummary(rows, tx, { generatedAt: meta.generatedAt, link: 'https://x/inventory' });
-        expect(text.match(/^SKY-[A-Z]{2}-\d{3} /gm)).toHaveLength(83);
+        expect(text.match(/^SKY-[A-Z]{2}-\d{3} /gm)).toHaveLength(132);
         expect(text).toContain(`${soap.code} Hotel Soap: 110 Pcs`);
         expect(text).toContain(`ACTION REQUIRED (${reportSummary(rows, tx).alerts.length})`);
         expect(text).toContain('https://x/inventory');

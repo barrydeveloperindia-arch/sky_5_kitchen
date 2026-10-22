@@ -150,7 +150,7 @@ test('location lists: Kitchen and Basement registers in Sr. No. order with count
     await page.getByTestId('inv-loc-kitchen').click();
     const list = page.getByTestId('inv-location-list');
     await expect(list).toContainText('Kitchen (Upar)');
-    await expect(list).toContainText('counted 23-09-2026');
+    await expect(list).toContainText('counted 23-09-2026 (grocery 17-09-2026)');
     await expect(list.locator('[data-testid^="inv-list-row-0-"]')).toHaveCount(18);
     await expect(list.locator('[data-testid^="inv-list-row-1-"]')).toHaveCount(20);
     const first = list.getByTestId('inv-list-row-0-1');
@@ -163,12 +163,12 @@ test('location lists: Kitchen and Basement registers in Sr. No. order with count
     await expect(list).toContainText('counted 29-09-2026');
     await expect(list.locator('[data-testid^="inv-list-row-0-"]')).toHaveCount(0);
     await expect(list.locator('tbody tr')).toHaveCount(41);
-    await expect(list.getByTestId('inv-list-row-2-38')).toContainText('Water Bottle (250 ml)');
-    await expect(list.getByTestId('inv-list-row-2-38')).toContainText('EXPIRED');
-    await expect(list.getByTestId('inv-list-row-2-12').getByTestId('inv-list-now')).toHaveText('50'); // Hotel Soap basement
+    await expect(list.getByTestId('inv-list-row-3-38')).toContainText('Water Bottle (250 ml)');
+    await expect(list.getByTestId('inv-list-row-3-38')).toContainText('EXPIRED');
+    await expect(list.getByTestId('inv-list-row-3-12').getByTestId('inv-list-now')).toHaveText('50'); // Hotel Soap basement
 
     await page.getByTestId('inv-loc-all').click();
-    await expect(page.locator('[data-testid^="inv-row-"]')).toHaveCount(83);
+    await expect(page.locator('[data-testid^="inv-row-"]')).toHaveCount(132);
 });
 
 test('PDF report and WhatsApp include both location lists', async ({ page }) => {
@@ -176,7 +176,7 @@ test('PDF report and WhatsApp include both location lists', async ({ page }) => 
     const frame = page.frameLocator('[data-testid="inv-report-frame"]');
     await expect(frame.getByText('Kitchen (Upar) - register list')).toBeVisible();
     await expect(frame.getByText('Basement Store - register list')).toBeVisible();
-    await expect(frame.locator('tr.loc-row')).toHaveCount(100);
+    await expect(frame.locator('tr.loc-row')).toHaveCount(149);
     await page.getByTestId('inv-viewer-close').click();
     await page.getByTestId('inv-share-whatsapp').click();
     const wa = (await page.evaluate(() => window.__opened)).find(u => typeof u === 'string' && u.startsWith('https://wa.me/'));
@@ -194,12 +194,12 @@ test('location list: Laundry & Housekeeping (13-10) in Sr. No. order, linen item
     await expect(list).toContainText('Laundry & Housekeeping');
     await expect(list).toContainText('counted 13-10-2026');
     await expect(list.locator('tbody tr')).toHaveCount(21);
-    await expect(list.getByTestId('inv-list-row-3-1')).toContainText('Towel');
-    await expect(list.getByTestId('inv-list-row-3-1').getByTestId('inv-list-now')).toHaveText('12');
-    await expect(list.getByTestId('inv-list-row-3-6')).toContainText('Pillow Cover');
-    await expect(list.getByTestId('inv-list-row-3-6').getByTestId('inv-list-now')).toHaveText('30');
-    await expect(list.getByTestId('inv-list-row-4-9')).toContainText('Garbage Bag (Big)');
-    await expect(list.getByTestId('inv-list-row-4-9').getByTestId('inv-list-now')).toHaveText('17');
+    await expect(list.getByTestId('inv-list-row-4-1')).toContainText('Towel');
+    await expect(list.getByTestId('inv-list-row-4-1').getByTestId('inv-list-now')).toHaveText('12');
+    await expect(list.getByTestId('inv-list-row-4-6')).toContainText('Pillow Cover');
+    await expect(list.getByTestId('inv-list-row-4-6').getByTestId('inv-list-now')).toHaveText('30');
+    await expect(list.getByTestId('inv-list-row-5-9')).toContainText('Garbage Bag (Big)');
+    await expect(list.getByTestId('inv-list-row-5-9').getByTestId('inv-list-now')).toHaveText('17');
     // a housekeeping item that already existed keeps ONE code; its total adds the new store
     await page.getByTestId('inv-loc-all').click();
     const hw = page.getByTestId('inv-row-SKY-GA-001');

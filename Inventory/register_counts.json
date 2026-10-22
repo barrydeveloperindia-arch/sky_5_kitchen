@@ -1,10 +1,10 @@
 {
-  "_about": "Physical stock counts copied from the handwritten registers (photos shared 29-09-2026 and 13-10-2026). Source of truth for opening stock. Do not edit quantities without a new count.",
+  "_about": "Physical stock counts copied from the handwritten registers (photos shared 29-09-2026 and 13-10-2026). Source of truth for opening stock. Do not edit quantities without a new count. Kitchen grocery / ration register (17-09-2026, 2 pages) added 22-10-2026.",
   "locations": [
     {
       "id": "kitchen",
       "name": "Kitchen (Upar)",
-      "countDate": "23-09-2026",
+      "countDate": "23-09-2026 (grocery 17-09-2026)",
       "lists": [
         {
           "title": "Kitchen - Stock list (page 1, 23-09-2026)",
@@ -327,6 +327,426 @@
               "asWritten": "ice paked",
               "note": "Read as \"Ice Pack\" - please confirm item",
               "toConfirm": true
+            }
+          ]
+        },
+        {
+          "title": "Kitchen - Grocery / ration (pages 1-2, 17-09-2026)",
+          "lines": [
+            {
+              "sr": 1,
+              "code": "SKY-GR-001",
+              "item": "Dhaniya Powder",
+              "qty": 500,
+              "unit": "Gm",
+              "asWritten": "Dhaniya Powder - 500g"
+            },
+            {
+              "sr": 2,
+              "code": "SKY-GR-002",
+              "item": "Lal Mirch Powder",
+              "qty": 250,
+              "unit": "Gm",
+              "asWritten": "lal Mirch Powder - 250g"
+            },
+            {
+              "sr": 3,
+              "code": "SKY-GR-003",
+              "item": "Salt",
+              "qty": 4,
+              "unit": "Kg",
+              "asWritten": "Salt - 4 Kg"
+            },
+            {
+              "sr": 4,
+              "code": "SKY-GR-004",
+              "item": "Degi Mirch",
+              "qty": 4,
+              "unit": "Pack",
+              "asWritten": "Degi Mirch - 4 Pack"
+            },
+            {
+              "sr": 5,
+              "code": "SKY-GR-005",
+              "item": "Kasturi Methi",
+              "qty": 300,
+              "unit": "Gm",
+              "asWritten": "Kasturi Metti - 300g"
+            },
+            {
+              "sr": 6,
+              "code": "SKY-GR-006",
+              "item": "Methi Dana",
+              "qty": 100,
+              "unit": "Gm",
+              "asWritten": "Methi Dhana - 100g"
+            },
+            {
+              "sr": 7,
+              "code": "SKY-GR-007",
+              "item": "Elaichi (Big)",
+              "qty": 0,
+              "unit": "Gm",
+              "asWritten": "Elayachi (Big)",
+              "note": "Quantity left blank on the 17-09 register - please count and confirm",
+              "toConfirm": true
+            },
+            {
+              "sr": 8,
+              "code": "SKY-GR-008",
+              "item": "Elaichi (Small)",
+              "qty": 0,
+              "unit": "Gm",
+              "asWritten": "\" Small",
+              "note": "Quantity left blank on the 17-09 register - please count and confirm",
+              "toConfirm": true
+            },
+            {
+              "sr": 9,
+              "code": "SKY-GR-009",
+              "item": "Kitchen King Masala",
+              "qty": 1,
+              "unit": "Pack",
+              "asWritten": "Kechan Kig - 1 Pack"
+            },
+            {
+              "sr": 10,
+              "code": "SKY-GR-010",
+              "item": "Haldi Powder",
+              "qty": 500,
+              "unit": "Gm",
+              "asWritten": "Haldi Powder - 500g"
+            },
+            {
+              "sr": 11,
+              "code": "SKY-GR-011",
+              "item": "Jeera Powder",
+              "qty": 5,
+              "unit": "Pack",
+              "asWritten": "Jeera Powder - 5 Pack"
+            },
+            {
+              "sr": 12,
+              "code": "SKY-GR-012",
+              "item": "Chicken Masala",
+              "qty": 1,
+              "unit": "Pack",
+              "asWritten": "Chicken Masala - 1 \"",
+              "note": "Written 1 with ditto marks (Pack, as the line above)",
+              "toConfirm": true
+            },
+            {
+              "sr": 13,
+              "code": "SKY-GR-013",
+              "item": "Tej Patta",
+              "qty": 100,
+              "unit": "Gm",
+              "asWritten": "Tej Patta - 100g"
+            },
+            {
+              "sr": 14,
+              "code": "SKY-GR-014",
+              "item": "Javitri",
+              "qty": 0,
+              "unit": "Gm",
+              "asWritten": "Javitri",
+              "note": "Quantity left blank on the 17-09 register - please count and confirm",
+              "toConfirm": true
+            },
+            {
+              "sr": 15,
+              "code": "SKY-GR-015",
+              "item": "Sabut Jeera",
+              "qty": 600,
+              "unit": "Gm",
+              "asWritten": "Sabut Jeera - 600g"
+            },
+            {
+              "sr": 16,
+              "code": "SKY-GR-016",
+              "item": "Laung",
+              "qty": 0,
+              "unit": "Gm",
+              "asWritten": "Laug",
+              "note": "Quantity left blank on the 17-09 register - please count and confirm",
+              "toConfirm": true
+            },
+            {
+              "sr": 17,
+              "code": "SKY-GR-017",
+              "item": "Kali Mirch",
+              "qty": 100,
+              "unit": "Gm",
+              "asWritten": "Kali Mirch - 100g"
+            },
+            {
+              "sr": 18,
+              "code": "SKY-GR-018",
+              "item": "Chaat Masala",
+              "qty": 5,
+              "unit": "Pack",
+              "asWritten": "Chaat Masala - 5 Pack"
+            },
+            {
+              "sr": 19,
+              "code": "SKY-GR-019",
+              "item": "Dal Chini",
+              "qty": 0,
+              "unit": "Gm",
+              "asWritten": "Dal Chini - (figure overwritten)",
+              "note": "Figure overwritten on the register (looks like 3, no unit) - please count and confirm",
+              "toConfirm": true
+            },
+            {
+              "sr": 20,
+              "code": "SKY-GR-020",
+              "item": "Chana Dal",
+              "qty": 3,
+              "unit": "Kg",
+              "asWritten": "Chana Dal - 3 Kg"
+            },
+            {
+              "sr": 21,
+              "code": "SKY-GR-021",
+              "item": "Rajma",
+              "qty": 1.5,
+              "unit": "Kg",
+              "asWritten": "Rajma - 1.5 Kg"
+            },
+            {
+              "sr": 22,
+              "code": "SKY-GR-022",
+              "item": "Mix Dal",
+              "qty": 0,
+              "unit": "Kg",
+              "asWritten": "Mix Dal - 0"
+            },
+            {
+              "sr": 23,
+              "code": "SKY-GR-023",
+              "item": "White Chana",
+              "qty": 1.2,
+              "unit": "Kg",
+              "asWritten": "White Chana - 1.2 Kg"
+            },
+            {
+              "sr": 24,
+              "code": "SKY-GR-024",
+              "item": "Black Chana",
+              "qty": 500,
+              "unit": "Gm",
+              "asWritten": "Black Chana - 500g"
+            },
+            {
+              "sr": 26,
+              "code": "SKY-GR-025",
+              "item": "Black Salt",
+              "qty": 1,
+              "unit": "Kg",
+              "asWritten": "Black Salt - 1 Kg",
+              "note": "No Sr. 25 on the register (24 is followed by 26)"
+            },
+            {
+              "sr": 27,
+              "code": "SKY-GR-026",
+              "item": "Black Dal",
+              "qty": 2,
+              "unit": "Kg",
+              "asWritten": "Black Dal - 2 Kg"
+            },
+            {
+              "sr": 28,
+              "code": "SKY-GR-027",
+              "item": "Sabut Masoor",
+              "qty": 0,
+              "unit": "Kg",
+              "asWritten": "Sabut Masur",
+              "note": "Quantity left blank on the 17-09 register - please count and confirm",
+              "toConfirm": true
+            },
+            {
+              "sr": 29,
+              "code": "SKY-GR-028",
+              "item": "Chana Masala",
+              "qty": 1,
+              "unit": "Pack",
+              "asWritten": "Chana Masala - 1",
+              "note": "Written 1 without a unit - read as 1 pack, please confirm",
+              "toConfirm": true
+            },
+            {
+              "sr": 30,
+              "code": "SKY-GR-029",
+              "item": "White Paper",
+              "qty": 1,
+              "unit": "Pack",
+              "asWritten": "White Paper - 1 Pack"
+            },
+            {
+              "sr": 31,
+              "code": "SKY-GR-030",
+              "item": "Ajwain",
+              "qty": 100,
+              "unit": "Gm",
+              "asWritten": "Ajwain - 100g"
+            },
+            {
+              "sr": 32,
+              "code": "SKY-GR-031",
+              "item": "Rai",
+              "qty": 100,
+              "unit": "Gm",
+              "asWritten": "Rai - 100g"
+            },
+            {
+              "sr": 33,
+              "code": "SKY-GR-032",
+              "item": "Raw Peanut",
+              "qty": 1.5,
+              "unit": "Kg",
+              "asWritten": "Raw Peanut - 1.5g",
+              "note": "Written \"1.5g\" - read as 1.5 Kg, please confirm",
+              "toConfirm": true
+            },
+            {
+              "sr": 34,
+              "code": "SKY-GR-033",
+              "item": "Soyabean Badi",
+              "qty": 500,
+              "unit": "Gm",
+              "asWritten": "Budi - 500g"
+            },
+            {
+              "sr": 35,
+              "code": "SKY-GR-034",
+              "item": "Poha",
+              "qty": 5,
+              "unit": "Kg",
+              "asWritten": "Poha - 5 Kg"
+            },
+            {
+              "sr": 36,
+              "code": "SKY-GR-035",
+              "item": "Sarso Oil",
+              "qty": 7,
+              "unit": "Bottle",
+              "asWritten": "Sarso Oil - 7 Botal"
+            },
+            {
+              "sr": 37,
+              "code": "SKY-GR-036",
+              "item": "Tata Tea",
+              "qty": 3,
+              "unit": "Kg",
+              "asWritten": "Tata Tea - 3 Kg"
+            },
+            {
+              "sr": 38,
+              "code": "SKY-GR-037",
+              "item": "Refined Oil",
+              "qty": 7,
+              "unit": "Pack",
+              "asWritten": "Rifaind - 7 Pack"
+            },
+            {
+              "sr": 39,
+              "code": "SKY-GR-038",
+              "item": "Atta",
+              "qty": 40,
+              "unit": "Kg",
+              "asWritten": "AAta - 40 Kg"
+            },
+            {
+              "sr": 40,
+              "code": "SKY-GR-039",
+              "item": "Maggi",
+              "qty": 7,
+              "unit": "Pack",
+              "asWritten": "Maggi - 7 Pack"
+            },
+            {
+              "sr": 41,
+              "code": "SKY-GR-040",
+              "item": "Sauce (Tops) Red",
+              "qty": 2,
+              "unit": "Bottle",
+              "asWritten": "Sauce (Tops) Red - 2 Botal"
+            },
+            {
+              "sr": 42,
+              "code": "SKY-GR-041",
+              "item": "Soya Sauce",
+              "qty": 3,
+              "unit": "Bottle",
+              "asWritten": "Soya Souce - 3 \"",
+              "note": "Written 3 with ditto marks (Bottle)",
+              "toConfirm": true
+            },
+            {
+              "sr": 43,
+              "code": "SKY-GR-042",
+              "item": "Green Chilli Sauce",
+              "qty": 1,
+              "unit": "Bottle",
+              "asWritten": "Green Chili Souse - 1 \"",
+              "note": "Written 1 with ditto marks (Bottle)",
+              "toConfirm": true
+            },
+            {
+              "sr": 44,
+              "code": "SKY-GR-043",
+              "item": "Red Chilli Flakes",
+              "qty": 100,
+              "unit": "Gm",
+              "asWritten": "Red Chili flex - 100g"
+            },
+            {
+              "sr": 45,
+              "code": "SKY-GR-044",
+              "item": "Mayonnaise",
+              "qty": 1,
+              "unit": "Kg",
+              "asWritten": "Mayonnaise - 1 Kg"
+            },
+            {
+              "sr": 46,
+              "code": "SKY-GR-045",
+              "item": "Staff Rice",
+              "qty": 10,
+              "unit": "Kg",
+              "asWritten": "Staff Rice - 10 Kg"
+            },
+            {
+              "sr": 47,
+              "code": "SKY-GR-046",
+              "item": "Besan",
+              "qty": 1.2,
+              "unit": "Kg",
+              "asWritten": "Besan - 1.2 Kg"
+            },
+            {
+              "sr": 48,
+              "code": "SKY-GR-047",
+              "item": "Silver Foil",
+              "qty": 2,
+              "unit": "Kg",
+              "asWritten": "Selver foil - 2 Kg"
+            },
+            {
+              "sr": 49,
+              "code": "SKY-GR-048",
+              "item": "Guest Rice",
+              "qty": 3.5,
+              "unit": "Kg",
+              "asWritten": "Gest Rice - 3.5 Kg"
+            },
+            {
+              "sr": 50,
+              "code": "SKY-GR-049",
+              "item": "Sugar",
+              "qty": 16,
+              "unit": "Kg",
+              "asWritten": "Sugear - 16 Kg"
             }
           ]
         }
@@ -1153,6 +1573,349 @@
       "name": "Tomato Sauce (Pouch)",
       "category": "Pantry / Tea-Coffee",
       "unit": "Pcs",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-001",
+      "name": "Dhaniya Powder",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Gm",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-002",
+      "name": "Lal Mirch Powder",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Gm",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-003",
+      "name": "Salt",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Kg",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-004",
+      "name": "Degi Mirch",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Pack",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-005",
+      "name": "Kasturi Methi",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Gm",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-006",
+      "name": "Methi Dana",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Gm",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-007",
+      "name": "Elaichi (Big)",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Gm",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-008",
+      "name": "Elaichi (Small)",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Gm",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-009",
+      "name": "Kitchen King Masala",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Pack",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-010",
+      "name": "Haldi Powder",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Gm",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-011",
+      "name": "Jeera Powder",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Pack",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-012",
+      "name": "Chicken Masala",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Pack",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-013",
+      "name": "Tej Patta",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Gm",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-014",
+      "name": "Javitri",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Gm",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-015",
+      "name": "Sabut Jeera",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Gm",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-016",
+      "name": "Laung",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Gm",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-017",
+      "name": "Kali Mirch",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Gm",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-018",
+      "name": "Chaat Masala",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Pack",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-019",
+      "name": "Dal Chini",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Gm",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-020",
+      "name": "Chana Dal",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Kg",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-021",
+      "name": "Rajma",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Kg",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-022",
+      "name": "Mix Dal",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Kg",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-023",
+      "name": "White Chana",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Kg",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-024",
+      "name": "Black Chana",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Gm",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-025",
+      "name": "Black Salt",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Kg",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-026",
+      "name": "Black Dal",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Kg",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-027",
+      "name": "Sabut Masoor",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Kg",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-028",
+      "name": "Chana Masala",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Pack",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-029",
+      "name": "White Paper",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Pack",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-030",
+      "name": "Ajwain",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Gm",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-031",
+      "name": "Rai",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Gm",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-032",
+      "name": "Raw Peanut",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Kg",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-033",
+      "name": "Soyabean Badi",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Gm",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-034",
+      "name": "Poha",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Kg",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-035",
+      "name": "Sarso Oil",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Bottle",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-036",
+      "name": "Tata Tea",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Kg",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-037",
+      "name": "Refined Oil",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Pack",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-038",
+      "name": "Atta",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Kg",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-039",
+      "name": "Maggi",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Pack",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-040",
+      "name": "Sauce (Tops) Red",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Bottle",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-041",
+      "name": "Soya Sauce",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Bottle",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-042",
+      "name": "Green Chilli Sauce",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Bottle",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-043",
+      "name": "Red Chilli Flakes",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Gm",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-044",
+      "name": "Mayonnaise",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Kg",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-045",
+      "name": "Staff Rice",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Kg",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-046",
+      "name": "Besan",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Kg",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-047",
+      "name": "Silver Foil",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Kg",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-048",
+      "name": "Guest Rice",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Kg",
+      "condition": "Good"
+    },
+    {
+      "code": "SKY-GR-049",
+      "name": "Sugar",
+      "category": "Kitchen Grocery (Ration)",
+      "unit": "Kg",
       "condition": "Good"
     },
     {

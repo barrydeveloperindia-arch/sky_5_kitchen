@@ -5,7 +5,7 @@
  */
 
 export const COUNT_DATES = {
-    "Kitchen (Upar)": "23-09-2026",
+    "Kitchen (Upar)": "23-09-2026 (grocery 17-09-2026)",
     "Basement Store": "29-09-2026",
     "Laundry & Housekeeping": "13-10-2026"
 };
@@ -260,6 +260,318 @@ export const registerLists = [
         "qty": 4,
         "asWritten": "ice paked",
         "note": "Read as \"Ice Pack\" - please confirm item"
+      }
+    ]
+  },
+  {
+    "location": "Kitchen (Upar)",
+    "title": "Kitchen - Grocery / ration (pages 1-2, 17-09-2026)",
+    "lines": [
+      {
+        "sr": 1,
+        "code": "SKY-GR-001",
+        "qty": 500,
+        "asWritten": "Dhaniya Powder - 500g"
+      },
+      {
+        "sr": 2,
+        "code": "SKY-GR-002",
+        "qty": 250,
+        "asWritten": "lal Mirch Powder - 250g"
+      },
+      {
+        "sr": 3,
+        "code": "SKY-GR-003",
+        "qty": 4,
+        "asWritten": "Salt - 4 Kg"
+      },
+      {
+        "sr": 4,
+        "code": "SKY-GR-004",
+        "qty": 4,
+        "asWritten": "Degi Mirch - 4 Pack"
+      },
+      {
+        "sr": 5,
+        "code": "SKY-GR-005",
+        "qty": 300,
+        "asWritten": "Kasturi Metti - 300g"
+      },
+      {
+        "sr": 6,
+        "code": "SKY-GR-006",
+        "qty": 100,
+        "asWritten": "Methi Dhana - 100g"
+      },
+      {
+        "sr": 7,
+        "code": "SKY-GR-007",
+        "qty": 0,
+        "asWritten": "Elayachi (Big)",
+        "note": "Quantity left blank on the 17-09 register - please count and confirm"
+      },
+      {
+        "sr": 8,
+        "code": "SKY-GR-008",
+        "qty": 0,
+        "asWritten": "\" Small",
+        "note": "Quantity left blank on the 17-09 register - please count and confirm"
+      },
+      {
+        "sr": 9,
+        "code": "SKY-GR-009",
+        "qty": 1,
+        "asWritten": "Kechan Kig - 1 Pack"
+      },
+      {
+        "sr": 10,
+        "code": "SKY-GR-010",
+        "qty": 500,
+        "asWritten": "Haldi Powder - 500g"
+      },
+      {
+        "sr": 11,
+        "code": "SKY-GR-011",
+        "qty": 5,
+        "asWritten": "Jeera Powder - 5 Pack"
+      },
+      {
+        "sr": 12,
+        "code": "SKY-GR-012",
+        "qty": 1,
+        "asWritten": "Chicken Masala - 1 \"",
+        "note": "Written 1 with ditto marks (Pack, as the line above)"
+      },
+      {
+        "sr": 13,
+        "code": "SKY-GR-013",
+        "qty": 100,
+        "asWritten": "Tej Patta - 100g"
+      },
+      {
+        "sr": 14,
+        "code": "SKY-GR-014",
+        "qty": 0,
+        "asWritten": "Javitri",
+        "note": "Quantity left blank on the 17-09 register - please count and confirm"
+      },
+      {
+        "sr": 15,
+        "code": "SKY-GR-015",
+        "qty": 600,
+        "asWritten": "Sabut Jeera - 600g"
+      },
+      {
+        "sr": 16,
+        "code": "SKY-GR-016",
+        "qty": 0,
+        "asWritten": "Laug",
+        "note": "Quantity left blank on the 17-09 register - please count and confirm"
+      },
+      {
+        "sr": 17,
+        "code": "SKY-GR-017",
+        "qty": 100,
+        "asWritten": "Kali Mirch - 100g"
+      },
+      {
+        "sr": 18,
+        "code": "SKY-GR-018",
+        "qty": 5,
+        "asWritten": "Chaat Masala - 5 Pack"
+      },
+      {
+        "sr": 19,
+        "code": "SKY-GR-019",
+        "qty": 0,
+        "asWritten": "Dal Chini - (figure overwritten)",
+        "note": "Figure overwritten on the register (looks like 3, no unit) - please count and confirm"
+      },
+      {
+        "sr": 20,
+        "code": "SKY-GR-020",
+        "qty": 3,
+        "asWritten": "Chana Dal - 3 Kg"
+      },
+      {
+        "sr": 21,
+        "code": "SKY-GR-021",
+        "qty": 1.5,
+        "asWritten": "Rajma - 1.5 Kg"
+      },
+      {
+        "sr": 22,
+        "code": "SKY-GR-022",
+        "qty": 0,
+        "asWritten": "Mix Dal - 0"
+      },
+      {
+        "sr": 23,
+        "code": "SKY-GR-023",
+        "qty": 1.2,
+        "asWritten": "White Chana - 1.2 Kg"
+      },
+      {
+        "sr": 24,
+        "code": "SKY-GR-024",
+        "qty": 500,
+        "asWritten": "Black Chana - 500g"
+      },
+      {
+        "sr": 26,
+        "code": "SKY-GR-025",
+        "qty": 1,
+        "asWritten": "Black Salt - 1 Kg",
+        "note": "No Sr. 25 on the register (24 is followed by 26)"
+      },
+      {
+        "sr": 27,
+        "code": "SKY-GR-026",
+        "qty": 2,
+        "asWritten": "Black Dal - 2 Kg"
+      },
+      {
+        "sr": 28,
+        "code": "SKY-GR-027",
+        "qty": 0,
+        "asWritten": "Sabut Masur",
+        "note": "Quantity left blank on the 17-09 register - please count and confirm"
+      },
+      {
+        "sr": 29,
+        "code": "SKY-GR-028",
+        "qty": 1,
+        "asWritten": "Chana Masala - 1",
+        "note": "Written 1 without a unit - read as 1 pack, please confirm"
+      },
+      {
+        "sr": 30,
+        "code": "SKY-GR-029",
+        "qty": 1,
+        "asWritten": "White Paper - 1 Pack"
+      },
+      {
+        "sr": 31,
+        "code": "SKY-GR-030",
+        "qty": 100,
+        "asWritten": "Ajwain - 100g"
+      },
+      {
+        "sr": 32,
+        "code": "SKY-GR-031",
+        "qty": 100,
+        "asWritten": "Rai - 100g"
+      },
+      {
+        "sr": 33,
+        "code": "SKY-GR-032",
+        "qty": 1.5,
+        "asWritten": "Raw Peanut - 1.5g",
+        "note": "Written \"1.5g\" - read as 1.5 Kg, please confirm"
+      },
+      {
+        "sr": 34,
+        "code": "SKY-GR-033",
+        "qty": 500,
+        "asWritten": "Budi - 500g"
+      },
+      {
+        "sr": 35,
+        "code": "SKY-GR-034",
+        "qty": 5,
+        "asWritten": "Poha - 5 Kg"
+      },
+      {
+        "sr": 36,
+        "code": "SKY-GR-035",
+        "qty": 7,
+        "asWritten": "Sarso Oil - 7 Botal"
+      },
+      {
+        "sr": 37,
+        "code": "SKY-GR-036",
+        "qty": 3,
+        "asWritten": "Tata Tea - 3 Kg"
+      },
+      {
+        "sr": 38,
+        "code": "SKY-GR-037",
+        "qty": 7,
+        "asWritten": "Rifaind - 7 Pack"
+      },
+      {
+        "sr": 39,
+        "code": "SKY-GR-038",
+        "qty": 40,
+        "asWritten": "AAta - 40 Kg"
+      },
+      {
+        "sr": 40,
+        "code": "SKY-GR-039",
+        "qty": 7,
+        "asWritten": "Maggi - 7 Pack"
+      },
+      {
+        "sr": 41,
+        "code": "SKY-GR-040",
+        "qty": 2,
+        "asWritten": "Sauce (Tops) Red - 2 Botal"
+      },
+      {
+        "sr": 42,
+        "code": "SKY-GR-041",
+        "qty": 3,
+        "asWritten": "Soya Souce - 3 \"",
+        "note": "Written 3 with ditto marks (Bottle)"
+      },
+      {
+        "sr": 43,
+        "code": "SKY-GR-042",
+        "qty": 1,
+        "asWritten": "Green Chili Souse - 1 \"",
+        "note": "Written 1 with ditto marks (Bottle)"
+      },
+      {
+        "sr": 44,
+        "code": "SKY-GR-043",
+        "qty": 100,
+        "asWritten": "Red Chili flex - 100g"
+      },
+      {
+        "sr": 45,
+        "code": "SKY-GR-044",
+        "qty": 1,
+        "asWritten": "Mayonnaise - 1 Kg"
+      },
+      {
+        "sr": 46,
+        "code": "SKY-GR-045",
+        "qty": 10,
+        "asWritten": "Staff Rice - 10 Kg"
+      },
+      {
+        "sr": 47,
+        "code": "SKY-GR-046",
+        "qty": 1.2,
+        "asWritten": "Besan - 1.2 Kg"
+      },
+      {
+        "sr": 48,
+        "code": "SKY-GR-047",
+        "qty": 2,
+        "asWritten": "Selver foil - 2 Kg"
+      },
+      {
+        "sr": 49,
+        "code": "SKY-GR-048",
+        "qty": 3.5,
+        "asWritten": "Gest Rice - 3.5 Kg"
+      },
+      {
+        "sr": 50,
+        "code": "SKY-GR-049",
+        "qty": 16,
+        "asWritten": "Sugear - 16 Kg"
       }
     ]
   },
@@ -1145,6 +1457,594 @@ export const inventoryItems = [
     "opening": {
       "Kitchen (Upar)": 0,
       "Basement Store": 300,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-001",
+    "name": "Dhaniya Powder",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Gm",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 500,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-002",
+    "name": "Lal Mirch Powder",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Gm",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 250,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-003",
+    "name": "Salt",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Kg",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 4,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-004",
+    "name": "Degi Mirch",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Pack",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 4,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-005",
+    "name": "Kasturi Methi",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Gm",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 300,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-006",
+    "name": "Methi Dana",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Gm",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 100,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-007",
+    "name": "Elaichi (Big)",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Gm",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 0,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-008",
+    "name": "Elaichi (Small)",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Gm",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 0,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-009",
+    "name": "Kitchen King Masala",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Pack",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 1,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-010",
+    "name": "Haldi Powder",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Gm",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 500,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-011",
+    "name": "Jeera Powder",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Pack",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 5,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-012",
+    "name": "Chicken Masala",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Pack",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 1,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-013",
+    "name": "Tej Patta",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Gm",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 100,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-014",
+    "name": "Javitri",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Gm",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 0,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-015",
+    "name": "Sabut Jeera",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Gm",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 600,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-016",
+    "name": "Laung",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Gm",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 0,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-017",
+    "name": "Kali Mirch",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Gm",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 100,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-018",
+    "name": "Chaat Masala",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Pack",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 5,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-019",
+    "name": "Dal Chini",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Gm",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 0,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-020",
+    "name": "Chana Dal",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Kg",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 3,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-021",
+    "name": "Rajma",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Kg",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 1.5,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-022",
+    "name": "Mix Dal",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Kg",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 0,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-023",
+    "name": "White Chana",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Kg",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 1.2,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-024",
+    "name": "Black Chana",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Gm",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 500,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-025",
+    "name": "Black Salt",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Kg",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 1,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-026",
+    "name": "Black Dal",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Kg",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 2,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-027",
+    "name": "Sabut Masoor",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Kg",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 0,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-028",
+    "name": "Chana Masala",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Pack",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 1,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-029",
+    "name": "White Paper",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Pack",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 1,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-030",
+    "name": "Ajwain",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Gm",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 100,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-031",
+    "name": "Rai",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Gm",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 100,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-032",
+    "name": "Raw Peanut",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Kg",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 1.5,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-033",
+    "name": "Soyabean Badi",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Gm",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 500,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-034",
+    "name": "Poha",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Kg",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 5,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-035",
+    "name": "Sarso Oil",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Bottle",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 7,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-036",
+    "name": "Tata Tea",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Kg",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 3,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-037",
+    "name": "Refined Oil",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Pack",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 7,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-038",
+    "name": "Atta",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Kg",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 40,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-039",
+    "name": "Maggi",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Pack",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 7,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-040",
+    "name": "Sauce (Tops) Red",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Bottle",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 2,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-041",
+    "name": "Soya Sauce",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Bottle",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 3,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-042",
+    "name": "Green Chilli Sauce",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Bottle",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 1,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-043",
+    "name": "Red Chilli Flakes",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Gm",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 100,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-044",
+    "name": "Mayonnaise",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Kg",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 1,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-045",
+    "name": "Staff Rice",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Kg",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 10,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-046",
+    "name": "Besan",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Kg",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 1.2,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-047",
+    "name": "Silver Foil",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Kg",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 2,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-048",
+    "name": "Guest Rice",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Kg",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 3.5,
+      "Basement Store": 0,
+      "Laundry & Housekeeping": 0
+    }
+  },
+  {
+    "code": "SKY-GR-049",
+    "name": "Sugar",
+    "category": "Kitchen Grocery (Ration)",
+    "unit": "Kg",
+    "condition": "Good",
+    "opening": {
+      "Kitchen (Upar)": 16,
+      "Basement Store": 0,
       "Laundry & Housekeeping": 0
     }
   },
