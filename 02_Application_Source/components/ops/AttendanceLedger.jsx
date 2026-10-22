@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import AttendanceProof from './AttendanceProof';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { shiftLabel, workedHours, formatHours } from '../../lib/staffAttendance';
-import { registerRows, filterRows, dayCounts, rowStatus } from '../../lib/attendanceRegister';
+import { registerRows, filterRows, dayCounts, rowStatus, dailyTrend } from '../../lib/attendanceRegister';
+import AttendanceTrend from './AttendanceTrend';
 
 const nowMs = () => Date.now();   // read when the register is drawn (outside the component)
 const OPEN_LIMIT_MS = 16 * 3600000;   // a check-in older than this without a check-out = the check-out was missed
@@ -32,20 +33,22 @@ function Avatar({ name, photo }) {
     return <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-bold text-primary" aria-hidden>{initials(name)}</span>;
 }
 
-function Kpi({ icon, title, value, testid, tone, note, bar, barTone }) {
+function Kpi({ icon, title, value, testid, tone, note, bar, barTone, onClick, active, wrap }) {
     const Icon = icon;
+    const Tag = onClick ? 'button' : 'div';
     return (
-        <div className="flex flex-col gap-2 rounded-xl border bg-card p-4 shadow-xs">
+        <Tag type={onClick ? 'button' : undefined} onClick={onClick} aria-pressed={onClick ? !!active : undefined} data-testid={testid ? `${testid}-card` : undefined}
+            className={cn('flex flex-col gap-2 rounded-xl border bg-card p-4 text-left shadow-xs', onClick && 'cursor-pointer transition-colors hover:border-primary/40 hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:outline-none', active && 'border-primary ring-2 ring-primary/30')}>
             <div className="flex items-center gap-3">
                 <span className={cn('grid size-10 shrink-0 place-items-center rounded-lg', tone)}><Icon className="size-5" /></span>
                 <div className="min-w-0">
                     <h4 className="text-xs font-semibold text-muted-foreground uppercase">{title}</h4>
-                    <div className="truncate text-xl font-bold text-primary" data-testid={testid}>{value}</div>
+                    <div className={cn('text-xl font-bold text-primary', wrap ? 'text-base leading-snug' : 'truncate')} data-testid={testid}>{value}</div>
                 </div>
             </div>
             {bar != null && <div className="h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden><div className={cn('h-full rounded-full', barTone)} style={{ width: `${Math.min(100, bar)}%` }} /></div>}
             {note && <p className="text-xs text-muted-foreground">{note}</p>}
-        </div>
+        </Tag>
     );
 }
 
@@ -66,7 +69,7 @@ async function exportPdf(rows, title) {
 // Attendance summary + register (the calendar and leave panels stay below it)
 export default function AttendanceLedger({
     logs, registry, staff, presentToday, leaveToday, upcomingHoliday, auditDate, scope, onScope,
-    onExport, onShare, onEnroll, onManual, selectedDay, selectedToday,
+    onExport, onShare, onEnroll, onManual, selectedDay, selectedToday, onDay,
 }) {
     const [search, setSearch] = useState('');
     const [dept, setDept] = useState('');
@@ -79,6 +82,15 @@ export default function AttendanceLedger({
     const shown = filterRows(rows, { search, dept, status }, shiftOf);
     const today = dayCounts(registerRows({ logs, staff, scope: 'day', selectedDay: selectedToday, today: selectedToday, now: new Date(nowMs()) }), staff.length, shiftOf);
     const filtered = !!(search || dept || status);
+    // a card on top = today's people of that kind in the register below
+    const showToday = (st) => {
+        onScope('day'); onDay?.(selectedToday);
+        setSearch(''); setDept(''); setStatus(st);
+        requestAnimationFrame(() => document.querySelector('[data-testid="att-register"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    };
+    const onToday = scope === 'day' && selectedDay === selectedToday && !search && !dept;
+    const cardOn = onToday ? (status || 'all') : null;
+    const trend = useMemo(() => dailyTrend(logs, staff, 15, new Date(nowMs())), [logs, staff]);
 
     const view = shown.map(r => {
         const st = rowStatus(r, shiftOf(r.staffName));
@@ -89,15 +101,17 @@ export default function AttendanceLedger({
     return (
         <div className="ui space-y-5" data-testid="attendance-ledger">
             <div className="grid grid-cols-[repeat(auto-fit,minmax(min(190px,100%),1fr))] gap-3">
-                <Kpi icon={Users} title="Total staff" value={today.total} testid="att-total-staff" tone="bg-primary/10 text-primary" note="Working on the register" />
-                <Kpi icon={UserCheck} title="Present today" value={`${presentToday} STAFF`} testid="att-present-today" tone="bg-success/10 text-success" bar={today.pct} barTone="bg-success" note={`${today.pct}% of staff`} />
-                <Kpi icon={AlarmClock} title="Late today" value={today.late} testid="att-late-today" tone="bg-warning/10 text-warning" note="10+ min after shift start" />
-                <Kpi icon={UserX} title="Not in today" value={today.absent} testid="att-absent-today" tone="bg-destructive/10 text-destructive" note="No check-in yet" />
-                <Kpi icon={CalendarOff} title="On leave" value={`${leaveToday} STAFF`} testid="att-leave-today" tone="bg-warning/10 text-warning" />
-                <Kpi icon={PartyPopper} title="Upcoming holiday" value={`${upcomingHoliday.event} (${upcomingHoliday.date})`} tone="bg-accent text-accent-foreground" />
+                <Kpi icon={Users} title="Total staff" value={today.total} testid="att-total-staff" tone="bg-primary/10 text-primary" note="Working on the register" onClick={() => showToday('')} active={cardOn === 'all'} />
+                <Kpi icon={UserCheck} title="Present today" value={`${presentToday} STAFF`} testid="att-present-today" tone="bg-success/10 text-success" bar={today.pct} barTone="bg-success" note={`${today.pct}% of staff`} onClick={() => showToday('present')} active={cardOn === 'present'} />
+                <Kpi icon={AlarmClock} title="Late today" value={today.late} testid="att-late-today" tone="bg-warning/10 text-warning" note="10+ min after shift start" onClick={() => showToday('late')} active={cardOn === 'late'} />
+                <Kpi icon={UserX} title="Not in today" value={today.absent} testid="att-absent-today" tone="bg-destructive/10 text-destructive" note="No check-in yet" onClick={() => showToday('notin')} active={cardOn === 'notin'} />
+                <Kpi icon={CalendarOff} title="On leave" value={`${leaveToday} STAFF`} testid="att-leave-today" tone="bg-warning/10 text-warning" onClick={() => showToday('leave')} active={cardOn === 'leave'} />
+                <Kpi icon={PartyPopper} title="Upcoming holiday" value={`${upcomingHoliday.event} (${upcomingHoliday.date})`} tone="bg-accent text-accent-foreground" wrap />
             </div>
 
-            <section className="space-y-3 rounded-xl border bg-card p-4 shadow-xs">
+            <AttendanceTrend data={trend} staffCount={staff.length} />
+
+            <section className="space-y-3 rounded-xl border bg-card p-4 shadow-xs" data-testid="att-register">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="space-y-1.5">
                         <h3 className="text-lg font-semibold text-primary">Attendance Register</h3>

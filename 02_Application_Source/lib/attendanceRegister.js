@@ -136,3 +136,23 @@ export function dayCounts(rows, staffCount, shiftOf = () => '') {
     const present = n('present') + n('late');
     return { total: staffCount, present, late: n('late'), absent: n('absent') + n('notin'), leave: n('leave'), pct: staffCount ? Math.round((present / staffCount) * 100) : 0 };
 }
+
+// The last `days` days (oldest first) for the trend chart: how many people came in, and how many of them late.
+// Each person once a day (phone + tablet merged); only the day, no guessing about days without data (0 = nobody).
+export function dailyTrend(logs, staff, days = 15, now = new Date()) {
+    const shiftOf = (n) => staff.find(s => s.name === n)?.shift || '';
+    const out = [];
+    for (let i = days - 1; i >= 0; i--) {
+        const d = new Date(now); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - i);
+        const key = dayKeyOf(d);
+        const rows = mergeSameDay(logs.filter(l => l.date === key && !l.deleted));
+        let present = 0, late = 0;
+        for (const r of rows) {
+            const st = rowStatus(r, shiftOf(r.staffName));
+            if (st === 'present' || st === 'late') present += 1;
+            if (st === 'late') late += 1;
+        }
+        out.push({ key, label: d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }), present, late });
+    }
+    return out;
+}

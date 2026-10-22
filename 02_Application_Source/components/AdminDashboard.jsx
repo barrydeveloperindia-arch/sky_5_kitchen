@@ -1901,7 +1901,7 @@ _Generated via Sky-Ops Center_`;
                             leaveToday={attendanceLogs.filter(l => l.date === dayKey() && /leave/i.test(l.status)).length}
                             upcomingHoliday={upcomingHoliday}
                             auditDate={`${activeAttendanceDate}-${calMonth.getFullYear()}`} selectedDay={activeAttendanceDate}
-                            scope={ledgerScope} onScope={setLedgerScope}
+                            scope={ledgerScope} onScope={setLedgerScope} onDay={setActiveAttendanceDate}
                             onExport={handleExportAttendance} onShare={handleShareAttendanceWhatsApp}
                             onEnroll={() => setStaffDialog({ editing: null })} onManual={() => setShowAttendanceModal(true)} />
 

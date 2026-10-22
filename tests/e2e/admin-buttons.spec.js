@@ -340,7 +340,7 @@ test('attendance: calendar shows the real month, prev/next work, a day filters t
     while (!(await page.getByTestId('cal-month').innerText()).startsWith('May')) await page.getByTestId('cal-prev').click();
     await page.getByTestId('cal-day-07-May').click();
     // a past day with no entries: every working staff member is listed as ABSENT (a blank day is absent)
-    const ledger = page.getByTestId('attendance-ledger');
+    const ledger = page.getByTestId('att-register');
     await expect(ledger.locator('tbody tr[data-status="absent"]').first()).toBeVisible();
     await expect(ledger.locator('tbody tr:not([data-status="absent"])')).toHaveCount(0);
     for (const d of await ledger.locator('tbody tr td:nth-child(5)').allInnerTexts()) expect(d.trim()).toBe('07-May');

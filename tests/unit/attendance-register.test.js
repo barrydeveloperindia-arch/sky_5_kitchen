@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { rangeDays, isLate, rowStatus, registerRows, filterRows, dayCounts, dayKeyOf, mergeSameDay } from '../../02_Application_Source/lib/attendanceRegister';
+import { rangeDays, isLate, rowStatus, registerRows, filterRows, dayCounts, dayKeyOf, mergeSameDay, dailyTrend } from '../../02_Application_Source/lib/attendanceRegister';
 
 const now = new Date(2026, 9, 22, 12, 0);   // 22 Oct 2026
 const staff = [
@@ -114,5 +114,24 @@ describe('one person, one row per day (phone app + AuraLock tablet)', () => {
         const rows = registerRows({ logs, staff, scope: 'day', selectedDay: '22-Oct', today: '22-Oct', now });
         expect(rows.filter(r => r.staffName === 'Varun')).toHaveLength(1);
         expect(dayCounts(rows, 3, shiftOf).present).toBe(1);
+    });
+});
+
+describe('15-day trend', () => {
+    it('one point per day, oldest first; people counted once; late counted too; empty days are 0', () => {
+        const logs = [
+            { staffName: 'Varun', date: '22-Oct', checkIn: '07:59 AM', checkOut: '--', status: 'Present' },
+            { staffName: 'Varun', date: '22-Oct', checkIn: '11:45 AM', checkOut: '--', status: 'Present', readOnly: true },
+            { staffName: 'Ganga', date: '22-Oct', checkIn: '06:55 AM', checkOut: '--', status: 'Present' },
+            { staffName: 'Ganga', date: '20-Oct', checkIn: '07:05 AM', checkOut: '05:00 PM', status: 'Present' },
+            { staffName: 'Bhawna', date: '20-Oct', checkIn: '--', checkOut: '--', status: 'Absent' },
+            { staffName: 'Varun', date: '06-Oct', checkIn: '07:00 AM', checkOut: '--', status: 'Present' },   // older than 15 days
+        ];
+        const t = dailyTrend(logs, staff, 15, now);
+        expect(t).toHaveLength(15);
+        expect(t[0].key).toBe('08-Oct');
+        expect(t[14]).toMatchObject({ key: '22-Oct', present: 2, late: 1 });   // Varun late (shift 07:00), Ganga on time
+        expect(t[12]).toMatchObject({ key: '20-Oct', present: 1, late: 0 });
+        expect(t[13]).toMatchObject({ key: '21-Oct', present: 0, late: 0 });
     });
 });
