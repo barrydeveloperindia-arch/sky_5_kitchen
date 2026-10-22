@@ -171,9 +171,12 @@ export function registerFace(staff, descriptor, photoId) {
 
 // Manager (Staff Directory -> Face): this face, taken now, becomes the person's registered face.
 // Saved like a staff photo face, so it wins over any face from a first check-in.
-export function saveStaffFace(staff, descriptor) {
+export function saveStaffFace(staff, descriptor, extra = []) {
     const { db } = getServices();
-    const rec = { staffName: staff.name, staffId: staff.staffId || '', descriptor, source: 'staff-photo', photoId: '', at: new Date().toISOString(), reset: false };
+    const at = new Date().toISOString();
+    const rec = { staffName: staff.name, staffId: staff.staffId || '', descriptor, source: 'staff-photo', photoId: '', at, reset: false };
+    const samples = extra.filter(d => Array.isArray(d) && d.length === 128).slice(0, MAX_SAMPLES).map(d => ({ d, at }));
+    if (samples.length) rec.samples = samples;
     return trackWrite(setDoc(doc(db, FACES, faceKey(staff)), rec)).then(() => rec);
 }
 
@@ -197,7 +200,11 @@ export async function registeredPhoto(staff) {
 }
 
 // Two people this close to the live face = unsure: ask for a better photo instead of guessing
-export const MATCH_MARGIN = 0.05;
+// Who-is-it on the terminal is stricter than the plain "same face?" limit: live data (14-22 Oct) had real matches at
+// 0.23-0.54 but two DIFFERENT registered people only 0.59-0.61 apart, so 0.6 could take one person for another.
+export const IDENTIFY_DISTANCE = 0.5;
+// ... and the winner must be clearly closer than anybody else
+export const MATCH_MARGIN = 0.1;
 
 // Who is in front of the camera? (like the AuraLock terminal: no name is chosen, the face says who it is)
 // Compares the live face with the registered face of everyone working here; the closest one within the limit
@@ -225,8 +232,8 @@ export async function identifyFace(live, staffList) {
         const d = nearest(live, rec);
         if (!best || d < best.d) { second = best; best = { staff: s, d, rec }; } else if (!second || d < second.d) second = { staff: s, d };
     }
-    if (!best || best.d > MATCH_DISTANCE) return { staff: null };
-    if (second && second.d <= MATCH_DISTANCE && second.d - best.d < MATCH_MARGIN) return { staff: null, unsure: true };
+    if (!best || best.d > IDENTIFY_DISTANCE) return { staff: null, near: best && best.d <= MATCH_DISTANCE };
+    if (second && second.d - best.d < MATCH_MARGIN) return { staff: null, unsure: true };
     return { staff: best.staff, distance: Math.round(best.d * 1000) / 1000, source: best.rec.source };
 }
 

@@ -208,5 +208,19 @@ test('every staff member with no face can be registered one after the other, wha
     // two look-alikes (Varun 0.01 and Ratnesh 0.012): not guessed - asks for a better photo, nothing saved
     await showFace(page, 0.011);
     expect(await terminalScan(page, 'in')).toBe(null);
-    await expect(page.getByTestId('att-error')).toContainText('Come closer');
+    await expect(page.getByTestId('att-error')).toContainText(/come closer/i);
+});
+
+test('the manager registers a face from 3 frames: the record keeps 2 extra pictures of the same moment', async ({ page }) => {
+    await openFace(page, 'Ratnesh');
+    await who(page, 'V');
+    await takeFace(page);
+    await expect(page.getByTestId('face-new')).toBeVisible({ timeout: 15000 });
+    await page.getByTestId('face-save').click();
+    await expect(page.getByTestId('face-dialog')).toHaveCount(0);
+    const project = await page.evaluate(() => localStorage.getItem('sky5_emu_project'));
+    const r = await page.request.get(`http://127.0.0.1:8181/v1/projects/${project}/databases/(default)/documents/hotel_staff_faces/name-ratnesh`, { headers: { Authorization: 'Bearer owner' } });
+    const f = (await r.json()).fields;
+    expect(f.source.stringValue).toBe('staff-photo');
+    expect(f.samples.arrayValue.values).toHaveLength(2);
 });

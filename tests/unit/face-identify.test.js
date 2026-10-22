@@ -13,7 +13,7 @@ vi.mock('firebase/firestore', () => ({
     getDoc: async (ref) => { const f = faces.find(([id]) => id === ref.id); return { exists: () => !!f, data: () => f?.[1] }; },
     setDoc: async () => {},
 }));
-const { identifyFace, MATCH_DISTANCE, MATCH_MARGIN, faceSet, nearest } = await import('../../02_Application_Source/lib/faceMatch');
+const { identifyFace, MATCH_DISTANCE, MATCH_MARGIN, IDENTIFY_DISTANCE, faceSet, nearest } = await import('../../02_Application_Source/lib/faceMatch');
 
 const vec = (v) => Array.from({ length: 128 }, () => v);
 const rec = (name, v, extra = {}) => ({ staffName: name, descriptor: vec(v), source: 'staff-photo', reset: false, ...extra });
@@ -64,5 +64,26 @@ describe('learned samples', () => {
     it('broken samples are ignored, a reset record has no faces', () => {
         expect(faceSet({ descriptor: vec(0.1), samples: [{ d: [1, 2] }, null] })).toHaveLength(1);
         expect(faceSet({ reset: true, descriptor: [] })).toHaveLength(0);
+    });
+});
+
+describe('strict who-is-it (live data: different people only 0.59-0.61 apart)', () => {
+    beforeEach(() => { faces = [['name-varun', rec('Varun', 0.01)], ['name-bhawna', rec('Bhawna', 0.3)]]; });
+
+    it('only a close face is accepted: 0.5 and a clear lead of 0.1 over anybody else', () => {
+        expect(IDENTIFY_DISTANCE).toBe(0.5);
+        expect(MATCH_MARGIN).toBe(0.1);
+    });
+
+    it('a face 0.55 away (would have passed the old 0.6) is no longer accepted - only "near"', async () => {
+        const r = await identifyFace(vec(0.01 + 0.55 / Math.sqrt(128)), staff);
+        expect(r.staff).toBe(null);
+        expect(r.near).toBe(true);
+    });
+
+    it('two people within 0.1 of each other: unsure', async () => {
+        faces.push(['name-twin', rec('Twin', 0.017)]);   // 0.08 away from Varun
+        const r = await identifyFace(vec(0.012), [...staff, { name: 'Twin' }]);
+        expect(r.unsure).toBe(true);
     });
 });

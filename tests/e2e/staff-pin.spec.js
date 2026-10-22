@@ -115,7 +115,7 @@ test('a PIN never registers a face that already belongs to someone else', async 
     await showFace(page, 0.52);   // nearly Varun's face, a clear photo - but not close enough to be sure
     await seedFace(page, 'Karan', 0.54);
     await scan(page, 'in');       // two people this close: not guessed
-    await expect(page.getByTestId('att-error')).toContainText('Come closer');
+    await expect(page.getByTestId('att-error')).toContainText(/come closer/i);
     await page.getByTestId('att-cancel').click();
     await page.getByTestId('att-pin-link').click();
     await page.getByTestId('att-pin-name-Pin Person').click();

@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { getServices, whenSignedIn } from '../../lib/firebase';
 import { trackWrite } from '../../lib/syncedState';
 import { MAX_PHOTO_CHARS } from '../../lib/staffAttendance';
-import { findFaces, faceQuality, saveStaffFace, resetFace, warmUpFaces } from '../../lib/faceMatch';
+import { distance, findFaces, faceQuality, saveStaffFace, resetFace, warmUpFaces } from '../../lib/faceMatch';
 
 // Staff Directory -> Face (like re-registering a face in AuraLock): see whose face is registered for a person,
 // take it again with the camera (e.g. someone else's face was registered by mistake), or reset it.
@@ -89,8 +89,21 @@ function FaceBody({ staff, face, photoSrc, onClose, onPhotoSaved, onFaceChanged 
         const q = faceQuality(faces, frame.width, { register: true });
         if (!q.ok) { setStep('camera'); setError(q.reason.replace('First check-in: ', '')); return; }
         if (!photo) { setStep('camera'); setError('Photo could not be saved, try again.'); return; }
+        // two more frames of the same moment make the registered face sturdier (other angle / light)
+        const extra = [];
+        for (let i = 0; i < 2; i++) {
+            await new Promise(r => setTimeout(r, 300));
+            if (!v.videoWidth) break;
+            const c = document.createElement('canvas');
+            c.width = v.videoWidth; c.height = v.videoHeight;
+            c.getContext('2d').drawImage(v, 0, 0);
+            try {
+                const more = faceQuality(await findFaces(c), c.width, { register: true });
+                if (more.ok && distance(more.face.descriptor, q.face.descriptor) < 0.45) extra.push(more.face.descriptor);   // the same face
+            } catch { /* one frame is enough */ }
+        }
         stop();
-        setShot({ photo, descriptor: q.face.descriptor });
+        setShot({ photo, descriptor: q.face.descriptor, extra });
         setStep('review');
     };
 
@@ -101,7 +114,7 @@ function FaceBody({ staff, face, photoSrc, onClose, onPhotoSaved, onFaceChanged 
             trackWrite(setDoc(doc(getServices().db, PHOTOS, staff.staffId), { staffId: staff.staffId, data: shot.photo, at: new Date().toISOString() })).catch(() => {});
             onPhotoSaved(staff, shot.photo);
         }
-        const rec = await saveStaffFace(staff, shot.descriptor).catch(() => null);
+        const rec = await saveStaffFace(staff, shot.descriptor, shot.extra).catch(() => null);
         if (!rec) { setError('Could not save the face. Check internet and try again.'); return; }
         onFaceChanged(staff, rec);
         onClose();

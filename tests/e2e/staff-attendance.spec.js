@@ -134,7 +134,7 @@ test('two registered faces almost the same: no guess - asks for a better photo',
     await seedFace(page, 'Karan', 0.02);   // nearly the same face as Varun (0.01)
     await showFace(page, 0.015);
     await scan(page, 'in');
-    await expect(page.getByTestId('att-error')).toContainText('Come closer and look straight');
+    await expect(page.getByTestId('att-error')).toContainText(/come closer/i);
     await expect(page.getByTestId('att-video')).toBeVisible();
     await expect(page.getByTestId('att-done')).toHaveCount(0);
 });
@@ -367,4 +367,15 @@ test('one scan looks at several camera frames: a blink / no face in the first fr
     await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
     await page.getByTestId('att-capture').click();
     await expect(page.getByTestId('att-done-name')).toHaveText('Varun', { timeout: 15000 });
+});
+
+test('strict match: a face 0.55 away from Varun (accepted by the old 0.6 limit) is NOT taken as Varun', async ({ page }) => {
+    await showFace(page, 0.01 + 0.55 / Math.sqrt(128));
+    await page.getByTestId('att-in').click();
+    await expect.poll(() => page.getByTestId('att-video').evaluate(v => v.videoWidth)).toBeGreaterThan(0);
+    await page.getByTestId('att-capture').click();
+    await expect(page.getByTestId('att-error')).toContainText(/come closer/i);
+    await expect(page.getByTestId('att-done')).toHaveCount(0);
+    await page.getByTestId('att-cancel').click();
+    await expect(page.getByTestId('att-counts')).toContainText('0 in now');
 });

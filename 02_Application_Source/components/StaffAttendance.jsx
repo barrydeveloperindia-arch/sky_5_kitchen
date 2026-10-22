@@ -28,7 +28,8 @@ const DONE_SECONDS = 10;          // the result screen goes back to the start by
 const NOTE_SECONDS = 6;           // a short note (already checked in...) disappears by itself
 const AUTO_PHOTO_SECONDS = 2;     // the photo is taken by itself after this countdown (owner: 2 s)
 const MAX_FACE_TRIES = 4;         // photos without a usable face before the camera closes by itself
-const FRAMES_PER_SCAN = 3;       // one scan looks at up to 3 camera frames before saying 'not recognised'
+const FRAMES_PER_SCAN = 4;       // one scan looks at up to 4 camera frames ...
+const AGREE_FRAMES = 2;          // ... and the same person must be recognised in 2 of them
 const LEARN_LIMIT = 0.7;          // a PIN entry teaches the face only if it still resembles the person's own face
 const MAX_UNKNOWN_TRIES = 2;      // clear photos of a face nobody registered: then "not recognised"
 const PHOTO_FRESH_MS = 60000;     // a PIN entry uses the camera photo only if it was taken this recently
@@ -248,10 +249,12 @@ export default function StaffAttendance() {
             if (attempt + 1 >= MAX_FACE_TRIES) { fail(msg); return; }
             setError(msg); setAttempt(a => a + 1);
         };
-        // look at up to FRAMES_PER_SCAN frames (a blink, a turned head or a shadow spoils one frame)
-        let found = { staff: null }, photo = null, why = 'Face not recognised - look straight at the camera.', clear = false;
+        // look at up to FRAMES_PER_SCAN frames; the SAME person must be recognised in AGREE_FRAMES of them (like the
+        // AuraLock streak rule) - one lucky frame never decides, and a blink or a shadow spoils only one frame
+        let found = { staff: null }, photo = null, why = 'Face not recognised - look straight at the camera.', clear = false, unsure = false;
+        const hits = new Map();   // name -> { n, best }
         for (let f = 0; f < FRAMES_PER_SCAN && !found.staff; f++) {
-            if (f > 0) await new Promise(r => setTimeout(r, 300));
+            if (f > 0) await new Promise(r => setTimeout(r, 250));
             if (cancelled()) return;
             if (!video.videoWidth) break;
             const frame = fullFrame(video);
@@ -263,17 +266,24 @@ export default function StaffAttendance() {
             const quality = faceQuality(faces, frame.width);
             if (!quality.ok) { why = quality.reason; continue; }
             const live = quality.face.descriptor;
-            photo = shot;
             lastRef.current = { photo: shot, face: faceQuality(faces, frame.width, { register: true }).ok ? live : null, at: Date.now() };
-            try { found = await identifyFace(live, staff); } catch { retry('Could not check the face. Check internet.'); return; }
+            let r;
+            try { r = await identifyFace(live, staff); } catch { retry('Could not check the face. Check internet.'); return; }
             if (cancelled()) return;
             clear = true;
-            if (found.unsure) why = 'Come closer and look straight at the camera.';
+            if (r.unsure || r.near) unsure = true;
+            if (!r.staff) continue;
+            const h = hits.get(r.staff.name) || { n: 0, best: null, photo: null };
+            h.n += 1;
+            if (!h.best || r.distance < h.best.distance) { h.best = r; h.photo = shot; }
+            hits.set(r.staff.name, h);
+            if (hits.size > 1) { unsure = true; break; }   // two different people in one scan: never guess
+            if (h.n >= AGREE_FRAMES) { found = h.best; photo = h.photo; }
         }
         if (!found.staff) {
             if (!clear) { retry(why); return; }   // no usable face in any frame: ask again on the camera
             unknownRef.current += 1;
-            if (found.unsure) { retry(why); return; }
+            if (unsure || hits.size) { retry('Hold still, come closer and look straight at the camera.'); return; }
             if (unknownRef.current >= MAX_UNKNOWN_TRIES) { fail('Look straight at the camera in good light and try again - or use your PIN.'); return; }
             retry('Face not recognised - look straight at the camera.');
             return;
