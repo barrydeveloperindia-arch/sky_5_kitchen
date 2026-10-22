@@ -46,11 +46,9 @@ test('guide screens', async ({ page }) => {
     await page.waitForTimeout(600);
     await shot('s1_start');
     await page.getByTestId('att-in').click();
-    await expect(page.getByTestId('att-countdown')).toBeVisible({ timeout: 15000 });
-    await page.waitForTimeout(300);
-    await shot('s2_countdown');
-    await expect(page.getByTestId('att-checking')).toBeVisible({ timeout: 15000 });
-    await shot('s3_checking');
+    await expect(page.getByTestId('att-checking')).toBeVisible({ timeout: 15000 });   // scanning by itself (no button)
+    await page.waitForTimeout(400);
+    await shot('s2_scanning');
     await expect(page.getByTestId('att-done')).toBeVisible({ timeout: 15000 });
     await page.waitForTimeout(800);
     await shot('s4_welcome');
