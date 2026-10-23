@@ -82,6 +82,9 @@ test('admin dashboard: every sidebar tab renders without errors', async ({ page 
         await adminTab(page, key);
         await expect(page.getByRole('heading', { level: 1 }), key).toContainText(heading);
     }
+    // room counts only on the room pages
+    await expect(page.getByTestId('stat-occupied')).toHaveCount(0);
+    await adminTab(page, 'today');
     await expect(page.getByTestId('stat-occupied')).toContainText('3');
     await expect(page.getByTestId('stat-dirty')).toContainText('3');
     await expect(page.getByTestId('stat-available')).toContainText('11'); // 17 rooms in rooms.js

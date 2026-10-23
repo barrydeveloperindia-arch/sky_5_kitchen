@@ -21,6 +21,8 @@ import { useSyncedCollection, useSyncedDoc, useSyncStatus } from '../lib/syncedS
 import { normalizeRegistry } from '../lib/staff';
 import { toCSV, CSV_BOM } from '../lib/csv';
 
+// OPS tabs about rooms: only these show the room counts in the header
+const ROOM_TABS = ['Today', 'Reception', 'Cleaning', 'Laundry', 'Checkouts'];
 const pct = (rate) => `${Math.round(rate * 100)}%`;
 const MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 // Attendance/holiday date key in the same "06-May" format the register uses
@@ -1724,7 +1726,7 @@ _Generated via Sky-Ops Center_`;
                     subtitle={new Date().toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
                     liveReady={liveReady}
                     savingCount={savingCount}
-                    stats={stats}
+                    stats={ROOM_TABS.includes(activeTab) ? stats : null}
                 />
 
                 {activeTab === 'Today' && (

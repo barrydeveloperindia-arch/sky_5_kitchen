@@ -64,6 +64,9 @@ test('cards, filters, Sr. No. + staff ID, people with no entry today ("Not in ye
     const early = new Date(now); early.setHours(Math.max(0, now.getHours() - 2), 0, 0, 0);
     await putRow(page, 'r-in', { status: 'Present', source: 'staff-web', staffName: 'Bhawna', date: key(early), dateISO: iso(early), checkIn: early.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }), checkOut: '--', inAt: early.toISOString() });
     await adminTab(page, 'attendance');
+    // the header shows only "Live" here: room counts belong to the room pages
+    await expect(page.getByTestId('admin-live')).toBeVisible();
+    await expect(page.getByTestId('stat-occupied')).toHaveCount(0);
     await page.getByTestId('att-scope-day').click();
     const ledger = page.getByTestId('att-register');
     await expect(ledger.getByRole('row').filter({ hasText: 'Bhawna' })).toHaveCount(1, { timeout: 15000 });

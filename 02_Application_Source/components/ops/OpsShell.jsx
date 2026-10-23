@@ -83,9 +83,12 @@ export function OpsHeader({ title, subtitle, liveReady, savingCount, stats }) {
                     title="Saved to the database and shared with every device"
                     className={cn('rounded-full px-2.5 py-0.5 font-semibold sm:px-3 sm:py-1', online && liveReady && !savingCount ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning')}
                 >{liveText}</span>
+                {/* room counts only where the page is about rooms (not on Attendance, Inventory, Finance ...) */}
+                {stats && (<>
                 <span data-testid="stat-occupied" title="Rooms where a guest is staying right now" className="rounded-full border bg-card px-2.5 py-0.5 sm:px-3 sm:py-1">Rooms with guests: <b>{stats.occupied}</b></span>
                 <span data-testid="stat-dirty" title="Guest has left; the room must be cleaned before the next guest" className="rounded-full border bg-card px-2.5 py-0.5 sm:px-3 sm:py-1 text-destructive">Rooms to clean: <b>{stats.dirty}</b></span>
                 <span data-testid="stat-available" title="Clean and empty: can be given to a new guest" className="rounded-full border bg-card px-2.5 py-0.5 sm:px-3 sm:py-1 text-success">Ready for new guest: <b>{stats.clean}</b></span>
+                </>)}
             </div>
         </div>
         </>
