@@ -12,6 +12,7 @@ const lazyScreen = (load) => lazy(() => load().catch((err) => {
 const AdminDashboard = lazyScreen(() => import('./components/AdminDashboard'));
 const StaffInventory = lazyScreen(() => import('./components/StaffInventory'));
 const StaffAttendance = lazyScreen(() => import('./components/StaffAttendance'));
+const AttendanceMoved = lazyScreen(() => import('./components/AttendanceMoved'));
 const HotelTv = lazyScreen(() => import('./components/HotelTv'));
 import { combos } from './data/combos';
 import { rooms as roomData, liveSeedRooms } from './data/rooms';
@@ -29,6 +30,9 @@ const isHotelTv = staffPath === '/tv';
 // OPS Center admin login (admin@sky5.com). Switched on once the admin user exists in Firebase Authentication;
 // a build with VITE_ADMIN_LOGIN=0 leaves the OPS Center open as before.
 const ADMIN_LOGIN_ON = import.meta.env.VITE_ADMIN_LOGIN !== '0';
+// Hotel staff check in / out on the AuraLock tablet since 23-10-2026 (timesheets come from there): the hotel app's own
+// face terminal is off and /attendance says where to go. VITE_STAFF_TERMINAL=1 switches it back on (the tests use it).
+const STAFF_TERMINAL_ON = import.meta.env.VITE_STAFF_TERMINAL === '1';
 
 // Live data starts clean: every room free, no guests, no orders. The sample guests/orders
 // exist only in the test environment (E2E fixtures), never in the live hotel data.
@@ -116,7 +120,7 @@ function App() {
   return (
     <div className="legacy">
       <Suspense fallback={<Loading />}>
-        {isHotelTv ? <HotelTv /> : isStaffAttendance ? <StaffAttendance /> : isStaffInventory ? <StaffInventory /> : <HotelApp />}
+        {isHotelTv ? <HotelTv /> : isStaffAttendance ? (STAFF_TERMINAL_ON ? <StaffAttendance /> : <AttendanceMoved />) : isStaffInventory ? <StaffInventory /> : <HotelApp />}
       </Suspense>
     </div>
   );

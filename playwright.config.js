@@ -32,7 +32,7 @@ export default defineConfig({
       reuseExistingServer: false,
       timeout: 60_000,
       // the live board is replaced in tests (routes in the specs); an unanswered call just fails quietly
-      env: { VITE_FIREBASE_EMULATOR: '1', VITE_SKY5_BOARD_URL: 'http://board.test', VITE_SKY5_BOARD_KEY: 'test-key' },
+      env: { VITE_FIREBASE_EMULATOR: '1', VITE_STAFF_TERMINAL: '1', VITE_SKY5_BOARD_URL: 'http://board.test', VITE_SKY5_BOARD_KEY: 'test-key' },
     },
   ],
 });
